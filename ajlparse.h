@@ -35,7 +35,7 @@ unsigned int ajl_line(ajl_t);	// Return current line number in source
 // Parse
 
 // Allocate control structure for parsing, from file or from memory
-ajl_t ajl_parse (FILE * f);
+ajl_t ajl_parse (FILE *);
 ajl_t ajl_parse_mem (unsigned char *buffer, size_t len);
 
 typedef enum
@@ -58,7 +58,7 @@ ajl_type_t ajl_next (ajl_t, unsigned char **tag, unsigned char **value);        
 const char *ajl_number (unsigned char *, long long *);
 const char *ajl_real (unsigned char *, long double *);
 const char *ajl_boolean (unsigned char *, unsigned char *);
-const char *ajl_string (unsigned char *j, FILE * o);
+const char *ajl_string (unsigned char *j, FILE *);
 const char *ajl_string_mem (unsigned char *j, char **buffer, size_t *len);      // Allocates memory for string
 
 int ajl_strcmp (const unsigned char *ajl, const unsigned char *string);
@@ -67,7 +67,7 @@ int ajl_strcasecmp (const unsigned char *ajl, const unsigned char *string);
 // Generate
 
 // Allocate control structure for generating, to file or to memory
-ajl_t ajl_generate (FILE * f);
+ajl_t ajl_generate (FILE *);
 ajl_t ajl_generate_mem (unsigned char **buffer, size_t *len);
 
 const char *ajl_add (ajl_t, const unsigned char *tag, const unsigned char *value);      // Add pre-formatted value (expects quotes, escapes, etc)
