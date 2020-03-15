@@ -22,11 +22,12 @@
      */
 
 #include "ajl.h"
-
+#include "ajlparse.c"
 
 #ifndef	LIB	// Build as command line for testing
-int main(int argc,const char *argv[])
+int main(int __attribute__((unused)) argc,const char __attribute__((unused)) *argv[])
 {
+
 	 return 0;
 }
 #endif
