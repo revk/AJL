@@ -53,7 +53,6 @@ typedef enum
 } ajl_type_t;
 
 ajl_type_t ajl_next (ajl_t, unsigned char **tag, unsigned char **value);        // Consume next syntactic unit, set tag and value to start of respective parts and return type (as above)
-ajl_type_t ajl_find (ajl_t, const unsigned char *tag, unsigned char **value);   // Move forward in current object until tag found
 
 // Process the unsigned char* value from above in to other types
 const char *ajl_number (unsigned char *, long long *);
