@@ -21,5 +21,12 @@
        along with this program.  If not, see <http://www.gnu.org/licenses/>.
      */
 
-#include <ajl.h>
+#include "ajl.h"
 
+
+#ifndef	LIB	// Build as command line for testing
+int main(int argc,const char *argv[])
+{
+	 return 0;
+}
+#endif
