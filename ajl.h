@@ -35,12 +35,15 @@ const char* j_read_file(j_t,const char *filename); // Read object from named fil
 const char* j_read_mem(j_t,char *buffer); // Read object from string in memory (NULL terminated)
 
 // Updating an object
-const char * j_add_string(j_t,const char *tag,const char *);	// Add quoted string with specified tag in current object
-const char * j_add_literal(j_t,const char *tag,const char *); // Add unquoted literal (use for Boolean or null)
+// When adding to an object, the j_t points to a parent object, which could be root, and tag is specified
+// Tag can be a simple tag, or tag.tag etc, allowing you to add to a path within objects. This creates objects as needed
+// Tag can be [n] to indicate an entry in an array -- TODO, make this as close to JS as we can, needs work
+const char * j_add(j_t,const char *tag,const char *);	// Add quoted string with specified tag in current object, if null, then adds a literal null
+const char * j_addl(j_t,const char *tag,size_t,const char *);	// Add quoted string with specified tag in current object, specified length (allows nulls)
+const char * j_addf(j_t,const char *tag,const char *fmt,...);	// Add quoted string with specified tag in current object
+const char * j_litf(j_t,const char *tag,const char *fmt,...); // Add unquoted value (use for Boolean or null or numbers)
 const char * j_rem(j_t,const char*tag); // Remove tagged entry
 
-// TODO string with len (i.e. allow embedded nulls)
-// TODO string with printf style formatting
 // TODO tag as a path
 
 // Updating an array
