@@ -122,6 +122,15 @@ j_find (j_t j, const char *tags)
 }
 
 j_t
+j_findmake (j_t j, const char *tags)
+{                               // Find object within this object by tag/path - make if any in path does not exist
+   if (!j || tags)
+      return NULL;
+   // TODO
+   return NULL;
+}
+
+j_t
 j_index (j_t j, int n)
 {                               // Find specific point in an array, or object - NULL if not in the array
    if (!j || !j->child || n < 0 || n >= j->len)
@@ -291,7 +300,22 @@ void
 j_null (j_t j)
 {                               // Null this point
    assert (j);
-   // TODO
+   if (j->child)
+   {                            // Object or array
+      int n;
+      for (n = 0; n < j->len; n++)
+         j_null (&j->child[n]);
+      free (j->child);
+      j->child = NULL;
+   }
+   j->isarray = 0;
+   if (j->malloc)
+   {
+      free (j->val);
+      j->val = NULL;
+      j->malloc = 0;
+   }
+   j->isstring = 0;
    return;
 }
 
@@ -300,9 +324,13 @@ j_string (j_t j, const char *val)
 {                               // Simple set this value to a string (null terminated).
    if (!j)
       return;
+   j_null (j);
    if (!val)
-      return j_null (j);
-   // TODO
+      return;
+   j->val = strdup (val);
+   j->len = strlen (val);
+   j->malloc = 1;
+   j->isstring = 1;
    return;
 }
 
@@ -313,9 +341,23 @@ j_stringn (j_t j, const char *val, size_t len)
       return;
    if (len)
       assert (val);
-
-   // TODO
+   j_null (j);
+   assert ((j->val = malloc (len + 1)));
+   memcpy (j->val, val, len);
+   j->val[len] = 0;
+   j->len = len;
+   j->malloc = 1;
+   j->isstring = 1;
    return;
+}
+
+static void
+j_vstringf (j_t j, const char *fmt, va_list ap, int isstring)
+{
+   assert (vasprintf (&j->val, fmt, ap) >= 0);
+   j->len = strlen (j->val);
+   j->malloc = 1;
+   j->isstring = isstring;
 }
 
 void
@@ -323,7 +365,11 @@ j_stringf (j_t j, const char *fmt, ...)
 {                               // Simple set this value to a string, using printf style format
    if (!j)
       return;
-   // TODO
+   j_null (j);
+   va_list ap;
+   va_start (ap, fmt);
+   j_vstringf (j, fmt, ap, 1);
+   va_end (ap);
    return;
 }
 
@@ -332,7 +378,11 @@ j_numberf (j_t j, const char *fmt, ...)
 {                               // Simple set this value to a number, i.e. unquoted, using printf style format
    if (!j)
       return;
-   // TODO
+   j_null (j);
+   va_list ap;
+   va_start (ap, fmt);
+   j_vstringf (j, fmt, ap, 0);
+   va_end (ap);
    return;
 }
 
@@ -341,7 +391,23 @@ j_literal (j_t j, const char *val)
 {                               // Simple set this value to a literal, e.g. "null", "true", "false"
    if (!j)
       return;
-   // TODO
+   j_null (j);
+   if (val && !strcmp (val, valempty))
+      val = valempty;
+   else if (val && !strcmp (val, valzero))
+      val = valzero;
+   else if (val && !strcmp (val, valtrue))
+      val = valtrue;
+   else if (val && !strcmp (val, valfalse))
+      val = valfalse;
+   else if (val && !strcmp (val, valnull))
+      val = NULL;
+   else
+   {
+      val = strdup (val);
+      j->malloc = 1;
+   }
+   j->val = (char*)val;
    return;
 }
 
@@ -350,7 +416,9 @@ j_object (j_t j)
 {                               // Simple set this value to be an object if not already
    if (!j)
       return;
-   // TODO
+   if (!j->child || j->isarray)
+      j_null (j);
+   assert ((j->child = malloc (0)));
    return;
 }
 
@@ -359,29 +427,37 @@ j_array (j_t j)
 {                               // Simple set this value to be an array if not already
    if (!j)
       return;
-   // TODO
+   if (!j->child || j->isarray)
+      j_null (j);
+   assert ((j->child = malloc (0)));
+   j->isarray = 1;
    return;
 }
 
 j_t
 j_add (j_t j, const char *tags)
 {                               // Create specified tag/path, and return the point that is the value for that tag.
-   // TODO
-   return NULL;
+   return j_findmake(j,tags);
 }
 
 j_t
 j_append (j_t j)
 {                               // Create new point at end of array
+   if (!j)
+      return NULL;
+   j_array (j);
    // TODO
-   return NULL;
+   return &j->child[0];
 }
 
 void
 j_remove (j_t j, const char *tags)
 {                               // Remove an entry from its parent
-   if (!j)
+   if (tags)
+      j = j_find (j, tags);
+   if (!j || !j->parent)
       return;
+   // TODO
    return;
 }
 
@@ -390,29 +466,49 @@ j_remove (j_t j, const char *tags)
 j_t
 j_add_string (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a string (null terminated).
-   // TODO
-   return NULL;
+   if (tags)
+      j = j_findmake (j, tags);
+   j_string (j, val);
+   return j;
 }
 
 j_t
 j_add_stringf (j_t j, const char *tags, const char *fmt, ...)
 {                               // Simple set this value to a string, using printf style format
-   // TODO
-   return NULL;
+   if (tags)
+      j = j_findmake (j, tags);
+   if (!j)
+      return NULL;
+   j_null (j);
+   va_list ap;
+   va_start (ap, fmt);
+   j_vstringf (j, fmt, ap, 1);
+   va_end (ap);
+   return j;
 }
 
 j_t
 j_add_numberf (j_t j, const char *tags, const char *fmt, ...)
 {                               // Simple set this value to a number, i.e. unquoted, using printf style format
-   // TODO
-   return NULL;
+   if (tags)
+      j = j_findmake (j, tags);
+   if (!j)
+      return NULL;
+   j_null (j);
+   va_list ap;
+   va_start (ap, fmt);
+   j_vstringf (j, fmt, ap, 0);
+   va_end (ap);
+   return j;
 }
 
 j_t
 j_add_literal (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a literal, e.g. "null", "true", "false"
-   // TODO
-   return NULL;
+   if (tags)
+      j = j_findmake (j, tags);
+   j_literal (j, val);
+   return j;
 }
 
 
@@ -420,29 +516,47 @@ j_add_literal (j_t j, const char *tags, const char *val)
 j_t
 j_append_string (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a string (null terminated).
-   // TODO
-   return NULL;
+   if (tags)
+      j = j_findmake (j, tags);
+   j = j_append (j);
+   j_string (j, val);
+   return j;
 }
 
 j_t
 j_append_stringf (j_t j, const char *tags, const char *fmt, ...)
 {                               // Simple set this value to a string, using printf style format
-   // TODO
-   return NULL;
+   if (tags)
+      j = j_findmake (j, tags);
+   j = j_append (j);
+   va_list ap;
+   va_start (ap, fmt);
+   j_vstringf (j, fmt, ap, 1);
+   va_end (ap);
+   return j;
 }
 
 j_t
 j_append_numberf (j_t j, const char *tags, const char *fmt, ...)
 {                               // Simple set this value to a number, i.e. unquoted, using printf style format
-   // TODO
-   return NULL;
+   if (tags)
+      j = j_findmake (j, tags);
+   j = j_append (j);
+   va_list ap;
+   va_start (ap, fmt);
+   j_vstringf (j, fmt, ap, 0);
+   va_end (ap);
+   return j;
 }
 
 j_t
 j_append_literal (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a literal, e.g. "null", "true", "false"
-   // TODO
-   return NULL;
+   if (tags)
+      j = j_findmake (j, tags);
+   j = j_append (j);
+   j_literal (j, val);
+   return j;
 }
 
 
@@ -450,8 +564,10 @@ j_append_literal (j_t j, const char *tags, const char *val)
 j_t
 j_attach (j_t j, j_t o)
 {                               // Replaces first value with the second in a tree, removing second from its parent if it has one, returns first arg or NULL for error
+   if (!j || !o)
+      return j;
    // TODO
-   return NULL;
+   return j;
 }
 
 #ifndef	LIB                     // Build as command line for testing
