@@ -57,7 +57,6 @@ typedef enum
    AJL_EOF,                     // End of file reached (at expected point, no error)
    AJL_STRING,
    AJL_NUMBER,
-   AJL_REAL,
    AJL_BOOLEAN,
    AJL_NULL,
    AJL_CLOSE,                   // End of object or array
@@ -79,11 +78,8 @@ ajl_t ajl_write_file (const char *filename);
 ajl_t ajl_write_mem (unsigned char **buffer, size_t *len);
 
 const char *ajl_add (ajl_t, const unsigned char *tag, const unsigned char *value);      // Add pre-formatted value (expects quotes, escapes, etc)
-const char *ajl_add_string (ajl_t, const unsigned char *tag, const unsigned char *value, size_t len);   // Note len=-1 means use strlen(value)
-const char *ajl_add_base64 (ajl_t, const unsigned char *tag, const unsigned char *buf, size_t len);     // Base64 (URL) coded string
-const char *ajl_add_colour (ajl_t, const unsigned char *tag, unsigned int RGB); // Quoted colour # notation
-const char *ajl_add_number (ajl_t, const unsigned char *tag, long long value);
-const char *ajl_add_real (ajl_t, const unsigned char *tag, long double value);
+const char *ajl_add_string (ajl_t, const unsigned char *tag, const unsigned char *value, ssize_t len);   // Note len=-1 means use strlen(value)
+const char *ajl_add_number (ajl_t, const unsigned char *tag, const char *fmt,...);
 const char *ajl_add_boolean (ajl_t, const unsigned char *tag, unsigned char value);
 const char *ajl_add_null (ajl_t, const unsigned char *tag);
 const char *ajl_add_object (ajl_t, const unsigned char *tag);   // Start an object
