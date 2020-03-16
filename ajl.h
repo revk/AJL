@@ -21,7 +21,7 @@
        along with this program.  If not, see <http://www.gnu.org/licenses/>.
      */
 #pragma once
-
+#include <stdio.h>
 
 // This code is intended to allow loading, saving, and manipulation of JSON objects
 // The key data type, j_t, is a pointer to a control structure and represents a current "point"
