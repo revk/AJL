@@ -21,8 +21,11 @@
        along with this program.  If not, see <http://www.gnu.org/licenses/>.
      */
 
+//
+// THIS IS PROBABLY NOT THE FILE YOU ARE LOOKING FOR, MOVE ALONG PLEASE, NO DROIDS HERE
+//
 // This used for low level parsing, and not manipulating JSON objects in memory
-// You probably want to look at ajl.h
+// You probably want to look at ajl.h for that
 
 #pragma once
 #include <stdio.h>
