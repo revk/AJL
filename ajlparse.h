@@ -50,6 +50,7 @@ ajl_t ajl_read_file (const char *filename);
 ajl_t ajl_read_mem (unsigned char *buffer, size_t len);
 int ajl_line(ajl_t);	// Return current line number in source
 int ajl_char(ajl_t);	// Return current character position in source
+int ajl_level(ajl_t);	// return current level of nesting
 
 typedef enum
 {                               // Parse types

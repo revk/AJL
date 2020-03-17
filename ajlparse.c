@@ -318,6 +318,14 @@ ajl_char (ajl_t j)
    return j->posn;
 };
 
+int
+ajl_level (ajl_t j)
+{                               // return current level of nesting
+   if (!j)
+      return -1;
+   return j->level;
+}
+
 // The basic parsing function consumes next element, and returns a type as above
 // If the element is within an object, then the tag is parsed and mallocd and stored in tag
 // The value of the element is parsed, and malloced and stored in value (a null is appended, not included in len)

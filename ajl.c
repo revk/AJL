@@ -29,7 +29,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <ctype.h>
-#undef NDEBUG // Uses side effects in assert
+#undef NDEBUG                   // Uses side effects in assert
 #include <assert.h>
 
 // This is a point in the JSON object
@@ -173,6 +173,8 @@ j_len (j_t j)
 {                               // The length of this value (characters if string or number or literal), or number of entries if object or array
    if (!j)
       return -1;
+   if (!j->child && !j->isstring && !j->val)
+      return sizeof (valnull) - 1;
    return j->len;
 }
 
