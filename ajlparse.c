@@ -26,19 +26,23 @@
 #include <malloc.h>
 #include <ctype.h>
 #include <string.h>
+#undef NDEBUG                   // Uses side effects in asset
+#include <assert.h>
 
 struct ajl_s
 {
    FILE *f;                     // File being parsed or generated
    int line;                    // Line number
    int posn;                    // Character position
+   int level;                   // Current level
+   int maxlevel;                // Max level allocated flags
    const char *error;           // Current error
-   unsigned long long comma;    // bit 0 set means current level needs a comma before next value (allows 64 levels)
-   unsigned long long object;   // bit 0 set means current level is an object so expects tag:value (allows 64 levels)
-   unsigned char level;         // Nesting level
+   unsigned char *flags;        // Flags
    unsigned char peek;          // Next character for read
    unsigned char eof:1;
 };
+#define	COMMA	1               // flags
+#define OBJECT	2
 
 #define escapes \
          esc ('\\', '\\') \
@@ -94,11 +98,11 @@ skip_comma (ajl_t j)
    skip_ws (j);
    if (j->peek == ',')
    {                            // skip comma
-      if (!(j->comma & 1))
+      if (!(j->flags[j->level] & COMMA))
          return j->error = "Unexpected comma";
       next (j, NULL);
       skip_ws (j);
-   } else if (j->comma & 1)
+   } else if (j->flags[j->level] & COMMA)
       return j->error = "Expecting comma";
    return NULL;
 }
@@ -278,6 +282,8 @@ ajl_read (FILE * f)
    ajl_t j = calloc (1, sizeof (*j));
    if (!j)
       return j;
+   assert ((j->flags = malloc (j->maxlevel = 10)));
+   j->flags[j->level] = 0;
    j->f = f;
    j->line = 1;
    j->posn = 1;
@@ -334,19 +340,17 @@ ajl_parse (ajl_t j, unsigned char **tag, unsigned char **value, size_t *len)
          return AJL_EOF;        // Normal end
       checkeof;
    }
-   if (j->peek == ((j->object & 1) ? '}' : ']'))
+   if (j->peek == ((j->flags[j->level] & OBJECT) ? '}' : ']'))
    {                            // end of object or array
       if (!j->level)
          makeerr ("Too many closes");
-      j->object >>= 1;
-      j->comma >>= 1;
       j->level--;
       next (j, NULL);
       return AJL_CLOSE;
    }
    skip_comma (j);
    checkeof;
-   if (j->object & 1)
+   if (j->flags[j->level] & OBJECT)
    {                            // skip tag
       size_t len;
       FILE *o = NULL;
@@ -366,25 +370,22 @@ ajl_parse (ajl_t j, unsigned char **tag, unsigned char **value, size_t *len)
          makeerr ("Missing colon");
       checkeof;
    }
-   j->comma |= 1;
+   j->flags[j->level] |= COMMA;
    if (j->peek == '{')
    {                            // Start object
+      if (j->level + 1 >= j->maxlevel)
+         assert ((j->flags = realloc (j->flags, j->maxlevel += 10)));
       j->level++;
-      if (j->level >= sizeof (j->object) * 8)
-         makeerr ("Too deep");
-      j->comma <<= 1;
-      j->object <<= 1;
-      j->object |= 1;
+      j->flags[j->level] = OBJECT;
       next (j, NULL);
       return AJL_OBJECT;
    }
    if (j->peek == '[')
    {                            // Start array
+      if (j->level + 1 >= j->maxlevel)
+         assert ((j->flags = realloc (j->flags, j->maxlevel += 10)));
       j->level++;
-      if (j->level >= sizeof (j->object) * 8)
-         makeerr ("Too deep");
-      j->comma <<= 1;
-      j->object <<= 1;
+      j->flags[j->level] = 0;
       next (j, NULL);
       return AJL_ARRAY;
    }
@@ -436,6 +437,8 @@ ajl_write (FILE * f)
    ajl_t j = calloc (1, sizeof (*j));
    if (!j)
       return j;
+   assert ((j->flags = malloc (j->maxlevel = 10)));
+   j->flags[j->level] = 0;
    j->f = f;
    j->line = 1;
    j->posn = 1;
@@ -483,16 +486,16 @@ static const char *
 add_tag (ajl_t j, const unsigned char *tag)
 {                               // Add prefix tag or comma
    validate (j);
-   if (j->comma & 1)
+   if (j->flags[j->level] & COMMA)
       fputc (',', j->f);
-   j->comma |= 1;
+   j->flags[j->level] |= COMMA;
    if (tag)
    {
-      if (!(j->object & 1))
+      if (!(j->flags[j->level] & OBJECT))
          return j->error = "Not in object";
       add_string (j, tag, -1);
       fputc (':', j->f);
-   } else if (j->object & 1)
+   } else if (j->flags[j->level] & OBJECT)
       return j->error = "Not in array";
    return j->error;
 }
@@ -553,12 +556,10 @@ ajl_add_object (ajl_t j, const unsigned char *tag)
    validate (j);
    add_tag (j, tag);
    fputc ('{', j->f);
+   if (j->level + 1 >= j->maxlevel)
+      j->flags = realloc (j->flags, j->maxlevel += 10);
    j->level++;
-   if (j->level >= sizeof (j->object) * 8)
-      return j->error = "Too deep";
-   j->comma <<= 1;
-   j->object <<= 1;
-   j->object |= 1;
+   j->flags[j->level] = OBJECT;
    return j->error;
 };
 
@@ -568,11 +569,10 @@ ajl_add_array (ajl_t j, const unsigned char *tag)
    validate (j);
    add_tag (j, tag);
    fputc ('[', j->f);
+   if (j->level + 1 >= j->maxlevel)
+      j->flags = realloc (j->flags, j->maxlevel += 10);
    j->level++;
-   if (j->level >= sizeof (j->object) * 8)
-      return j->error = "Too deep";
-   j->comma <<= 1;
-   j->object <<= 1;
+   j->flags[j->level] = 0;
    return j->error;
 };
 
@@ -582,9 +582,7 @@ ajl_add_close (ajl_t j)
    validate (j);
    if (!j->level)
       return j->error = "Too many closes";
-   fputc ((j->object & 1) ? '}' : ']', j->f);
+   fputc ((j->flags[j->level] & OBJECT) ? '}' : ']', j->f);
    j->level--;
-   j->object >>= 1;
-   j->comma >>= 1;
    return j->error;
 };

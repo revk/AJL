@@ -29,6 +29,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <ctype.h>
+#undef NDEBUG // Uses side effects in assert
 #include <assert.h>
 
 // This is a point in the JSON object
@@ -52,6 +53,9 @@ static const char valtrue[] = "true";
 static const char valfalse[] = "false";
 static const char valempty[] = "";
 static const char valzero[] = "";
+
+// Safe free and NULL value
+#define freez(x)        do{if(x)free(x);x=NULL;}while(0)
 
 j_t
 j_create (void)
@@ -298,23 +302,25 @@ j_write_mem (j_t j, char **buffer, size_t *len)
 // Changing an object/value
 void
 j_null (j_t j)
-{                               // Null this point
+{                               // Null this point - used a lot internally to clear a point before setting to correct type
    assert (j);
    if (j->child)
    {                            // Object or array
       int n;
       for (n = 0; n < j->len; n++)
+      {
+         freez (j->child[n].tag);
          j_null (&j->child[n]);
-      free (j->child);
-      j->child = NULL;
+      }
+      freez (j->child);
    }
    j->isarray = 0;
    if (j->malloc)
    {
-      free (j->val);
-      j->val = NULL;
+      freez (j->val);
       j->malloc = 0;
    }
+   j->val = NULL;               // Even if not malloc'd
    j->isstring = 0;
    return;
 }
@@ -407,7 +413,7 @@ j_literal (j_t j, const char *val)
       val = strdup (val);
       j->malloc = 1;
    }
-   j->val = (char*)val;
+   j->val = (char *) val;
    return;
 }
 
@@ -437,7 +443,7 @@ j_array (j_t j)
 j_t
 j_add (j_t j, const char *tags)
 {                               // Create specified tag/path, and return the point that is the value for that tag.
-   return j_findmake(j,tags);
+   return j_findmake (j, tags);
 }
 
 j_t
