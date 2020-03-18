@@ -235,40 +235,114 @@ j_isstring (j_t j)
 // Loading an object. This replaces value at the j_t specified, which is usually a root from j_create()
 // Returns NULL if all is well, else a malloc'd error string
 char *
-j_read (j_t j, FILE * f)
+j_read (j_t root, FILE * f)
 {                               // Read object from open file
-   char *e = NULL;
-   assert (j);
+   const char *e = NULL;
+   assert (root);
    assert (f);
-   j_null (j);
+   j_null (root);
+   j_t j = NULL;
    ajl_t p = ajl_read (f);
    ajl_type_t t = 0;
-   do
+   while (1)
    {
       unsigned char *tag = NULL;
       unsigned char *value = NULL;
       size_t len = 0;
-      t = ajl_parse (p, &tag, &value, &len);
-      fprintf (stderr, "%d %s tag=%s value=%s len=%d\n", ajl_level (p),
-               t == AJL_ERROR ? "ERROR" :
-               t == AJL_EOF ? "EOF" :
-               t == AJL_STRING ? "STRING" :
-               t == AJL_NUMBER ? "NUMBER" :
-               t == AJL_BOOLEAN ? "BOOLEAN" :
-               t == AJL_NULL ? "NULL" :
-               t == AJL_CLOSE ? "CLOSE" : t == AJL_OBJECT ? "OBJECT" : t == AJL_ARRAY ? "ARRAY" : "?", tag, value, (int) len);
+      t = ajl_parse (p, &tag, &value, &len);    // We expect logical use of tag and value
+      if (t <= AJL_EOF)
+         break;
+      if (t == AJL_CLOSE)
+      {                         // End of object or array
+         if (j == root)
+            break;
+         j = j_parent (j);
+         continue;
+      }
+      j_t n = root;
+      if (j)
+      {                         // j is the parent, append new entry in parent
+         j->child = realloc (j->child, sizeof (struct j_s) * (j->len + 1));
+         assert (j->child);
+         n = &j->child[j->len];
+         memset (n, 0, sizeof (*n));
+         n->parent = j;
+         n->posn = j->len++;
+      }
       if (tag)
-         free (tag);            // TODO
+      {                         // Tag in parent
+         freez (n->tag);
+         n->tag = (char *) tag;
+         int q;
+         for (q = 0; q + 1 < j->len && strcmp (j->child[q].tag, (char *) tag); q++);
+         if (q + 1 < j->len)
+         {
+            j = n;
+            e = "Duplicate tag";
+            break;
+         }
+      }
       if (value)
-         free (value);          // TODO
-   } while (t > AJL_EOF);
-   if (ajl_ok (p))
-   {                            // Make error message
-      assert (asprintf (&e, "Parse fail at line %d posn %d: %s", ajl_line (p), ajl_char (p), ajl_ok (p)) >= 0);
-// TODO report nesting, etc.
+      {                         // The value
+         if (n->malloc)
+            freez (n->val);
+         n->malloc = 0;
+         n->val = (void *) value;
+         if (!strcmp ((char *) value, valempty))
+            n->val = (void *) valempty;
+         else if (!strcmp ((char *) value, valzero))
+            n->val = (void *) valzero;
+         else if (!strcmp ((char *) value, valtrue))
+            n->val = (void *) valtrue;
+         else if (!strcmp ((char *) value, valfalse))
+            n->val = (void *) valfalse;
+         else if (!strcmp ((char *) value, valnull))
+            n->val = NULL;
+         else
+            n->malloc = 1;
+         n->len = strlen ((char *) n->val ? : valnull);
+         if (!n->malloc)
+            freez (value);
+         if (t == AJL_STRING)
+            n->isstring = 1;
+      }
+      if (t == AJL_OBJECT || t == AJL_ARRAY)
+      {
+         if (n->child)
+            free (n->child);
+         n->child = malloc (0);
+         n->len = 0;
+         if (t == AJL_ARRAY)
+            n->isarray = 1;
+         j = n;
+      }
+      else if (n == root) break;
+   }
+   if (t > AJL_EOF) t = ajl_parse (p, NULL, NULL, NULL);
+   if (t > AJL_EOF)
+      e = "Extra data";
+   if (ajl_error (p))
+      e = ajl_error (p);
+   char *ret = NULL;
+   if (e)
+   {                            // report where in object tree we got to
+      size_t len;
+      FILE *f = open_memstream (&ret, &len);
+      fprintf (f, "Parse fail at line %d posn %d: %s\n", ajl_line (p), ajl_char (p), e);
+      while (j && j != root)
+      {
+         if (j->tag)
+            fprintf (f, "%s", j->tag);
+         else
+            fprintf (f, "[%d]", j->posn);
+         j = j_parent (j);
+         if (j != root)
+            fprintf (f, " in ");
+      }
+      fclose (f);
    }
    ajl_close (p);
-   return e;
+   return ret;
 }
 
 char *
@@ -617,11 +691,11 @@ main (int __attribute__((unused)) argc, const char __attribute__((unused)) * arg
       char *e = j_read_file (j, argv[a]);
       if (e)
       {
-         fprintf (stderr, "Error %s\n", e);
+         fprintf (stderr, "%s\n", e);
          free (e);
       }
+      j_write(j,stdout);
       j = j_delete (j);
-
    }
    return 0;
 }

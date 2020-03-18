@@ -267,7 +267,7 @@ ajl_delete (ajl_t j)
 };
 
 const char *
-ajl_ok (ajl_t j)
+ajl_error (ajl_t j)
 {                               // Return if error set in JSON object, or NULL if not error
    validate (j);
    return NULL;

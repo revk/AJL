@@ -42,7 +42,7 @@ typedef struct ajl_s *ajl_t;    // The JSON parse control structure
 // Common functions
 const char *ajl_close (ajl_t);  // Close control structure (closes file). For write_mem, this sets buffer and len correctly and adds a NULL after len.
 ajl_t ajl_delete(ajl_t);	// Free the handle, returns NULL
-const char *ajl_ok (ajl_t);     // Return if error set in JSON object, or NULL if not error
+const char *ajl_error (ajl_t);     // Return if error set in JSON object, or NULL if not error
 
 // Allocate control structure for parsing, from file or from memory
 ajl_t ajl_read (FILE *);
