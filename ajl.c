@@ -337,9 +337,9 @@ j_read (j_t root, FILE * f)
 
    if (t > AJL_EOF)
       t = ajl_parse (p, NULL, NULL, NULL);
-   if (t > AJL_EOF)
+   if (!e&&t > AJL_EOF)
       e = "Extra data";
-   if (ajl_error (p))
+   if (!e&&ajl_error (p))
       e = ajl_error (p);
    char *ret = NULL;
    if (e)
