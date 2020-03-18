@@ -68,6 +68,7 @@ j_delete (j_t j)
 {                               // Delete this value (remove from parent object if not root) and all sub objects, returns NULL
    if (!j)
       return j;
+   j_null (j);                  // Clear all sub content, etc.
    // TODO
    return NULL;
 }
@@ -236,10 +237,38 @@ j_isstring (j_t j)
 char *
 j_read (j_t j, FILE * f)
 {                               // Read object from open file
+   char *e = NULL;
    assert (j);
    assert (f);
-   // TODO
-   return NULL;
+   j_null (j);
+   ajl_t p = ajl_read (f);
+   ajl_type_t t = 0;
+   do
+   {
+      unsigned char *tag = NULL;
+      unsigned char *value = NULL;
+      size_t len = 0;
+      t = ajl_parse (p, &tag, &value, &len);
+      fprintf (stderr, "%d %s tag=%s value=%s len=%d\n", ajl_level (p),
+               t == AJL_ERROR ? "ERROR" :
+               t == AJL_EOF ? "EOF" :
+               t == AJL_STRING ? "STRING" :
+               t == AJL_NUMBER ? "NUMBER" :
+               t == AJL_BOOLEAN ? "BOOLEAN" :
+               t == AJL_NULL ? "NULL" :
+               t == AJL_CLOSE ? "CLOSE" : t == AJL_OBJECT ? "OBJECT" : t == AJL_ARRAY ? "ARRAY" : "?", tag, value, (int) len);
+      if (tag)
+         free (tag);            // TODO
+      if (value)
+         free (value);          // TODO
+   } while (t > AJL_EOF);
+   if (ajl_ok (p))
+   {                            // Make error message
+      assert (asprintf (&e, "Parse fail at line %d posn %d: %s", ajl_line (p), ajl_char (p), ajl_ok (p)) >= 0);
+// TODO report nesting, etc.
+   }
+   ajl_close (p);
+   return e;
 }
 
 char *
@@ -582,7 +611,18 @@ j_attach (j_t j, j_t o)
 int
 main (int __attribute__((unused)) argc, const char __attribute__((unused)) * argv[])
 {
+   for (int a = 1; a < argc; a++)
+   {
+      j_t j = j_create ();
+      char *e = j_read_file (j, argv[a]);
+      if (e)
+      {
+         fprintf (stderr, "Error %s\n", e);
+         free (e);
+      }
+      j = j_delete (j);
 
+   }
    return 0;
 }
 #endif

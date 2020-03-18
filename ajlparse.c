@@ -287,6 +287,10 @@ ajl_read (FILE * f)
    j->f = f;
    j->line = 1;
    j->posn = 1;
+   int c = fgetc (f);
+   if (c < 0)
+      j->eof = 1;
+   j->peek = c;
    return j;
 };
 
