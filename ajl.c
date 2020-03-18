@@ -39,20 +39,22 @@ struct j_s
 {                               // JSON point strucccture
    j_t parent;                  // Parent (NULL if root)
    j_t child;                   // Array of (len) child entries
-   char *tag;                   // Always malloced, present when this is a child of an object and so tagged
-   char *val;                   // Malloced if malloc set, can be static, NULL if object, array, or null
+   unsigned char *tag;          // Always malloced, present when this is a child of an object and so tagged
+   unsigned char *val;          // Malloced if malloc set, can be static, NULL if object, array, or null
+   int max;                     // Size of child alloc
    int len;                     // Len of val or len of child
    int posn;                    // Position in parent
    unsigned char isarray:1;
    unsigned char isstring:1;
    unsigned char malloc:1;
 };
+#define MAX	10
 
-static const char valnull[] = "null";
-static const char valtrue[] = "true";
-static const char valfalse[] = "false";
-static const char valempty[] = "";
-static const char valzero[] = "";
+static unsigned char valnull[] = "null";
+static unsigned char valtrue[] = "true";
+static unsigned char valfalse[] = "false";
+static unsigned char valempty[] = "";
+static unsigned char valzero[] = "";
 
 // Safe free and NULL value
 #define freez(x)        do{if(x)free(x);x=NULL;}while(0)
@@ -69,7 +71,12 @@ j_delete (j_t j)
    if (!j)
       return j;
    j_null (j);                  // Clear all sub content, etc.
-   // TODO
+   if (!j->parent)
+      free (j);
+   else
+   {                            // Remove from parent
+      // TODO
+   }
    return NULL;
 }
 
@@ -96,7 +103,7 @@ j_parent (j_t j)
 j_t
 j_next (j_t j)
 {                               // Next in parent object or array, NULL if at end
-   if (!j || !j->parent || j->posn >= j->parent->len)
+   if (!j || !j->parent || j->posn + 1 >= j->parent->len)
       return NULL;
    return j + 1;
 }
@@ -150,7 +157,7 @@ j_tag (j_t j)
 {                               // The tag of this object in parent, if it is in a parent object, else NULL
    if (!j)
       return NULL;
-   return j->tag;
+   return (char *) j->tag;
 }
 
 int
@@ -166,7 +173,7 @@ j_val (j_t j)
 {                               // The value of this object as a string. NULL if not found. Note that a "null" string is a valid literal value
    if (!j || j->child)
       return NULL;
-   return j->val ? : valnull;
+   return (char *) (j->val ? : valnull);
 }
 
 int
@@ -262,8 +269,17 @@ j_read (j_t root, FILE * f)
       j_t n = root;
       if (j)
       {                         // j is the parent, append new entry in parent
-         j->child = realloc (j->child, sizeof (struct j_s) * (j->len + 1));
-         assert (j->child);
+         if (j->len + 1 > j->max)
+         {                      // More space
+            j_t was = j->child;
+            j->child = realloc (j->child, sizeof (struct j_s) * (j->max += MAX));
+            assert (j->child);
+            if (was != j->child)        // Re-alloc moves things
+               for (int q = 0; q < j->len; q++)
+                  if (j->child[q].child)
+                     for (int z = 0; z < j->child[q].len; z++)
+                        j->child[q].child[z].parent = &j->child[q];     // realloc, FFS
+         }
          n = &j->child[j->len];
          memset (n, 0, sizeof (*n));
          n->parent = j;
@@ -272,9 +288,9 @@ j_read (j_t root, FILE * f)
       if (tag)
       {                         // Tag in parent
          freez (n->tag);
-         n->tag = (char *) tag;
+         n->tag = tag;
          int q;
-         for (q = 0; q + 1 < j->len && strcmp (j->child[q].tag, (char *) tag); q++);
+         for (q = 0; q + 1 < j->len && strcmp ((char *) j->child[q].tag, (char *) tag); q++);
          if (q + 1 < j->len)
          {
             j = n;
@@ -287,20 +303,20 @@ j_read (j_t root, FILE * f)
          if (n->malloc)
             freez (n->val);
          n->malloc = 0;
-         n->val = (void *) value;
-         if (!strcmp ((char *) value, valempty))
-            n->val = (void *) valempty;
-         else if (!strcmp ((char *) value, valzero))
-            n->val = (void *) valzero;
-         else if (!strcmp ((char *) value, valtrue))
-            n->val = (void *) valtrue;
-         else if (!strcmp ((char *) value, valfalse))
-            n->val = (void *) valfalse;
-         else if (!strcmp ((char *) value, valnull))
+         n->val = value;
+         if (!strcmp ((char *) value, (char *) valempty))
+            n->val = valempty;
+         else if (!strcmp ((char *) value, (char *) valzero))
+            n->val = valzero;
+         else if (!strcmp ((char *) value, (char *) valtrue))
+            n->val = valtrue;
+         else if (!strcmp ((char *) value, (char *) valfalse))
+            n->val = valfalse;
+         else if (!strcmp ((char *) value, (char *) valnull))
             n->val = NULL;
          else
             n->malloc = 1;
-         n->len = strlen ((char *) n->val ? : valnull);
+         n->len = strlen ((char *) (n->val ? : valnull));
          if (!n->malloc)
             freez (value);
          if (t == AJL_STRING)
@@ -310,15 +326,17 @@ j_read (j_t root, FILE * f)
       {
          if (n->child)
             free (n->child);
-         n->child = malloc (0);
+         assert((n->child = malloc (sizeof (struct j_s) * (n->max = MAX))));
          n->len = 0;
          if (t == AJL_ARRAY)
             n->isarray = 1;
          j = n;
-      }
-      else if (n == root) break;
+      } else if (n == root)
+         break;
    }
-   if (t > AJL_EOF) t = ajl_parse (p, NULL, NULL, NULL);
+
+   if (t > AJL_EOF)
+      t = ajl_parse (p, NULL, NULL, NULL);
    if (t > AJL_EOF)
       e = "Extra data";
    if (ajl_error (p))
@@ -372,12 +390,45 @@ j_read_mem (j_t j, char *buffer)
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
 char *
-j_write (j_t j, FILE * f)
+j_write (j_t root, FILE * f)
 {
-   assert (j);
+   assert (root);
    assert (f);
-   // TODO
-   return NULL;
+   ajl_t p = ajl_write (f);
+   j_t j = root;
+   do
+   {
+      if (j->child)
+      {
+         if (j->isarray)
+            ajl_add_array (p, j->tag);
+         else
+            ajl_add_object (p, j->tag);
+         if (!j->len)
+            ajl_add_close (p);  // Empty object/array
+         else
+         {                      // Go in to array
+            j = &j->child[0];
+            continue;
+         }
+      } else if (j->isstring)
+         ajl_add_string (p, j->tag, j->val, j->len);
+      else
+         ajl_add (p, j->tag, j->val ? : (unsigned char *) valnull);
+      // Next
+      j_t n = NULL;
+      while (j && j != root && !(n = j_next (j)))
+      {
+         ajl_add_close (p);
+         j = j_parent (j);
+      }
+      j = n;
+   } while (j && j != root);
+   char *e = (char *) ajl_error (p);
+   if (e)
+      e = strdup (e);
+   ajl_close (p);
+   return e;
 }
 
 char *
@@ -438,7 +489,7 @@ j_string (j_t j, const char *val)
    j_null (j);
    if (!val)
       return;
-   j->val = strdup (val);
+   j->val = (void *) strdup (val);
    j->len = strlen (val);
    j->malloc = 1;
    j->isstring = 1;
@@ -465,8 +516,8 @@ j_stringn (j_t j, const char *val, size_t len)
 static void
 j_vstringf (j_t j, const char *fmt, va_list ap, int isstring)
 {
-   assert (vasprintf (&j->val, fmt, ap) >= 0);
-   j->len = strlen (j->val);
+   assert (vasprintf ((char **) &j->val, fmt, ap) >= 0);
+   j->len = strlen ((char *) j->val);
    j->malloc = 1;
    j->isstring = isstring;
 }
@@ -503,22 +554,22 @@ j_literal (j_t j, const char *val)
    if (!j)
       return;
    j_null (j);
-   if (val && !strcmp (val, valempty))
-      val = valempty;
-   else if (val && !strcmp (val, valzero))
-      val = valzero;
-   else if (val && !strcmp (val, valtrue))
-      val = valtrue;
-   else if (val && !strcmp (val, valfalse))
-      val = valfalse;
-   else if (val && !strcmp (val, valnull))
+   if (val && !strcmp (val, (char *) valempty))
+      val = (char *) valempty;
+   else if (val && !strcmp (val, (char *) valzero))
+      val = (char *) valzero;
+   else if (val && !strcmp (val, (char *) valtrue))
+      val = (char *) valtrue;
+   else if (val && !strcmp (val, (char *) valfalse))
+      val = (char *) valfalse;
+   else if (val && !strcmp (val, (char *) valnull))
       val = NULL;
    else
    {
       val = strdup (val);
       j->malloc = 1;
    }
-   j->val = (char *) val;
+   j->val = (void *) val;
    return;
 }
 
@@ -529,7 +580,7 @@ j_object (j_t j)
       return;
    if (!j->child || j->isarray)
       j_null (j);
-   assert ((j->child = malloc (0)));
+   assert ((j->child = malloc (sizeof (struct j_s) * (j->max = MAX))));
    return;
 }
 
@@ -540,7 +591,7 @@ j_array (j_t j)
       return;
    if (!j->child || j->isarray)
       j_null (j);
-   assert ((j->child = malloc (0)));
+   assert ((j->child = malloc (sizeof (struct j_s) * (j->max = MAX))));
    j->isarray = 1;
    return;
 }
@@ -693,8 +744,8 @@ main (int __attribute__((unused)) argc, const char __attribute__((unused)) * arg
       {
          fprintf (stderr, "%s\n", e);
          free (e);
-      }
-      j_write(j,stdout);
+      } else
+         j_write (j, stdout);
       j = j_delete (j);
    }
    return 0;

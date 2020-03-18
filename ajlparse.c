@@ -528,7 +528,6 @@ ajl_add_string (ajl_t j, const unsigned char *tag, const unsigned char *value, s
    validate (j);
    add_tag (j, tag);
    add_string (j, value, len);
-
    return j->error;
 };
 
