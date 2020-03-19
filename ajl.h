@@ -82,6 +82,7 @@ char * j_read_mem(j_t,char *buffer); // Read object from string in memory (NULL 
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
 char * j_write(j_t,FILE *);
+char * j_write_pretty(j_t,FILE *); // Write with formatting, making for debug use
 char * j_write_file(j_t,char *filename);
 char * j_write_mem(j_t,char **buffer,size_t *len);
 

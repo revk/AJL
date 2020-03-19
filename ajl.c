@@ -454,13 +454,13 @@ j_read_mem (j_t j, char *buffer)
 
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
-char *
-j_write (j_t root, FILE * f)
+static char *
+j_write_flags (j_t root, FILE * f,int pretty)
 {
    assert (root);
    assert (f);
    ajl_t p = ajl_write (f);
-   ajl_pretty (p);              // TODO - some way to flag this
+   if(pretty)ajl_pretty (p);
    j_t j = root;
    do
    {
@@ -495,6 +495,18 @@ j_write (j_t root, FILE * f)
       e = strdup (e);
    ajl_close (p);
    return e;
+}
+
+char *
+j_write (j_t root, FILE * f)
+{
+	return j_write_flags(root,f,0);
+}
+
+char *
+j_write_pretty (j_t root, FILE * f)
+{
+	return j_write_flags(root,f,1);
 }
 
 char *
@@ -833,7 +845,7 @@ main (int __attribute__((unused)) argc, const char __attribute__((unused)) * arg
       } else
       {
          j_sort (j);
-         j_write (j, stdout);
+         j_write_pretty (j, stdout);
       }
       j = j_delete (j);
    }
