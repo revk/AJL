@@ -250,6 +250,8 @@ const char *
 ajl_close (ajl_t j)
 {                               // Close control structure (closes file). For write_mem, this sets buffer and len correctly and adds a NULL after len.
    validate (j);
+   if (j->pretty)
+      fputc ('\n', j->f);
    fclose (j->f);
    j->f = NULL;
    return NULL;
