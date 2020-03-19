@@ -492,12 +492,12 @@ add_string (ajl_t j, const unsigned char *value, ssize_t len)
    while (len--)
    {
       unsigned char c = *value++;
-      if (c < ' ')
-         fprintf (j->f, "\\u00%02X", c);
-#define esc(a,b) else if(c==b){fputc('\\',j->f);fputc(a,j->f);}
+#define esc(a,b) if(c==b){fputc('\\',j->f);fputc(a,j->f);} else
       escapes
 #undef esc
-         else
+         if (c < ' ')
+         fprintf (j->f, "\\u00%02X", c);
+      else
          fputc (c, j->f);
    }
    fputc ('"', j->f);

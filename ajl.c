@@ -164,7 +164,7 @@ j_findmake (j_t j, const char *tags, int make)
 {                               // Find object within this object by tag/path - make if any in path does not exist and make is set
    if (!j || !tags)
       return NULL;
-   unsigned char *t = (unsigned char*)strdupa (tags);
+   unsigned char *t = (unsigned char *) strdupa (tags);
    while (*t)
    {
       if (!make && !j->children)
@@ -183,7 +183,7 @@ j_findmake (j_t j, const char *tags, int make)
          {                      // 
             int i = 0;
             while (isdigit (*t))
-               i = i * 10 + *t++ - '0';   // Index
+               i = i * 10 + *t++ - '0'; // Index
             if (*t != ']')
                return NULL;
             if (!make && i >= j->len)
@@ -200,7 +200,7 @@ j_findmake (j_t j, const char *tags, int make)
             return NULL;
          if (make)
             j_object (j);       // Ensure is an object
-         unsigned char *e = (unsigned char*)t;
+         unsigned char *e = (unsigned char *) t;
          while (*e && *e != '.' && *e != '[')
             e++;
          unsigned char q = *e;
@@ -211,7 +211,7 @@ j_findmake (j_t j, const char *tags, int make)
          if (!n)
          {
             n = j_extend (j);
-            n->tag = (unsigned char *) strdup ((char*)t);
+            n->tag = (unsigned char *) strdup ((char *) t);
          }
          *e = q;
          t = e;
@@ -455,12 +455,13 @@ j_read_mem (j_t j, char *buffer)
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
 static char *
-j_write_flags (j_t root, FILE * f,int pretty)
+j_write_flags (j_t root, FILE * f, int pretty)
 {
    assert (root);
    assert (f);
    ajl_t p = ajl_write (f);
-   if(pretty)ajl_pretty (p);
+   if (pretty)
+      ajl_pretty (p);
    j_t j = root;
    do
    {
@@ -500,13 +501,13 @@ j_write_flags (j_t root, FILE * f,int pretty)
 char *
 j_write (j_t root, FILE * f)
 {
-	return j_write_flags(root,f,0);
+   return j_write_flags (root, f, 0);
 }
 
 char *
 j_write_pretty (j_t root, FILE * f)
 {
-	return j_write_flags(root,f,1);
+   return j_write_flags (root, f, 1);
 }
 
 char *
