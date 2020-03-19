@@ -377,6 +377,7 @@ j_write (j_t root, FILE * f)
    assert (root);
    assert (f);
    ajl_t p = ajl_write (f);
+   ajl_pretty(p);	// TODO
    j_t j = root;
    do
    {
