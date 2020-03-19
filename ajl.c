@@ -82,12 +82,25 @@ j_unlink (j_t j)
 static j_t
 j_extend (j_t j)
 {                               // Extend children
+   if (!j)
+      return NULL;
    assert ((j->children = realloc (j->children, sizeof (*j->children) * (j->len + 1))));
    j_t n = NULL;
    assert ((j->children[j->len] = n = calloc (1, sizeof (*n))));
    n->parent = j;
    n->posn = j->len++;
    return n;
+}
+
+static j_t
+j_findtag (j_t j, const unsigned char *tag)
+{
+   if (!j || !j->children || j->isarray)
+      return NULL;
+   for (int q = 0; q < j->len; q++)
+      if (!strcmp ((char *) j->children[q]->tag, (char *) tag))
+         return j->children[q];
+   return NULL;
 }
 
 j_t
@@ -149,18 +162,18 @@ j_first (j_t j)
 static j_t
 j_findmake (j_t j, const char *tags, int make)
 {                               // Find object within this object by tag/path - make if any in path does not exist and make is set
-   if (!j || tags)
+   if (!j || !tags)
       return NULL;
-   char *t = strdupa (tags);
+   unsigned char *t = (unsigned char*)strdupa (tags);
    while (*t)
    {
       if (!make && !j->children)
          return NULL;           // Not array or object
       if (*t == '[')
       {                         // array
+         t++;
          if (make)
             j_array (j);        // Ensure is an array
-         t++;
          if (*t == ']')
          {                      // append
             if (!make)
@@ -170,7 +183,7 @@ j_findmake (j_t j, const char *tags, int make)
          {                      // 
             int i = 0;
             while (isdigit (*t))
-               i = i * 10 + *t - '0';   // Index
+               i = i * 10 + *t++ - '0';   // Index
             if (*t != ']')
                return NULL;
             if (!make && i >= j->len)
@@ -187,20 +200,21 @@ j_findmake (j_t j, const char *tags, int make)
             return NULL;
          if (make)
             j_object (j);       // Ensure is an object
-         char *e = t;
+         unsigned char *e = (unsigned char*)t;
          while (*e && *e != '.' && *e != '[')
             e++;
-         char q = *e;
+         unsigned char q = *e;
          *e = 0;
-         j_t n = j_find (j, e);
+         j_t n = j_findtag (j, t);
          if (!make && !n)
             return NULL;        // Not found
          if (!n)
          {
             n = j_extend (j);
-            n->tag = (unsigned char *) strdup (e);
+            n->tag = (unsigned char *) strdup ((char*)t);
          }
          *e = q;
+         t = e;
          j = n;
       }
       if (*t == '.')
@@ -258,7 +272,6 @@ j_len (j_t j)
       return sizeof (valnull) - 1;      // NULL val is literal NULL
    return j->len;
 }
-
 
 const char *
 j_get (j_t j, const char *tags)
@@ -346,9 +359,7 @@ j_read (j_t root, FILE * f)
       {                         // Tag in parent
          freez (n->tag);
          n->tag = tag;
-         int q;
-         for (q = 0; q + 1 < j->len && strcmp ((char *) j->children[q]->tag, (char *) tag); q++);
-         if (q + 1 < j->len)
+         if (j_findtag (j, tag) != n)
          {
             j = n;
             e = "Duplicate tag";
