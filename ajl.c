@@ -33,22 +33,20 @@
 #include <assert.h>
 
 // This is a point in the JSON object
-// If child is not NULL, it is an object or array with len allocated entries in child
-// If child is NULL it is a string or number or literal (val and len)
+// If ->children is not NULL, it is an array of pointers to child objects
+// If ->children is NULL, this point is a string or number or literal (using val and len)
 struct j_s
 {                               // JSON point strucccture
    j_t parent;                  // Parent (NULL if root)
-   j_t child;                   // Array of (len) child entries
+   j_t *children;               // Array of (len) child pointer entries
    unsigned char *tag;          // Always malloced, present when this is a child of an object and so tagged
    unsigned char *val;          // Malloced if malloc set, can be static, NULL if object, array, or null
-   int max;                     // Size of child alloc
    int len;                     // Len of val or len of child
    int posn;                    // Position in parent
-   unsigned char isarray:1;
-   unsigned char isstring:1;
-   unsigned char malloc:1;
+   unsigned char isarray:1;     // This is an array rather than an object (children is set)
+   unsigned char isstring:1;    // This is a string rather than a literal (children is NULL)
+   unsigned char malloc:1;      // val is malloc'd
 };
-#define MAX	10
 
 static unsigned char valnull[] = "null";
 static unsigned char valtrue[] = "true";
@@ -105,7 +103,7 @@ j_next (j_t j)
 {                               // Next in parent object or array, NULL if at end
    if (!j || !j->parent || j->posn + 1 >= j->parent->len)
       return NULL;
-   return j + 1;
+   return j->parent->children[j->posn + 1];
 }
 
 j_t
@@ -113,41 +111,39 @@ j_prev (j_t j)
 {                               // Previous in parent object or array, NULL if at start
    if (!j || !j->parent || j->posn <= 0)
       return NULL;
-   return j - 1;
+   return j->parent->children[j->posn - 1];
 }
 
 j_t
 j_first (j_t j)
 {                               // First entry in an object or array (same as j_index with 0)
-   if (!j || !j->child)
+   if (!j || !j->children || !j->len)
       return NULL;
-   return &j->child[0];
+   return j->children[0];
+}
+
+static j_t
+j_findmake (j_t j, const char *tags, int make)
+{                               // Find object within this object by tag/path - make if any in path does not exist and make is set
+   if (!j || tags)
+      return NULL;
+   make = make;                 // TODO
+   // TODO
+   return NULL;
 }
 
 j_t
 j_find (j_t j, const char *tags)
 {                               // Find object within this object by tag/path - NULL if any in path does not exist
-   if (!j || tags)
-      return NULL;
-   // TODO
-   return NULL;
-}
-
-j_t
-j_findmake (j_t j, const char *tags)
-{                               // Find object within this object by tag/path - make if any in path does not exist
-   if (!j || tags)
-      return NULL;
-   // TODO
-   return NULL;
+   return j_findmake (j, tags, 0);
 }
 
 j_t
 j_index (j_t j, int n)
 {                               // Find specific point in an array, or object - NULL if not in the array
-   if (!j || !j->child || n < 0 || n >= j->len)
+   if (!j || !j->children || n < 0 || n >= j->len)
       return NULL;
-   return &j->child[n];
+   return j->children[n];
 }
 
 
@@ -171,7 +167,7 @@ j_pos (j_t j)
 const char *
 j_val (j_t j)
 {                               // The value of this object as a string. NULL if not found. Note that a "null" string is a valid literal value
-   if (!j || j->child)
+   if (!j || j->children)
       return NULL;
    return (char *) (j->val ? : valnull);
 }
@@ -181,8 +177,8 @@ j_len (j_t j)
 {                               // The length of this value (characters if string or number or literal), or number of entries if object or array
    if (!j)
       return -1;
-   if (!j->child && !j->isstring && !j->val)
-      return sizeof (valnull) - 1;
+   if (!j->children && !j->isstring && !j->val)
+      return sizeof (valnull) - 1;      // NULL val is literal NULL
    return j->len;
 }
 
@@ -205,31 +201,31 @@ j_isarray (j_t j)
 int
 j_isobject (j_t j)
 {                               // True if is an object
-   return j && j->child && !j->isarray;
+   return j && j->children && !j->isarray;
 }
 
 int
 j_isnull (j_t j)
 {                               // True if is null literal
-   return j && !j->child && !j->isstring && !j->val;
+   return j && !j->children && !j->isstring && !j->val;
 }
 
 int
 j_isbool (j_t j)
 {                               // True if is a Boolean literal
-   return j && !j->child && !j->isstring && j->val && (*j->val == 't' || *j->val == 'f');
+   return j && !j->children && !j->isstring && j->val && (*j->val == 't' || *j->val == 'f');
 }
 
 int
 j_istrue (j_t j)
 {                               // True if is true literal
-   return j && !j->child && !j->isstring && j->val && *j->val == 't';
+   return j && !j->children && !j->isstring && j->val && *j->val == 't';
 }
 
 int
 j_isnumber (j_t j)
 {                               // True if is a number
-   return j && !j->child && !j->isstring && j->val && (*j->val == '-' || isdigit (*j->val));
+   return j && !j->children && !j->isstring && j->val && (*j->val == '-' || isdigit (*j->val));
 }
 
 int
@@ -269,19 +265,8 @@ j_read (j_t root, FILE * f)
       j_t n = root;
       if (j)
       {                         // j is the parent, append new entry in parent
-         if (j->len + 1 > j->max)
-         {                      // More space
-            j_t was = j->child;
-            j->child = realloc (j->child, sizeof (struct j_s) * (j->max += MAX));
-            assert (j->child);
-            if (was != j->child)        // Re-alloc moves things
-               for (int q = 0; q < j->len; q++)
-                  if (j->child[q].child)
-                     for (int z = 0; z < j->child[q].len; z++)
-                        j->child[q].child[z].parent = &j->child[q];     // realloc, FFS
-         }
-         n = &j->child[j->len];
-         memset (n, 0, sizeof (*n));
+         assert ((j->children = realloc (j->children, sizeof (*j->children) * (j->len + 1))));
+         assert ((j->children[j->len] = n = calloc (1, sizeof (*n))));
          n->parent = j;
          n->posn = j->len++;
       }
@@ -290,7 +275,7 @@ j_read (j_t root, FILE * f)
          freez (n->tag);
          n->tag = tag;
          int q;
-         for (q = 0; q + 1 < j->len && strcmp ((char *) j->child[q].tag, (char *) tag); q++);
+         for (q = 0; q + 1 < j->len && strcmp ((char *) j->children[q]->tag, (char *) tag); q++);
          if (q + 1 < j->len)
          {
             j = n;
@@ -324,10 +309,7 @@ j_read (j_t root, FILE * f)
       }
       if (t == AJL_OBJECT || t == AJL_ARRAY)
       {
-         if (n->child)
-            free (n->child);
-         assert((n->child = malloc (sizeof (struct j_s) * (n->max = MAX))));
-         n->len = 0;
+         assert ((n->children = realloc (n->children, n->len = 0)));
          if (t == AJL_ARRAY)
             n->isarray = 1;
          j = n;
@@ -337,9 +319,9 @@ j_read (j_t root, FILE * f)
 
    if (t > AJL_EOF)
       t = ajl_parse (p, NULL, NULL, NULL);
-   if (!e&&t > AJL_EOF)
+   if (!e && t > AJL_EOF)
       e = "Extra data";
-   if (!e&&ajl_error (p))
+   if (!e && ajl_error (p))
       e = ajl_error (p);
    char *ret = NULL;
    if (e)
@@ -398,7 +380,7 @@ j_write (j_t root, FILE * f)
    j_t j = root;
    do
    {
-      if (j->child)
+      if (j->children)
       {
          if (j->isarray)
             ajl_add_array (p, j->tag);
@@ -408,7 +390,7 @@ j_write (j_t root, FILE * f)
             ajl_add_close (p);  // Empty object/array
          else
          {                      // Go in to array
-            j = &j->child[0];
+            j = j->children[0];
             continue;
          }
       } else if (j->isstring)
@@ -460,15 +442,16 @@ void
 j_null (j_t j)
 {                               // Null this point - used a lot internally to clear a point before setting to correct type
    assert (j);
-   if (j->child)
+   if (j->children)
    {                            // Object or array
       int n;
       for (n = 0; n < j->len; n++)
       {
-         freez (j->child[n].tag);
-         j_null (&j->child[n]);
+         j_null (j->children[n]);
+         freez (j->children[n]->tag);
+         freez (j->children[n]);
       }
-      freez (j->child);
+      freez (j->children);
    }
    j->isarray = 0;
    if (j->malloc)
@@ -477,6 +460,7 @@ j_null (j_t j)
       j->malloc = 0;
    }
    j->val = NULL;               // Even if not malloc'd
+   j->len = sizeof (valnull) - 1;
    j->isstring = 0;
    return;
 }
@@ -578,9 +562,10 @@ j_object (j_t j)
 {                               // Simple set this value to be an object if not already
    if (!j)
       return;
-   if (!j->child || j->isarray)
+   if (!j->children || j->isarray)
       j_null (j);
-   assert ((j->child = malloc (sizeof (struct j_s) * (j->max = MAX))));
+   if (!j->children)
+      assert ((j->children = malloc (j->len = 0)));
    return;
 }
 
@@ -589,9 +574,10 @@ j_array (j_t j)
 {                               // Simple set this value to be an array if not already
    if (!j)
       return;
-   if (!j->child || j->isarray)
+   if (!j->children || j->isarray)
       j_null (j);
-   assert ((j->child = malloc (sizeof (struct j_s) * (j->max = MAX))));
+   if (!j->children)
+      assert ((j->children = malloc (j->len = 0)));
    j->isarray = 1;
    return;
 }
@@ -599,7 +585,7 @@ j_array (j_t j)
 j_t
 j_add (j_t j, const char *tags)
 {                               // Create specified tag/path, and return the point that is the value for that tag.
-   return j_findmake (j, tags);
+   return j_findmake (j, tags, 1);
 }
 
 j_t
@@ -608,8 +594,12 @@ j_append (j_t j)
    if (!j)
       return NULL;
    j_array (j);
-   // TODO
-   return &j->child[0];
+   assert ((j->children = realloc (j->children, sizeof (*j->children) * (j->len + 1))));
+   j_t n = NULL;
+   assert ((j->children[j->len] = n = calloc (1, sizeof (*n))));
+   n->parent = j;
+   n->posn = j->len++;
+   return n;
 }
 
 void
@@ -623,13 +613,21 @@ j_remove (j_t j, const char *tags)
    return;
 }
 
+void
+j_sort (j_t j)
+{                               // Apply a recursive sort
+   if (!j)
+      return;
+   // TODO
+}
+
 
 // Additional functions to combine the above... Returns point for newly added value.
 j_t
 j_add_string (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a string (null terminated).
    if (tags)
-      j = j_findmake (j, tags);
+      j = j_findmake (j, tags, 1);
    j_string (j, val);
    return j;
 }
@@ -638,7 +636,7 @@ j_t
 j_add_stringf (j_t j, const char *tags, const char *fmt, ...)
 {                               // Simple set this value to a string, using printf style format
    if (tags)
-      j = j_findmake (j, tags);
+      j = j_findmake (j, tags, 1);
    if (!j)
       return NULL;
    j_null (j);
@@ -653,7 +651,7 @@ j_t
 j_add_numberf (j_t j, const char *tags, const char *fmt, ...)
 {                               // Simple set this value to a number, i.e. unquoted, using printf style format
    if (tags)
-      j = j_findmake (j, tags);
+      j = j_findmake (j, tags, 1);
    if (!j)
       return NULL;
    j_null (j);
@@ -668,7 +666,7 @@ j_t
 j_add_literal (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a literal, e.g. "null", "true", "false"
    if (tags)
-      j = j_findmake (j, tags);
+      j = j_findmake (j, tags, 1);
    j_literal (j, val);
    return j;
 }
@@ -679,7 +677,7 @@ j_t
 j_append_string (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a string (null terminated).
    if (tags)
-      j = j_findmake (j, tags);
+      j = j_findmake (j, tags, 1);
    j = j_append (j);
    j_string (j, val);
    return j;
@@ -689,7 +687,7 @@ j_t
 j_append_stringf (j_t j, const char *tags, const char *fmt, ...)
 {                               // Simple set this value to a string, using printf style format
    if (tags)
-      j = j_findmake (j, tags);
+      j = j_findmake (j, tags, 1);
    j = j_append (j);
    va_list ap;
    va_start (ap, fmt);
@@ -702,7 +700,7 @@ j_t
 j_append_numberf (j_t j, const char *tags, const char *fmt, ...)
 {                               // Simple set this value to a number, i.e. unquoted, using printf style format
    if (tags)
-      j = j_findmake (j, tags);
+      j = j_findmake (j, tags, 1);
    j = j_append (j);
    va_list ap;
    va_start (ap, fmt);
@@ -715,7 +713,7 @@ j_t
 j_append_literal (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a literal, e.g. "null", "true", "false"
    if (tags)
-      j = j_findmake (j, tags);
+      j = j_findmake (j, tags, 1);
    j = j_append (j);
    j_literal (j, val);
    return j;
