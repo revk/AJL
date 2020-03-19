@@ -39,8 +39,8 @@ struct ajl_s
    const char *error;           // Current error
    unsigned char *flags;        // Flags
    unsigned char peek;          // Next character for read
-   unsigned char eof:1;		// Have reached end of file (peek no longer valid)
-   unsigned char pretty:1;	// Formatted output
+   unsigned char eof:1;         // Have reached end of file (peek no longer valid)
+   unsigned char pretty:1;      // Formatted output
 };
 #define	COMMA	1               // flags
 #define OBJECT	2
@@ -470,9 +470,10 @@ ajl_write_mem (unsigned char **buffer, size_t *len)
    return ajl_write (open_memstream ((char **) buffer, len));
 };
 
-void ajl_pretty(ajl_t j)
+void
+ajl_pretty (ajl_t j)
 {
-	j->pretty=1;
+   j->pretty = 1;
 }
 
 static void
@@ -500,11 +501,14 @@ add_string (ajl_t j, const unsigned char *value, ssize_t len)
    fputc ('"', j->f);
 }
 
-static void j_indent(ajl_t j)
+static void
+j_indent (ajl_t j)
 {
-	if(!j->pretty)return;
-	   fputc('\n',j->f);
-	   for(int q=0;q<j->level;q++)fputc(' ',j->f);
+   if (!j->pretty)
+      return;
+   fputc ('\n', j->f);
+   for (int q = 0; q < j->level; q++)
+      fputc (' ', j->f);
 }
 
 static const char *
@@ -514,7 +518,7 @@ add_tag (ajl_t j, const unsigned char *tag)
    if (j->flags[j->level] & COMMA)
       fputc (',', j->f);
    j->flags[j->level] |= COMMA;
-   j_indent(j);
+   j_indent (j);
    if (tag)
    {
       if (!(j->flags[j->level] & OBJECT))
@@ -608,7 +612,7 @@ ajl_add_close (ajl_t j)
    if (!j->level)
       return j->error = "Too many closes";
    j->level--;
-   j_indent(j);
-   fputc ((j->flags[j->level+1] & OBJECT) ? '}' : ']', j->f);
+   j_indent (j);
+   fputc ((j->flags[j->level + 1] & OBJECT) ? '}' : ']', j->f);
    return j->error;
 };

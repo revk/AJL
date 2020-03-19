@@ -29,6 +29,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 #undef NDEBUG                   // Uses side effects in assert
 #include <assert.h>
 
@@ -377,7 +378,7 @@ j_write (j_t root, FILE * f)
    assert (root);
    assert (f);
    ajl_t p = ajl_write (f);
-   ajl_pretty(p);	// TODO
+   ajl_pretty (p);              // TODO
    j_t j = root;
    do
    {
@@ -614,12 +615,25 @@ j_remove (j_t j, const char *tags)
    return;
 }
 
+static int
+j_sort_tag (const void *a, const void *b)
+{
+   return strcmp ((char *) (*(j_t *) a)->tag, (char *) (*(j_t *) b)->tag);
+}
+
 void
 j_sort (j_t j)
 {                               // Apply a recursive sort
-   if (!j)
+   if (!j || !j->children)
       return;
-   // TODO
+   if (j->children)
+      for (int q = 0; q < j->len; q++)
+         j_sort (j->children[q]);
+   if (j->isarray || !j->len)
+      return;
+   qsort (j->children, j->len, sizeof (*j->children), j_sort_tag);
+   for (int q = 0; q < j->len; q++)
+      j->children[q]->posn = q;
 }
 
 
@@ -744,7 +758,10 @@ main (int __attribute__((unused)) argc, const char __attribute__((unused)) * arg
          fprintf (stderr, "%s\n", e);
          free (e);
       } else
+      {
+         j_sort (j);
          j_write (j, stdout);
+      }
       j = j_delete (j);
    }
    return 0;
