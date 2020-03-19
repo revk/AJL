@@ -64,18 +64,41 @@ j_create (void)
    return calloc (1, sizeof (struct j_s));
 }
 
+static void
+j_unlink (j_t j)
+{                               // Unlink from parent
+   j_t p = j->parent;
+   if (!p)
+      return;                   // No parent
+   assert (p->len);
+   p->len--;
+   for (int q = j->posn; q < p->len; q++)
+   {
+      p->children[q] = p->children[q + 1];
+      p->children[q]->posn = q;
+   }
+}
+
+static j_t
+j_extend (j_t j)
+{                               // Extend children
+   assert ((j->children = realloc (j->children, sizeof (*j->children) * (j->len + 1))));
+   j_t n = NULL;
+   assert ((j->children[j->len] = n = calloc (1, sizeof (*n))));
+   n->parent = j;
+   n->posn = j->len++;
+   return n;
+}
+
 j_t
 j_delete (j_t j)
 {                               // Delete this value (remove from parent object if not root) and all sub objects, returns NULL
    if (!j)
       return j;
    j_null (j);                  // Clear all sub content, etc.
-   if (!j->parent)
-      free (j);
-   else
-   {                            // Remove from parent
-      // TODO
-   }
+   j_unlink (j);
+   freez (j->tag);
+   freez (j);
    return NULL;
 }
 
@@ -128,9 +151,62 @@ j_findmake (j_t j, const char *tags, int make)
 {                               // Find object within this object by tag/path - make if any in path does not exist and make is set
    if (!j || tags)
       return NULL;
-   make = make;                 // TODO
-   // TODO
-   return NULL;
+   char *t = strdupa (tags);
+   while (*t)
+   {
+      if (!make && !j->children)
+         return NULL;           // Not array or object
+      if (*t == '[')
+      {                         // array
+         if (make)
+            j_array (j);        // Ensure is an array
+         t++;
+         if (*t == ']')
+         {                      // append
+            if (!make)
+               return NULL;     // Not making, so cannot append
+            j = j_append (j);
+         } else
+         {                      // 
+            int i = 0;
+            while (isdigit (*t))
+               i = i * 10 + *t - '0';   // Index
+            if (*t != ']')
+               return NULL;
+            if (!make && i >= j->len)
+               return NULL;
+            if (make)
+               while (i < j->len)
+                  j_append (j);
+            j = j_index (j, i);
+         }
+         t++;
+      } else
+      {                         // tag
+         if (!make && j->isarray)
+            return NULL;
+         if (make)
+            j_object (j);       // Ensure is an object
+         char *e = t;
+         while (*e && *e != '.' && *e != '[')
+            e++;
+         char q = *e;
+         *e = 0;
+         j_t n = j_find (j, e);
+         if (!make && !n)
+            return NULL;        // Not found
+         if (!n)
+         {
+            n = j_extend (j);
+            n->tag = (unsigned char *) strdup (e);
+         }
+         *e = q;
+         j = n;
+      }
+      if (*t == '.')
+         t++;
+   }
+   return j;
 }
 
 j_t
@@ -265,12 +341,7 @@ j_read (j_t root, FILE * f)
       }
       j_t n = root;
       if (j)
-      {                         // j is the parent, append new entry in parent
-         assert ((j->children = realloc (j->children, sizeof (*j->children) * (j->len + 1))));
-         assert ((j->children[j->len] = n = calloc (1, sizeof (*n))));
-         n->parent = j;
-         n->posn = j->len++;
-      }
+         n = j_extend (j);
       if (tag)
       {                         // Tag in parent
          freez (n->tag);
@@ -378,7 +449,7 @@ j_write (j_t root, FILE * f)
    assert (root);
    assert (f);
    ajl_t p = ajl_write (f);
-   ajl_pretty (p);              // TODO
+   ajl_pretty (p);              // TODO - some way to flag this
    j_t j = root;
    do
    {
@@ -464,7 +535,6 @@ j_null (j_t j)
    j->val = NULL;               // Even if not malloc'd
    j->len = sizeof (valnull) - 1;
    j->isstring = 0;
-   return;
 }
 
 void
@@ -479,7 +549,6 @@ j_string (j_t j, const char *val)
    j->len = strlen (val);
    j->malloc = 1;
    j->isstring = 1;
-   return;
 }
 
 void
@@ -496,7 +565,6 @@ j_stringn (j_t j, const char *val, size_t len)
    j->len = len;
    j->malloc = 1;
    j->isstring = 1;
-   return;
 }
 
 static void
@@ -518,7 +586,6 @@ j_stringf (j_t j, const char *fmt, ...)
    va_start (ap, fmt);
    j_vstringf (j, fmt, ap, 1);
    va_end (ap);
-   return;
 }
 
 void
@@ -531,7 +598,6 @@ j_numberf (j_t j, const char *fmt, ...)
    va_start (ap, fmt);
    j_vstringf (j, fmt, ap, 0);
    va_end (ap);
-   return;
 }
 
 void
@@ -556,7 +622,6 @@ j_literal (j_t j, const char *val)
       j->malloc = 1;
    }
    j->val = (void *) val;
-   return;
 }
 
 void
@@ -568,7 +633,6 @@ j_object (j_t j)
       j_null (j);
    if (!j->children)
       assert ((j->children = malloc (j->len = 0)));
-   return;
 }
 
 void
@@ -581,7 +645,6 @@ j_array (j_t j)
    if (!j->children)
       assert ((j->children = malloc (j->len = 0)));
    j->isarray = 1;
-   return;
 }
 
 j_t
@@ -596,12 +659,7 @@ j_append (j_t j)
    if (!j)
       return NULL;
    j_array (j);
-   assert ((j->children = realloc (j->children, sizeof (*j->children) * (j->len + 1))));
-   j_t n = NULL;
-   assert ((j->children[j->len] = n = calloc (1, sizeof (*n))));
-   n->parent = j;
-   n->posn = j->len++;
-   return n;
+   return j_extend (j);
 }
 
 void
@@ -609,10 +667,8 @@ j_remove (j_t j, const char *tags)
 {                               // Remove an entry from its parent
    if (tags)
       j = j_find (j, tags);
-   if (!j || !j->parent)
-      return;
-   // TODO
-   return;
+   if (j)
+      j_delete (j);
 }
 
 static int
@@ -738,11 +794,17 @@ j_append_literal (j_t j, const char *tags, const char *val)
 // Moving parts of objects...
 j_t
 j_attach (j_t j, j_t o)
-{                               // Replaces first value with the second in a tree, removing second from its parent if it has one, returns first arg or NULL for error
+{                               // Replaces j with o, unlinking o from its parent, returns o
    if (!j || !o)
       return j;
-   // TODO
-   return j;
+   j_null (j);
+   j_unlink (o);
+   o->posn = j->posn;
+   o->parent = j->parent;
+   if (j->parent)
+      j->parent->children[j->posn] = o;
+   freez (j);
+   return o;
 }
 
 #ifndef	LIB                     // Build as command line for testing

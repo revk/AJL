@@ -30,7 +30,7 @@
 //
 // The j_find, and j_add functions take a "tags" field, which can simply be the name of a tag
 // in an object, or can be a path, e.g. "fred.jim". The path can reference arrays, e.g. "fred[3].jim"
-// Use "[+]" to reference a new entry on the end of an array. For j_add, the path causes entries
+// Use "[]" to reference a new entry on the end of an array. For j_add, the path causes entries
 // to be created to make the path, so parent objects, tags, and array elements get created along the way,
 // allowing a complete tree to be created just by using j_add from root with the full path of values.
 //
@@ -112,5 +112,5 @@ j_t j_append_numberf(j_t,const char *tags,const char *fmt,...);	// Simple set th
 j_t j_append_literal(j_t,const char *tags,const char *);	// Simple set this value to a literal, e.g. "null", "true", "false"
 
 // Moving parts of objects...
-j_t j_attach(j_t,j_t);	// Replaces first value with the second in a tree, removing second from its parent if it has one, returns first arg or NULL for error
+j_t j_attach(j_t,j_t);	// Replaces j with o, unlinking o from its parent, returns o
 
