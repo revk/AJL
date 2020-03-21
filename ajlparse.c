@@ -41,6 +41,7 @@ struct ajl_s
    unsigned char peek;          // Next character for read
    unsigned char eof:1;         // Have reached end of file (peek no longer valid)
    unsigned char pretty:1;      // Formatted output
+   unsigned char started:1;     // Formatting started
 };
 #define	COMMA	1               // flags
 #define OBJECT	2
@@ -512,11 +513,13 @@ add_string (ajl_t j, const unsigned char *value, ssize_t len)
 static void
 j_indent (ajl_t j)
 {
-   if (!j->pretty || !j->level)
+   if (!j->pretty)
       return;
-   fputc ('\n', j->f);
+   if (!j->started)
+      fputc ('\n', j->f);
    for (int q = 0; q < j->level; q++)
       fputc (' ', j->f);
+   j->started = 1;
 }
 
 static const char *
