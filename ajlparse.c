@@ -333,7 +333,8 @@ ajl_level (ajl_t j)
    return j->level;
 }
 
-int ajl_isobject(ajl_t j)
+int
+ajl_isobject (ajl_t j)
 {
    return j->flags[j->level] & OBJECT;
 }
@@ -511,7 +512,7 @@ add_string (ajl_t j, const unsigned char *value, ssize_t len)
 static void
 j_indent (ajl_t j)
 {
-   if (!j->pretty)
+   if (!j->pretty || !j->level)
       return;
    fputc ('\n', j->f);
    for (int q = 0; q < j->level; q++)
