@@ -515,7 +515,7 @@ j_indent (ajl_t j)
 {
    if (!j->pretty)
       return;
-   if (!j->started)
+   if (j->started)
       fputc ('\n', j->f);
    for (int q = 0; q < j->level; q++)
       fputc (' ', j->f);
