@@ -533,7 +533,7 @@ add_tag (ajl_t j, const unsigned char *tag)
       add_string (j, tag, -1);
       fputc (':', j->f);
    } else if (j->flags[j->level] & OBJECT)
-      return j->error = "Not in array";
+      return j->error = "Tag required";
    return j->error;
 }
 
