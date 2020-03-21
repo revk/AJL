@@ -41,6 +41,7 @@ struct ajl_s
    unsigned char peek;          // Next character for read
    unsigned char eof:1;         // Have reached end of file (peek no longer valid)
    unsigned char pretty:1;      // Formatted output
+   unsigned char http:1;        // Add http header
    unsigned char started:1;     // Formatting started
 };
 #define	COMMA	1               // flags
@@ -485,6 +486,12 @@ ajl_pretty (ajl_t j)
    j->pretty = 1;
 }
 
+void
+ajl_http (ajl_t j)
+{
+   j->http = 1;
+}
+
 static void
 add_string (ajl_t j, const unsigned char *value, ssize_t len)
 {                               // Add escaped string
@@ -513,13 +520,14 @@ add_string (ajl_t j, const unsigned char *value, ssize_t len)
 static void
 j_indent (ajl_t j)
 {
-   if (!j->pretty)
-      return;
-   if (j->started)
+   if (!j->started && j->http)
+      fprintf (j->f, "Content-Type: text/json\r\n\r\n");
+   if (j->started && j->pretty)
       fputc ('\n', j->f);
-   for (int q = 0; q < j->level; q++)
-      fputc (' ', j->f);
    j->started = 1;
+   if (j->pretty)
+      for (int q = 0; q < j->level; q++)
+         fputc (' ', j->f);
 }
 
 static const char *

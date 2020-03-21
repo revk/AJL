@@ -79,6 +79,7 @@ ajl_t ajl_write (FILE *);
 ajl_t ajl_write_file (const char *filename);
 ajl_t ajl_write_mem (unsigned char **buffer, size_t *len);
 void ajl_pretty(ajl_t); // Mark for pretty output (i.e. additional whitespace)
+void ajl_http(ajl_t); // Add http header
 
 const char *ajl_add (ajl_t, const unsigned char *tag, const unsigned char *value);      // Add pre-formatted value (expects quotes, escapes, etc)
 const char *ajl_add_string (ajl_t, const unsigned char *tag, const unsigned char *value, ssize_t len);   // Note len=-1 means use strlen(value)
