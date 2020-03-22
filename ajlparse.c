@@ -266,6 +266,8 @@ ajl_delete (ajl_t j)
    {
       if (j->f)
          fclose (j->f);
+      if (j->flags)
+         free (j->flags);
       free (j);
    }
    return NULL;
