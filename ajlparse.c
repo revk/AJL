@@ -336,6 +336,14 @@ ajl_level (ajl_t j)
    return j->level;
 }
 
+FILE *
+ajl_file (ajl_t j)
+{
+   if (!j)
+      return NULL;
+   return j->f;
+}
+
 int
 ajl_isobject (ajl_t j)
 {
