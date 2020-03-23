@@ -511,7 +511,7 @@ j_write_pretty (j_t root, FILE * f)
 }
 
 char *
-j_write_file (j_t j, char *filename)
+j_write_file (j_t j, const char *filename)
 {
    assert (j);
    assert (filename);
