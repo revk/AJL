@@ -525,8 +525,8 @@ j_indent (ajl_t j)
 {
    if (j->started && j->pretty)
    {
-      fflush (j->f);
       fputc ('\n', j->f);
+      fflush (j->f);
    }
    j->started = 1;
    if (j->pretty)
