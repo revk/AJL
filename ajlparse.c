@@ -41,6 +41,7 @@ struct ajl_s
    unsigned char peek;          // Next character for read
    unsigned char eof:1;         // Have reached end of file (peek no longer valid)
    unsigned char pretty:1;      // Formatted output
+   unsigned char started:1;     // Formatting started
 };
 #define	COMMA	1               // flags
 #define OBJECT	2
@@ -522,17 +523,15 @@ add_string (ajl_t j, const unsigned char *value, ssize_t len)
 static void
 j_indent (ajl_t j)
 {
+   if (j->started && j->pretty)
+   {
+      fflush (j->f);
+      fputc ('\n', j->f);
+   }
+   j->started = 1;
    if (j->pretty)
       for (int q = 0; q < j->level; q++)
          fputc (' ', j->f);
-}
-
-static const char *
-j_done (ajl_t j)
-{
-   if (j->pretty)
-      fputc ('\n', j->f);
-   return j->error;
 }
 
 static const char *
@@ -561,7 +560,7 @@ ajl_add (ajl_t j, const unsigned char *tag, const unsigned char *value)
    add_tag (j, tag);
    while (*value)
       fputc (*value++, j->f);
-   return j_done (j);
+   return j->error;
 };
 
 const char *
@@ -570,7 +569,7 @@ ajl_add_string (ajl_t j, const unsigned char *tag, const unsigned char *value, s
    validate (j);
    add_tag (j, tag);
    add_string (j, value, len);
-   return j_done (j);
+   return j->error;
 };
 
 const char *
@@ -582,7 +581,7 @@ ajl_add_number (ajl_t j, const unsigned char *tag, const char *fmt, ...)
    va_start (ap, fmt);
    vfprintf (j->f, fmt, ap);
    va_end (ap);
-   return j_done (j);
+   return j->error;
 }
 
 const char *
@@ -591,7 +590,7 @@ ajl_add_boolean (ajl_t j, const unsigned char *tag, unsigned char value)
    validate (j);
    add_tag (j, tag);
    fprintf (j->f, value ? "true" : "false");
-   return j_done (j);
+   return j->error;
 };
 
 const char *
@@ -600,7 +599,7 @@ ajl_add_null (ajl_t j, const unsigned char *tag)
    validate (j);
    add_tag (j, tag);
    fprintf (j->f, "null");
-   return j_done (j);
+   return j->error;
 };
 
 const char *
@@ -613,7 +612,7 @@ ajl_add_object (ajl_t j, const unsigned char *tag)
       j->flags = realloc (j->flags, j->maxlevel += 10);
    j->level++;
    j->flags[j->level] = OBJECT;
-   return j_done (j);
+   return j->error;
 };
 
 const char *
@@ -626,7 +625,7 @@ ajl_add_array (ajl_t j, const unsigned char *tag)
       j->flags = realloc (j->flags, j->maxlevel += 10);
    j->level++;
    j->flags[j->level] = 0;
-   return j_done (j);
+   return j->error;
 };
 
 const char *
@@ -638,5 +637,5 @@ ajl_add_close (ajl_t j)
    j->level--;
    j_indent (j);
    fputc ((j->flags[j->level + 1] & OBJECT) ? '}' : ']', j->f);
-   return j_done (j);
+   return j->error;
 };
