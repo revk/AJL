@@ -41,18 +41,18 @@ typedef struct ajl_s *ajl_t;    // The JSON parse control structure
 
 // Common functions
 const char *ajl_close (ajl_t);  // Close control structure (closes file). For write_mem, this sets buffer and len correctly and adds a NULL after len.
-ajl_t ajl_delete(ajl_t);	// Free the handle, returns NULL
-const char *ajl_error (ajl_t);     // Return if error set in JSON object, or NULL if not error
+ajl_t ajl_delete (ajl_t);       // Free the handle, returns NULL
+const char *ajl_error (ajl_t);  // Return if error set in JSON object, or NULL if not error
 
 // Allocate control structure for parsing, from file or from memory
 ajl_t ajl_read (FILE *);
 ajl_t ajl_read_file (const char *filename);
 ajl_t ajl_read_mem (unsigned char *buffer, size_t len);
-int ajl_line(ajl_t);	// Return current line number in source
-int ajl_char(ajl_t);	// Return current character position in source
-int ajl_level(ajl_t);	// return current level of nesting
-int ajl_isobject(ajl_t);	// return non zero if we are within an object and so fields should be tagged
-FILE* ajl_file(ajl_t);	// return current file handle
+int ajl_line (ajl_t);           // Return current line number in source
+int ajl_char (ajl_t);           // Return current character position in source
+int ajl_level (ajl_t);          // return current level of nesting
+int ajl_isobject (ajl_t);       // return non zero if we are within an object and so fields should be tagged
+FILE *ajl_file (ajl_t);         // return current file handle
 
 typedef enum
 {                               // Parse types
@@ -71,7 +71,7 @@ typedef enum
 // If the element is within an object, then the tag is parsed and mallocd and stored in tag
 // The value of the element is parsed, and malloced and stored in value (a null is appended, not included in len)
 // The length of the value is stored in len - this is mainly to allow for strings that contain a null
-ajl_type_t ajl_parse (ajl_t, unsigned char **tag, unsigned char **value,size_t *len);
+ajl_type_t ajl_parse (ajl_t, unsigned char **tag, unsigned char **value, size_t *len);
 
 // Generate
 
@@ -79,14 +79,13 @@ ajl_type_t ajl_parse (ajl_t, unsigned char **tag, unsigned char **value,size_t *
 ajl_t ajl_write (FILE *);
 ajl_t ajl_write_file (const char *filename);
 ajl_t ajl_write_mem (unsigned char **buffer, size_t *len);
-void ajl_pretty(ajl_t); // Mark for pretty output (i.e. additional whitespace)
+void ajl_pretty (ajl_t);        // Mark for pretty output (i.e. additional whitespace)
 
 const char *ajl_add (ajl_t, const unsigned char *tag, const unsigned char *value);      // Add pre-formatted value (expects quotes, escapes, etc)
-const char *ajl_add_string (ajl_t, const unsigned char *tag, const unsigned char *value, ssize_t len);   // Note len=-1 means use strlen(value)
-const char *ajl_add_number (ajl_t, const unsigned char *tag, const char *fmt,...);
+const char *ajl_add_string (ajl_t, const unsigned char *tag, const unsigned char *value, ssize_t len);  // Note len=-1 means use strlen(value)
+const char *ajl_add_number (ajl_t, const unsigned char *tag, const char *fmt, ...);
 const char *ajl_add_boolean (ajl_t, const unsigned char *tag, unsigned char value);
 const char *ajl_add_null (ajl_t, const unsigned char *tag);
 const char *ajl_add_object (ajl_t, const unsigned char *tag);   // Start an object
 const char *ajl_add_array (ajl_t, const unsigned char *tag);    // Start an array
 const char *ajl_add_close (ajl_t);      // close current array or object
-
