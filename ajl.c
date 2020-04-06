@@ -535,7 +535,7 @@ j_write_mem (j_t j, char **buffer, size_t *len)
 }
 
 // Changing an object/value
-void
+j_t
 j_null (j_t j)
 {                               // Null this point - used a lot internally to clear a point before setting to correct type
    assert (j);
@@ -559,27 +559,29 @@ j_null (j_t j)
    j->val = NULL;               // Even if not malloc'd
    j->len = sizeof (valnull) - 1;
    j->isstring = 0;
+   return j;
 }
 
-void
+j_t
 j_string (j_t j, const char *val)
 {                               // Simple set this value to a string (null terminated).
    if (!j)
-      return;
+      return j;
    j_null (j);
    if (!val)
-      return;
+      return j;
    j->val = (void *) strdup (val);
    j->len = strlen (val);
    j->malloc = 1;
    j->isstring = 1;
+   return j;
 }
 
-void
+j_t
 j_stringn (j_t j, const char *val, size_t len)
 {                               // Simple set this value to a string with specified length (allows embedded nulls in string)
    if (!j)
-      return;
+      return j;
    if (len)
       assert (val);
    j_null (j);
@@ -589,6 +591,7 @@ j_stringn (j_t j, const char *val, size_t len)
    j->len = len;
    j->malloc = 1;
    j->isstring = 1;
+   return j;
 }
 
 static void
@@ -600,35 +603,37 @@ j_vstringf (j_t j, const char *fmt, va_list ap, int isstring)
    j->isstring = isstring;
 }
 
-void
+j_t
 j_stringf (j_t j, const char *fmt, ...)
 {                               // Simple set this value to a string, using printf style format
    if (!j)
-      return;
+      return j;
    j_null (j);
    va_list ap;
    va_start (ap, fmt);
    j_vstringf (j, fmt, ap, 1);
    va_end (ap);
+   return j;
 }
 
-void
+j_t
 j_numberf (j_t j, const char *fmt, ...)
 {                               // Simple set this value to a number, i.e. unquoted, using printf style format
    if (!j)
-      return;
+      return j;
    j_null (j);
    va_list ap;
    va_start (ap, fmt);
    j_vstringf (j, fmt, ap, 0);
    va_end (ap);
+   return j;
 }
 
-void
+j_t
 j_literal (j_t j, const char *val)
 {                               // Simple set this value to a literal, e.g. "null", "true", "false"
    if (!j)
-      return;
+      return j;
    j_null (j);
    if (val && !strcmp (val, (char *) valempty))
       val = (char *) valempty;
@@ -646,29 +651,32 @@ j_literal (j_t j, const char *val)
       j->malloc = 1;
    }
    j->val = (void *) val;
+   return j;
 }
 
-void
+j_t
 j_object (j_t j)
 {                               // Simple set this value to be an object if not already
    if (!j)
-      return;
+      return j;
    if (!j->children || j->isarray)
       j_null (j);
    if (!j->children)
       assert ((j->children = malloc (j->len = 0)));
+   return j;
 }
 
-void
+j_t
 j_array (j_t j)
 {                               // Simple set this value to be an array if not already
    if (!j)
-      return;
+      return j;
    if (!j->children || j->isarray)
       j_null (j);
    if (!j->children)
       assert ((j->children = malloc (j->len = 0)));
    j->isarray = 1;
+   return j;
 }
 
 j_t
@@ -681,7 +689,7 @@ j_t
 j_append (j_t j)
 {                               // Create new point at end of array
    if (!j)
-      return NULL;
+      return j;
    j_array (j);
    return j_extend (j);
 }
@@ -723,8 +731,7 @@ j_add_string (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a string (null terminated).
    if (tags)
       j = j_findmake (j, tags, 1);
-   j_string (j, val);
-   return j;
+   return j_string (j, val);
 }
 
 j_t
@@ -762,8 +769,7 @@ j_add_literal (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a literal, e.g. "null", "true", "false"
    if (tags)
       j = j_findmake (j, tags, 1);
-   j_literal (j, val);
-   return j;
+   return j_literal (j, val);
 }
 
 
@@ -774,8 +780,7 @@ j_append_string (j_t j, const char *tags, const char *val)
    if (tags)
       j = j_findmake (j, tags, 1);
    j = j_append (j);
-   j_string (j, val);
-   return j;
+   return j_string (j, val);
 }
 
 j_t
@@ -810,10 +815,8 @@ j_append_literal (j_t j, const char *tags, const char *val)
    if (tags)
       j = j_findmake (j, tags, 1);
    j = j_append (j);
-   j_literal (j, val);
-   return j;
+   return j_literal (j, val);
 }
-
 
 // Moving parts of objects...
 j_t

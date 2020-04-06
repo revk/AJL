@@ -87,14 +87,14 @@ char *j_write_file (j_t, const char *filename);
 char *j_write_mem (j_t, char **buffer, size_t *len);
 
 // Changing an object/value
-void j_null (j_t);              // Null this point
-void j_string (j_t, const char *);      // Simple set this value to a string (null terminated).
-void j_stringn (j_t, const char *, size_t);     // Simple set this value to a string with specified length (allows embedded nulls in string)
-void j_stringf (j_t, const char *fmt, ...);     // Simple set this value to a string, using printf style format
-void j_numberf (j_t, const char *fmt, ...);     // Simple set this value to a number, i.e. unquoted, using printf style format
-void j_literal (j_t, const char *);     // Simple set this value to a literal, e.g. "null", "true", "false"
-void j_object (j_t);            // Simple set this value to be an object if not already
-void j_array (j_t);             // Simple set this value to be an array if not already
+j_t j_null (j_t);               // Null this point
+j_t j_string (j_t, const char *);       // Simple set this value to a string (null terminated).
+j_t j_stringn (j_t, const char *, size_t);      // Simple set this value to a string with specified length (allows embedded nulls in string)
+j_t j_stringf (j_t, const char *fmt, ...);      // Simple set this value to a string, using printf style format
+j_t j_numberf (j_t, const char *fmt, ...);      // Simple set this value to a number, i.e. unquoted, using printf style format
+j_t j_literal (j_t, const char *);      // Simple set this value to a literal, e.g. "null", "true", "false"
+j_t j_object (j_t);             // Simple set this value to be an object if not already
+j_t j_array (j_t);              // Simple set this value to be an array if not already
 j_t j_add (j_t, const char *tags);      // Create specified tag/path, and return the point that is the value for that tag.
 j_t j_append (j_t);             // Create new point at end of array
 void j_remove (j_t, const char *tags);  // Remove an entry from its parent
