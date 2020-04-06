@@ -671,7 +671,7 @@ j_array (j_t j)
 {                               // Simple set this value to be an array if not already
    if (!j)
       return j;
-   if (!j->children || j->isarray)
+   if (!j->children || !j->isarray)
       j_null (j);
    if (!j->children)
       assert ((j->children = malloc (j->len = 0)));
