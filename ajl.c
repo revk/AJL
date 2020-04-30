@@ -751,6 +751,8 @@ j_add_string (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a string (null terminated).
    if (tags)
       j = j_findmake (j, tags, 1);
+   else
+      j = j_append (j);
    return j_string (j, val);
 }
 
@@ -759,6 +761,8 @@ j_add_stringf (j_t j, const char *tags, const char *fmt, ...)
 {                               // Simple set this value to a string, using printf style format
    if (tags)
       j = j_findmake (j, tags, 1);
+   else
+      j = j_append (j);
    if (!j)
       return NULL;
    j_null (j);
@@ -774,6 +778,8 @@ j_add_numberf (j_t j, const char *tags, const char *fmt, ...)
 {                               // Simple set this value to a number, i.e. unquoted, using printf style format
    if (tags)
       j = j_findmake (j, tags, 1);
+   else
+      j = j_append (j);
    if (!j)
       return NULL;
    j_null (j);
@@ -789,6 +795,8 @@ j_add_literal (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a literal, e.g. "null", "true", "false"
    if (tags)
       j = j_findmake (j, tags, 1);
+   else
+      j = j_append (j);
    return j_literal (j, val);
 }
 
