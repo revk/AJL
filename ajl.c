@@ -731,6 +731,8 @@ j_add_array (j_t j, const char *tags)
 {                               // Add array
    if (tags)
       j = j_findmake (j, tags, 1);
+   else
+      j = j_append (j);
    return j_array (j);
 }
 
@@ -739,6 +741,8 @@ j_add_object (j_t j, const char *tags)
 {                               // Add object
    if (tags)
       j = j_findmake (j, tags, 1);
+   else
+      j = j_append (j);
    return j_object (j);
 }
 
