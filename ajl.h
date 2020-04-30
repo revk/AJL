@@ -101,6 +101,8 @@ void j_remove (j_t, const char *tags);  // Remove an entry from its parent
 void j_sort (j_t);              // Apply a recursive sort so all objects have fields in alphabetic order.
 
 // Additional functions to combine the above... Returns point for newly added value.
+j_t j_add_array(j_t,const char *tags);	// Add array
+j_t j_add_object(j_t,const char *tags); // Add object
 j_t j_add_string (j_t, const char *tags, const char *); // Simple set this value to a string (null terminated).
 j_t j_add_stringf (j_t, const char *tags, const char *fmt, ...);        // Simple set this value to a string, using printf style format
 j_t j_add_numberf (j_t, const char *tags, const char *fmt, ...);        // Simple set this value to a number, i.e. unquoted, using printf style format

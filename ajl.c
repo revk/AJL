@@ -727,6 +727,22 @@ j_sort (j_t j)
 
 // Additional functions to combine the above... Returns point for newly added value.
 j_t
+j_add_array (j_t j, const char *tags)
+{                               // Add array
+   if (tags)
+      j = j_findmake (j, tags, 1);
+   return j_array (j);
+}
+
+j_t
+j_add_object (j_t j, const char *tags)
+{                               // Add object
+   if (tags)
+      j = j_findmake (j, tags, 1);
+   return j_object (j);
+}
+
+j_t
 j_add_string (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a string (null terminated).
    if (tags)
