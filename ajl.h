@@ -109,6 +109,8 @@ j_t j_add_numberf (j_t, const char *tags, const char *fmt, ...);        // Simpl
 j_t j_add_literal (j_t, const char *tags, const char *);        // Simple set this value to a literal, e.g. "null", "true", "false"
 
 // Additional functions to combine the above... Returns point for newly added value.
+j_t j_append_object(j_t,const char *tags); // Add object
+j_t j_append_array(j_t,const char *tags); // Add array
 j_t j_append_string (j_t, const char *tags, const char *);      // Simple set this value to a string (null terminated).
 j_t j_append_stringf (j_t, const char *tags, const char *fmt, ...);     // Simple set this value to a string, using printf style format
 j_t j_append_numberf (j_t, const char *tags, const char *fmt, ...);     // Simple set this value to a number, i.e. unquoted, using printf style format

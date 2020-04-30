@@ -791,6 +791,24 @@ j_add_literal (j_t j, const char *tags, const char *val)
 
 // Additional functions to combine the above... Returns point for newly added value.
 j_t
+j_append_object (j_t j, const char *tags)
+{
+   if (tags)
+      j = j_findmake (j, tags, 1);
+   j = j_append (j);
+   return j_object (j);
+}
+
+j_t
+j_append_array (j_t j, const char *tags)
+{
+   if (tags)
+      j = j_findmake (j, tags, 1);
+   j = j_append (j);
+   return j_array (j);
+}
+
+j_t
 j_append_string (j_t j, const char *tags, const char *val)
 {                               // Simple set this value to a string (null terminated).
    if (tags)
