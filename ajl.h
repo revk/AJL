@@ -63,6 +63,7 @@ const char *j_val (j_t);        // The value of this object as a string. NULL if
 int j_len (j_t);                // The length of this value (characters if string or number or literal), or number of entries if object or array
 
 const char *j_get (j_t, const char *tags);      // Find and get val using tags, NULL for not found
+const char *j_get_not_null (j_t, const char *tags);     // Find and get val using tags, NULL for not found or null
 
 // Information about data type of this point
 int j_isarray (j_t);            // True if is an array
@@ -101,16 +102,16 @@ void j_remove (j_t, const char *tags);  // Remove an entry from its parent
 void j_sort (j_t);              // Apply a recursive sort so all objects have fields in alphabetic order.
 
 // Additional functions to combine the above... Returns point for newly added value.
-j_t j_add_array(j_t,const char *tags);	// Add array
-j_t j_add_object(j_t,const char *tags); // Add object
+j_t j_add_array (j_t, const char *tags);        // Add array
+j_t j_add_object (j_t, const char *tags);       // Add object
 j_t j_add_string (j_t, const char *tags, const char *); // Simple set this value to a string (null terminated).
 j_t j_add_stringf (j_t, const char *tags, const char *fmt, ...);        // Simple set this value to a string, using printf style format
 j_t j_add_numberf (j_t, const char *tags, const char *fmt, ...);        // Simple set this value to a number, i.e. unquoted, using printf style format
 j_t j_add_literal (j_t, const char *tags, const char *);        // Simple set this value to a literal, e.g. "null", "true", "false"
 
 // Additional functions to combine the above... Returns point for newly added value.
-j_t j_append_object(j_t,const char *tags); // Add object
-j_t j_append_array(j_t,const char *tags); // Add array
+j_t j_append_object (j_t, const char *tags);    // Add object
+j_t j_append_array (j_t, const char *tags);     // Add array
 j_t j_append_string (j_t, const char *tags, const char *);      // Simple set this value to a string (null terminated).
 j_t j_append_stringf (j_t, const char *tags, const char *fmt, ...);     // Simple set this value to a string, using printf style format
 j_t j_append_numberf (j_t, const char *tags, const char *fmt, ...);     // Simple set this value to a number, i.e. unquoted, using printf style format

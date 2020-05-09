@@ -281,6 +281,16 @@ j_get (j_t j, const char *tags)
    return j_val (j);
 }
 
+const char *
+j_get_not_null (j_t j, const char *tags)
+{                               // Find and get val using tags, NULL for not found or null
+   if (tags)
+      j = j_find (j, tags);
+   if (j_isnull (j))
+      return NULL;
+   return j_val (j);
+}
+
 // Information about data type of this point
 int
 j_isarray (j_t j)
