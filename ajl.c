@@ -690,6 +690,14 @@ j_literal (j_t j, const char *val)
 }
 
 j_t
+j_literal_free (j_t j, char *val)
+{                               // Simple set this value to a literal, e.g. "null", "true", "false" - free arg
+   j = j_literal (j, val);
+   freez (val);
+   return j;
+}
+
+j_t
 j_object (j_t j)
 {                               // Simple set this value to be an object if not already
    if (!j)
@@ -855,6 +863,13 @@ j_add_literal (j_t j, const char *tags, const char *val)
    return j_literal (j, val);
 }
 
+j_t
+j_add_literal_free (j_t j, const char *tags, char *val)
+{
+   j = j_add_literal (j, tags, val);
+   freez (val);
+   return j;
+}
 
 // Additional functions to combine the above... Returns point for newly added value.
 j_t
@@ -935,6 +950,14 @@ j_append_literal (j_t j, const char *tags, const char *val)
       j = j_findmake (j, tags, 1);
    j = j_append (j);
    return j_literal (j, val);
+}
+
+j_t
+j_append_literal_free (j_t j, const char *tags, char *val)
+{
+   j = j_append_literal (j, tags, val);
+   freez (val);
+   return j;
 }
 
 // Moving parts of objects...

@@ -95,7 +95,8 @@ j_t j_stringf (j_t, const char *fmt, ...);      // Simple set this value to a st
 j_t j_utc (j_t, time_t);        // Simple set (string) date/time (UTC)
 j_t j_datetime (j_t, time_t);   // Simple set (string) date/time
 j_t j_numberf (j_t, const char *fmt, ...);      // Simple set this value to a number, i.e. unquoted, using printf style format
-j_t j_literal (j_t, const char *);      // Simple set this value to a literal, e.g. "null", "true", "false"
+j_t j_literal (j_t, const char *);      // Simple set this value to a literal, e.g. "null", "true", "false", or a number known to be valid.
+j_t j_literal_free (j_t, char *);       // Simple set this value to a literal, e.g. "null", "true", "false", or a number known to be valid. (frees arg)
 j_t j_object (j_t);             // Simple set this value to be an object if not already
 j_t j_array (j_t);              // Simple set this value to be an array if not already
 j_t j_add (j_t, const char *tags);      // Create specified tag/path, and return the point that is the value for that tag.
@@ -111,7 +112,8 @@ j_t j_add_stringf (j_t, const char *tags, const char *fmt, ...);        // Simpl
 j_t j_add_utc (j_t, const char *tags, time_t);  // Add date/time (UTC)
 j_t j_add_datetime (j_t, const char *tags, time_t);     // Add date/time
 j_t j_add_numberf (j_t, const char *tags, const char *fmt, ...);        // Simple set this value to a number, i.e. unquoted, using printf style format
-j_t j_add_literal (j_t, const char *tags, const char *);        // Simple set this value to a literal, e.g. "null", "true", "false"
+j_t j_add_literal (j_t, const char *tags, const char *);        // Simple set this value to a literal, e.g. "null", "true", "false", or a number known to be valid.
+j_t j_add_literal_free (j_t, const char *tags, char *); // Simple set this value to a literal, e.g. "null", "true", "false", or a number known to be valid.
 
 // Additional functions to combine the above... Returns point for newly added value.
 j_t j_append_object (j_t, const char *tags);    // Add object
@@ -121,7 +123,8 @@ j_t j_append_stringf (j_t, const char *tags, const char *fmt, ...);     // Simpl
 j_t j_append_utc (j_t, const char *tags, time_t);       // Simple add date (UTC)
 j_t j_append_datetime (j_t, const char *tags, time_t);  // Simple add date
 j_t j_append_numberf (j_t, const char *tags, const char *fmt, ...);     // Simple set this value to a number, i.e. unquoted, using printf style format
-j_t j_append_literal (j_t, const char *tags, const char *);     // Simple set this value to a literal, e.g. "null", "true", "false"
+j_t j_append_literal (j_t, const char *tags, const char *);     // Simple set this value to a literal, e.g. "null", "true", "false", or a number known to be valid.
+j_t j_append_literal_free (j_t, const char *tags, char *);      // Simple set this value to a literal, e.g. "null", "true", "false", or a number known to be valid.
 
 // Moving parts of objects...
 j_t j_attach (j_t, j_t);        // Replaces j with o, unlinking o from its parent, returns o
