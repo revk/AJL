@@ -65,6 +65,11 @@ int j_len (j_t);                // The length of this value (characters if strin
 const char *j_get (j_t, const char *tags);      // Find and get val using tags, NULL for not found
 const char *j_get_not_null (j_t, const char *tags);     // Find and get val using tags, NULL for not found or null
 
+// Convert
+time_t j_timez (const char *t, int z);  // convert iso time to time_t (z means assume utc is not set)
+#define j_time(t) j_timez(t,0)  // Normal XML time, assumes local if no time zone
+#define j_time_utc(t) j_timez(t,1)      // Expects time to be UTC even with no Z suffix
+
 // Information about data type of this point
 int j_isarray (j_t);            // True if is an array
 int j_isobject (j_t);           // True if is an object

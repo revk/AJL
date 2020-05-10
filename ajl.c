@@ -63,6 +63,72 @@ static unsigned char valzero[] = "";
 // Safe free and NULL value
 #define freez(x)        do{if(x)free(x);x=NULL;}while(0)
 
+time_t
+j_timez (const char *t, int z)  // convert iso time to time_t
+{                               // Can do HH:MM:SS, or YYYY-MM-DD or YYYY-MM-DD HH:MM:SS, 0 for invalid
+   if (!t)
+      return 0;
+   unsigned int Y = 0,
+      M = 0,
+      D = 0,
+      h = 0,
+      m = 0,
+      s = 0;
+   int hms (void)
+   {
+      while (isdigit (*t))
+         h = h * 10 + *t++ - '0';
+      if (*t++ != ':')
+         return 0;
+      while (isdigit (*t))
+         m = m * 10 + *t++ - '0';
+      if (*t++ != ':')
+         return 0;
+      while (isdigit (*t))
+         s = s * 10 + *t++ - '0';
+      if (*t == '.')
+      {                         // fractions
+         t++;
+         while (isdigit (*t))
+            t++;
+      }
+      return 1;
+   }
+   if (isdigit (t[0]) && isdigit (t[1]) && t[2] == ':')
+   {
+      if (!hms ())
+         return 0;
+      return h * 3600 + m * 60 + s;
+   } else
+   {
+      while (isdigit (*t))
+         Y = Y * 10 + *t++ - '0';
+      if (*t++ != '-')
+         return 0;
+      while (isdigit (*t))
+         M = M * 10 + *t++ - '0';
+      if (*t++ != '-')
+         return 0;
+      while (isdigit (*t))
+         D = D * 10 + *t++ - '0';
+      if (*t == 'T' || *t == ' ')
+      {                         // time
+         t++;
+         if (!hms ())
+            return 0;
+      }
+   }
+   if (!Y && !M && !D)
+      return 0;
+   struct tm tm = {
+    tm_year: Y - 1900, tm_mon: M - 1, tm_mday: D, tm_hour: h, tm_min: m, tm_sec:s
+   };
+   if (*t == 'Z' || z)
+      return timegm (&tm);      // UTC
+   tm.tm_isdst = -1;            // work it out
+   return mktime (&tm);         // Local time
+}
+
 j_t
 j_create (void)
 {                               // Allocate a new JSON object tree that is empty, ready to be added to or read in to, NULL for error
