@@ -31,8 +31,12 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <err.h>
 #undef NDEBUG                   // Uses side effects in assert
 #include <assert.h>
+#ifdef	JCURL
+#include <curl/curl.h>
+#endif
 
 // This is a point in the JSON object
 // If ->children is not NULL, it is an array of pointers to child objects
@@ -948,6 +952,74 @@ j_attach (j_t j, j_t o)
    freez (j);
    return o;
 }
+
+#ifdef	JCURL
+j_t
+j_curl (CURL * curlv, j_t input, const char *url, ...)
+{                               // Submit curl, get curl response
+   j_t output = NULL;
+   CURL *curl = curlv;
+   if (!curl)
+      curl = curl_easy_init ();
+   char *reply = NULL,
+      *request = NULL;
+   size_t replylen = 0,
+      requestlen = 0;
+   FILE *o = open_memstream (&reply, &replylen);
+   char *fullurl = NULL;
+   va_list ap;
+   va_start (ap, url);
+   if (vasprintf (&fullurl, url, ap) < 0)
+      errx (1, "malloc at line %d", __LINE__);
+   va_end (ap);
+   curl_easy_setopt (curl, CURLOPT_URL, fullurl);
+   curl_easy_setopt (curl, CURLOPT_WRITEDATA, o);
+   struct curl_slist *headers = NULL;
+   if (input)
+   {                            // posting JSON input
+      headers = curl_slist_append (headers, "Content-Type: application/json");  // posting JSON
+      curl_easy_setopt (curl, CURLOPT_HTTPHEADER, headers);
+      curl_easy_setopt (curl, CURLOPT_POST, 1L);
+      FILE *i = open_memstream (&request, &requestlen);
+      j_write (input, i);
+      fclose (i);
+      curl_easy_setopt (curl, CURLOPT_POSTFIELDS, request);
+      curl_easy_setopt (curl, CURLOPT_POSTFIELDSIZE, (long) requestlen);
+   }                            // if not input, then assume a GET or args preset before call
+   CURLcode result = curl_easy_perform (curl);
+   fclose (o);
+   // Put back to GET as default
+   curl_easy_setopt (curl, CURLOPT_HTTPHEADER, NULL);
+   curl_easy_setopt (curl, CURLOPT_HTTPGET, 1L);
+   free (fullurl);
+   if (headers)
+      curl_slist_free_all (headers);
+   if (request)
+      free (request);
+   if (result)
+   {
+      if (reply)
+         free (reply);
+      if (!curlv)
+         curl_easy_cleanup (curl);
+      return NULL;              // not a normal result
+   }
+   if (replylen)
+   {
+      output = j_create ();
+      const char *e = j_read_mem (output, reply);
+      if (e)
+      {
+         fprintf (stderr, "Failed: %s\n%s\n", e, reply);
+         output = j_delete (output);
+      }
+      free (reply);
+   }
+   if (!curlv)
+      curl_easy_cleanup (curl);
+   return output;
+}
+#endif
 
 #ifndef	LIB                     // Build as command line for testing
 int
