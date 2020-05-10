@@ -955,7 +955,7 @@ j_attach (j_t j, j_t o)
 
 #ifdef	JCURL
 j_t
-j_curl (CURL * curlv, j_t input, const char *url, ...)
+j_curl (CURL * curlv, j_t input, const char *bearer, const char *url, ...)
 {                               // Submit curl, get curl response
    j_t output = NULL;
    CURL *curl = curlv;
@@ -978,6 +978,14 @@ j_curl (CURL * curlv, j_t input, const char *url, ...)
    if (input)
    {                            // posting JSON input
       headers = curl_slist_append (headers, "Content-Type: application/json");  // posting JSON
+      if (bearer)
+      {
+         char *sa;
+         if (asprintf (&sa, "Authorization: Bearer %s", bearer) < 0)
+            errx (1, "malloc at line %d", __LINE__);
+         headers = curl_slist_append (headers, sa);
+         free (sa);
+      }
       curl_easy_setopt (curl, CURLOPT_HTTPHEADER, headers);
       curl_easy_setopt (curl, CURLOPT_POST, 1L);
       FILE *i = open_memstream (&request, &requestlen);

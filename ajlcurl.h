@@ -24,4 +24,4 @@
 #include <ajl.h>
 #include <curl/curl.h>
 
-j_t j_curl (CURL *, j_t, const char *url, ...); // Submit curl, get curl response
+j_t j_curl (CURL *, j_t, const char *bearer, const char *url, ...);     // Submit curl, get curl response
