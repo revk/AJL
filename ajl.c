@@ -22,6 +22,7 @@
      */
 
 #define _GNU_SOURCE             /* See feature_test_macros(7) */
+#include <time.h>
 #include "ajl.h"
 #include "ajlparse.c"
 #include <errno.h>
@@ -627,6 +628,26 @@ j_stringf (j_t j, const char *fmt, ...)
 }
 
 j_t
+j_utc (j_t j, time_t t)
+{
+   char v[30];
+   struct tm tm;
+   gmtime_r (&t, &tm);
+   strftime (v, sizeof (v), "%FT%TZ", &tm);
+   return j_string (j, v);
+}
+
+j_t
+j_datetime (j_t j, time_t t)
+{
+   char v[30];
+   struct tm tm;
+   localtime_r (&t, &tm);
+   strftime (v, sizeof (v), "%FT%T", &tm);
+   return j_string (j, v);
+}
+
+j_t
 j_numberf (j_t j, const char *fmt, ...)
 {                               // Simple set this value to a number, i.e. unquoted, using printf style format
    if (!j)
@@ -784,6 +805,26 @@ j_add_stringf (j_t j, const char *tags, const char *fmt, ...)
 }
 
 j_t
+j_add_utc (j_t j, const char *tags, time_t t)
+{
+   if (tags)
+      j = j_findmake (j, tags, 1);
+   else
+      j = j_append (j);
+   return j_utc (j, t);
+}
+
+j_t
+j_add_datetime (j_t j, const char *tags, time_t t)
+{
+   if (tags)
+      j = j_findmake (j, tags, 1);
+   else
+      j = j_append (j);
+   return j_datetime (j, t);
+}
+
+j_t
 j_add_numberf (j_t j, const char *tags, const char *fmt, ...)
 {                               // Simple set this value to a number, i.e. unquoted, using printf style format
    if (tags)
@@ -850,6 +891,24 @@ j_append_stringf (j_t j, const char *tags, const char *fmt, ...)
    j_vstringf (j, fmt, ap, 1);
    va_end (ap);
    return j;
+}
+
+j_t
+j_append_utc (j_t j, const char *tags, time_t t)
+{
+   if (tags)
+      j = j_findmake (j, tags, 1);
+   j = j_append (j);
+   return j_utc (j, t);
+}
+
+j_t
+j_append_datetime (j_t j, const char *tags, time_t t)
+{
+   if (tags)
+      j = j_findmake (j, tags, 1);
+   j = j_append (j);
+   return j_datetime (j, t);
 }
 
 j_t
