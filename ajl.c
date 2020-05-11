@@ -60,9 +60,9 @@ static unsigned char valfalse[] = "false";
 static unsigned char valempty[] = "";
 static unsigned char valzero[] = "";
 
-const char BASE64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-const char BASE32[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-const char BASE16[] = "0123456789ABCDEF";
+const char JBASE64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const char JBASE32[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+const char JBASE16[] = "0123456789ABCDEF";
 
 // Safe free and NULL value
 #define freez(x)        do{if(x)free(x);x=NULL;}while(0)
