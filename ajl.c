@@ -60,6 +60,10 @@ static unsigned char valfalse[] = "false";
 static unsigned char valempty[] = "";
 static unsigned char valzero[] = "";
 
+const char BASE64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const char BASE32[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+const char BASE16[] = "0123456789ABCDEF";
+
 // Safe free and NULL value
 #define freez(x)        do{if(x)free(x);x=NULL;}while(0)
 
@@ -127,6 +131,86 @@ j_timez (const char *t, int z)  // convert iso time to time_t
       return timegm (&tm);      // UTC
    tm.tm_isdst = -1;            // work it out
    return mktime (&tm);         // Local time
+}
+
+size_t
+j_based (char *src, char **buf, const char *alphabet, unsigned int bits)
+{                               // Base16/32/64 string to binary
+   if (!buf || !src)
+      return -1;
+   *buf = NULL;
+   int b = 0,
+      v = 0;
+   size_t len = 0;
+   FILE *out = open_memstream (buf, &len);
+   while (*src && *src != '=')
+   {
+      char *q = strchr (alphabet, bits < 6 ? toupper (*src) : *src);
+      if (!q)
+      {                         // Bad character
+         if (isspace (*src) || *src == '\r' || *src == '\n')
+         {
+            src++;
+            continue;
+         }
+         if (*buf)
+            free (*buf);
+         return -1;
+      }
+      v = (v << bits) + (q - alphabet);
+      b += bits;
+      src++;
+      if (b >= 8)
+      {                         // output byte
+         b -= 8;
+         fputc (v >> b, out);
+      }
+   }
+   fclose (out);
+   return len;
+}
+
+char *
+j_baseN (size_t slen, const unsigned char *src, size_t dmax, char *dst, const char *alphabet, unsigned int bits)
+{                               // base 16/32/64 binary to string
+   unsigned int i = 0,
+      o = 0,
+      b = 0,
+      v = 0;
+   while (i < slen)
+   {
+      b += 8;
+      v = (v << 8) + src[i++];
+      while (b >= bits)
+      {
+         b -= bits;
+         if (o < dmax)
+            dst[o++] = alphabet[(v >> b) & ((1 << bits) - 1)];
+      }
+   }
+   if (b)
+   {                            // final bits
+      b += 8;
+      v <<= 8;
+      b -= bits;
+      if (o < dmax)
+         dst[o++] = alphabet[(v >> b) & ((1 << bits) - 1)];
+      while (b)
+      {                         // padding
+         while (b >= bits)
+         {
+            b -= bits;
+            if (o < dmax)
+               dst[o++] = '=';
+         }
+         if (b)
+            b += 8;
+      }
+   }
+   if (o >= dmax)
+      return NULL;
+   dst[o] = 0;
+   return dst;
 }
 
 j_t

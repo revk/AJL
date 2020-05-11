@@ -69,6 +69,21 @@ const char *j_get_not_null (j_t, const char *tags);     // Find and get val usin
 time_t j_timez (const char *t, int z);  // convert iso time to time_t (z means assume utc is not set)
 #define j_time(t) j_timez(t,0)  // Normal XML time, assumes local if no time zone
 #define j_time_utc(t) j_timez(t,1)      // Expects time to be UTC even with no Z suffix
+// Coding conversion
+extern const char JBASE16[];
+extern const char JBASE32[];
+extern const char JBASE64[];
+char *j_baseN (size_t, const unsigned char *, size_t, char *, const char *, unsigned int);
+#define j_base64(len,buf)     j_base64N(len,buf,((len)+2)/3*4+1,alloca(((len)+2)/3*4+1))
+#define j_base64N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE64,6)
+#define j_base32(len,buf)     j_base32N(len,buf,((len)+4)/5*8+1,alloca(((len)+4)/5*8+1))
+#define j_base32N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE32,5)
+#define j_base16(len,buf)     j_base16N(len,buf,(len)*2+1,alloca((len)*2+1))
+#define j_base16N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE16,4)
+size_t j_based (char *src, char **buf, const char *alphabet, unsigned int bits);
+#define j_base64d(src,dst) j_based(src,dst,JBASE64,6)
+#define j_base32d(src,dst) j_based(src,dst,JBASE32,5)
+#define j_base16d(src,dst) j_based(src,dst,JBASE16,4)
 
 // Information about data type of this point
 int j_isarray (j_t);            // True if is an array
