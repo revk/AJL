@@ -903,14 +903,14 @@ j_sort_tag (const void *a, const void *b)
 }
 
 void
-j_sort_f (j_t j, j_sort_func * f)
+j_sort_f (j_t j, j_sort_func * f, int recurse)
 {                               // Apply a recursive sort
    if (!j || !j->children)
       return;
-   if (j->children)
+   if (recurse && j->children)
       for (int q = 0; q < j->len; q++)
-         j_sort (j->children[q]);
-   if (j->isarray || !j->len)
+         j_sort_f (j->children[q], f, 1);
+   if ((recurse && j->isarray) || !j->len)
       return;
    qsort (j->children, j->len, sizeof (*j->children), f);
    for (int q = 0; q < j->len; q++)
@@ -919,8 +919,8 @@ j_sort_f (j_t j, j_sort_func * f)
 
 void
 j_sort (j_t j)
-{
-   j_sort_f (j, j_sort_tag);
+{                               // Recursive tag sort
+   j_sort_f (j, j_sort_tag, 1);
 }
 
 
