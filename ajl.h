@@ -122,7 +122,9 @@ j_t j_array (j_t);              // Simple set this value to be an array if not a
 j_t j_add (j_t, const char *tags);      // Create specified tag/path, and return the point that is the value for that tag.
 j_t j_append (j_t);             // Create new point at end of array
 void j_remove (j_t, const char *tags);  // Remove an entry from its parent
+typedef int j_sort_func (const void *a, const void *b);
 void j_sort (j_t);              // Apply a recursive sort so all objects have fields in alphabetic order.
+void j_sort_f (j_t, j_sort_func);       // Apply a recursive sort
 
 // Additional functions to combine the above... Returns point for newly added value.
 j_t j_add_array (j_t, const char *tags);        // Add array

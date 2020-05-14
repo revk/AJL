@@ -903,7 +903,7 @@ j_sort_tag (const void *a, const void *b)
 }
 
 void
-j_sort (j_t j)
+j_sort_f (j_t j, j_sort_func * f)
 {                               // Apply a recursive sort
    if (!j || !j->children)
       return;
@@ -912,9 +912,15 @@ j_sort (j_t j)
          j_sort (j->children[q]);
    if (j->isarray || !j->len)
       return;
-   qsort (j->children, j->len, sizeof (*j->children), j_sort_tag);
+   qsort (j->children, j->len, sizeof (*j->children), f);
    for (int q = 0; q < j->len; q++)
       j->children[q]->posn = q;
+}
+
+void
+j_sort (j_t j)
+{
+   j_sort_f (j, j_sort_tag);
 }
 
 
