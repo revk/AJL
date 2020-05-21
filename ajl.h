@@ -98,7 +98,7 @@ int j_isstring (j_t);           // True if is a string (i.e. quoted, note "123" 
 // Returns NULL if all is well, else a malloc'd error string
 char *j_read (j_t, FILE *);     // Read object from open file
 char *j_read_file (j_t, const char *filename);  // Read object from named file
-char *j_read_mem (j_t, char *buffer);   // Read object from string in memory (NULL terminated)
+char *j_read_mem (j_t, const char *buffer);   // Read object from string in memory (NULL terminated)
 
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string

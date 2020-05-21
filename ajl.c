@@ -609,11 +609,11 @@ j_read_file (j_t j, const char *filename)
 }
 
 char *
-j_read_mem (j_t j, char *buffer)
+j_read_mem (j_t j, const char *buffer)
 {                               // Read object from string in memory (NULL terminated)
    assert (j);
    assert (buffer);
-   return j_read (j, fmemopen (buffer, strlen (buffer), "r"));
+   return j_read (j, fmemopen ((char *) buffer, strlen (buffer), "r"));
 }
 
 
