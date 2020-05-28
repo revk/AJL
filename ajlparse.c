@@ -248,6 +248,17 @@ check_number (ajl_t j, FILE * o)
 
 // Common functions
 const char *
+ajl_end (ajl_t j)
+{                               // Close control structure (DOES NOT CLOSE file).
+   validate (j);
+   if (j->pretty)
+      fputc ('\n', j->f);
+   fflush (j->f);
+   j->f = NULL;
+   return NULL;
+};
+
+const char *
 ajl_close (ajl_t j)
 {                               // Close control structure (closes file). For write_mem, this sets buffer and len correctly and adds a NULL after len.
    validate (j);
