@@ -132,8 +132,8 @@ void j_sort_f(j_t, j_sort_func, int recurse);   // Apply a sort (if recursive, o
 // Additional functions to combine the above... Returns point for newly added value.
 // These insert a new tagged entry in to an object. The tag used is the last part of path. The parent is the j_t and and earlier parts of path
 // E.g. if you j_add_string(x,"a.b.c","fred") you are creating object "a" in x, and "b" in "a", and then creating a string "c" in "b" with value "fred"
-j_t j_add_array(j_t, const char *path); // Add array
 j_t j_add_object(j_t, const char *path);        // Add object
+j_t j_add_array(j_t, const char *path); // Add array
 j_t j_add_string(j_t, const char *path, const char *);  // Simple set this value to a string (null terminated).
 j_t j_add_stringf(j_t, const char *path, const char *fmt, ...); // Simple set this value to a string, using printf style format
 j_t j_add_utc(j_t, const char *path, time_t);   // Add date/time (UTC)
