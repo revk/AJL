@@ -131,7 +131,7 @@ void j_sort_f(j_t, j_sort_func, int recurse);   // Apply a sort (if recursive, o
 
 // Additional functions to combine the above... Returns point for newly added value.
 // These insert a new tagged entry in to an object. The tag used is the last part of path. The parent is the j_t and and earlier parts of path
-// E.g. if you j_add_string(x,"a.b.c") you are creating object "a" in x, and "b" in "a", and then creating a string "c" in "b"
+// E.g. if you j_add_string(x,"a.b.c","fred") you are creating object "a" in x, and "b" in "a", and then creating a string "c" in "b" with value "fred"
 j_t j_add_array(j_t, const char *path); // Add array
 j_t j_add_object(j_t, const char *path);        // Add object
 j_t j_add_string(j_t, const char *path, const char *);  // Simple set this value to a string (null terminated).
@@ -144,7 +144,7 @@ j_t j_add_literal_free(j_t, const char *path, char *);  // Simple set this value
 
 // Additional functions to combine the above... Returns point for newly added value.
 // These append a new entry to an array. The array is made by j_t and a path. If j_t is the array to which you wish to append then path is NULL.
-// E.g. if you j_append_string(x,"a.b.c","fred") you create object "a" in x, and "b" in "a", and then "c" in "b" which is an array, and add "fred" to array "c"
+// E.g. if you j_append_string(x,"a.b.c","fred") you create object "a" in x, and "b" in "a", and then "c" in "b" which is an array, and add a string "fred" to array "c"
 // Typically path will be NULL where you have the array in question already in the j_t argument
 j_t j_append_object(j_t, const char *path);     // Add object
 j_t j_append_array(j_t, const char *path);      // Add array
