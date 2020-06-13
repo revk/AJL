@@ -299,11 +299,11 @@ j_t j_first(j_t j)
    return j->children[0];
 }
 
-static j_t j_findmake(j_t j, const char *tags, int make)
+static j_t j_findmake(j_t j, const char *path, int make)
 {                               // Find object within this object by tag/path - make if any in path does not exist and make is set
-   if (!j || !tags)
+   if (!j || !path)
       return NULL;
-   unsigned char *t = (unsigned char *) strdupa(tags);
+   unsigned char *t = (unsigned char *) strdupa(path);
    while (*t)
    {
       if (!make && !j->children)
@@ -362,9 +362,9 @@ static j_t j_findmake(j_t j, const char *tags, int make)
    return j;
 }
 
-j_t j_find(j_t j, const char *tags)
+j_t j_find(j_t j, const char *path)
 {                               // Find object within this object by tag/path - NULL if any in path does not exist
-   return j_findmake(j, tags, 0);
+   return j_findmake(j, path, 0);
 }
 
 j_t j_index(j_t j, int n)
@@ -406,17 +406,17 @@ int j_len(j_t j)
    return j->len;
 }
 
-const char *j_get(j_t j, const char *tags)
-{                               // Find and get val using tags, NULL for not found
-   if (tags)
-      j = j_find(j, tags);
+const char *j_get(j_t j, const char *path)
+{                               // Find and get val using path, NULL for not found
+   if (path)
+      j = j_find(j, path);
    return j_val(j);
 }
 
-const char *j_get_not_null(j_t j, const char *tags)
-{                               // Find and get val using tags, NULL for not found or null
-   if (tags)
-      j = j_find(j, tags);
+const char *j_get_not_null(j_t j, const char *path)
+{                               // Find and get val using path, NULL for not found or null
+   if (path)
+      j = j_find(j, path);
    if (j_isnull(j))
       return NULL;
    return j_val(j);
@@ -776,7 +776,7 @@ j_t j_datetime(j_t j, time_t t)
    return j_string(j, v);
 }
 
-j_t j_numberf(j_t j, const char *fmt, ...)
+j_t j_literalf(j_t j, const char *fmt, ...)
 {                               // Simple set this value to a number, i.e. unquoted, using printf style format
    if (!j)
       return j;
@@ -842,9 +842,9 @@ j_t j_array(j_t j)
    return j;
 }
 
-j_t j_add(j_t j, const char *tags)
-{                               // Create specified tag/path, and return the point that is the value for that tag.
-   return j_findmake(j, tags, 1);
+j_t j_path(j_t j, const char *path)
+{                               // Find or create a path from j
+   return j_findmake(j, path, 1);
 }
 
 j_t j_append(j_t j)
@@ -853,14 +853,6 @@ j_t j_append(j_t j)
       return j;
    j_array(j);
    return j_extend(j);
-}
-
-void j_remove(j_t j, const char *tags)
-{                               // Remove an entry from its parent
-   if (tags)
-      j = j_find(j, tags);
-   if (j)
-      j_delete(j);
 }
 
 static int j_sort_tag(const void *a, const void *b)
@@ -887,177 +879,140 @@ void j_sort(j_t j)
    j_sort_f(j, j_sort_tag, 1);
 }
 
+j_t j_make(j_t j, const char *name)
+{
+   if (!name)
+      return j_append(j);
+   j_t n = j_findtag(j, (const unsigned char *) name);
+   if (!n)
+   {
+      n = j_extend(j);
+      n->tag = (unsigned char *) strdup(name);
+   }
+   return n;
+}
 
 // Additional functions to combine the above... Returns point for newly added value.
-j_t j_add_array(j_t j, const char *tags)
-{                               // Add array
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   else
-      j = j_append(j);
-   return j_array(j);
+
+j_t j_remove(j_t j, const char *name)
+{
+   j_t n = j_findtag(j, (const unsigned char *) name);
+   if (n)
+      n = j_delete(n);
+   return n;
 }
 
-j_t j_add_object(j_t j, const char *tags)
-{                               // Add object
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   else
-      j = j_append(j);
-   return j_object(j);
+j_t j_store_array(j_t j, const char *name)
+{                               // Store an array at specified name in object
+   return j_array(j_make(j, name));
 }
 
-j_t j_add_string(j_t j, const char *tags, const char *val)
-{                               // Simple set this value to a string (null terminated).
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   else
-      j = j_append(j);
-   return j_string(j, val);
+j_t j_store_object(j_t j, const char *name)
+{                               // Store an object at specified name in an object
+   return j_object(j_make(j, name));
 }
 
-j_t j_add_stringf(j_t j, const char *tags, const char *fmt, ...)
-{                               // Simple set this value to a string, using printf style format
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   else
-      j = j_append(j);
+j_t j_store_string(j_t j, const char *name, const char *val)
+{                               // Store a string at specified name in an object
+   return j_string(j_make(j, name), val);
+}
+
+j_t j_store_stringf(j_t j, const char *name, const char *fmt, ...)
+{                               // Store a (formatted) string at specified name in an object
    if (!j)
       return NULL;
-   j_null(j);
    va_list ap;
    va_start(ap, fmt);
-   j_vstringf(j, fmt, ap, 1);
+   j_vstringf(j_make(j, name), fmt, ap, 1);
    va_end(ap);
    return j;
 }
 
-j_t j_add_utc(j_t j, const char *tags, time_t t)
-{
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   else
-      j = j_append(j);
-   return j_utc(j, t);
+j_t j_store_utc(j_t j, const char *name, time_t t)
+{                               // Store a UTC time string at specified name in an object
+   return j_utc(j_make(j, name), t);
 }
 
-j_t j_add_datetime(j_t j, const char *tags, time_t t)
-{
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   else
-      j = j_append(j);
-   return j_datetime(j, t);
+j_t j_store_datetime(j_t j, const char *name, time_t t)
+{                               // Store a localtime string at a specified name in an object
+   return j_datetime(j_make(j, name), t);
 }
 
-j_t j_add_numberf(j_t j, const char *tags, const char *fmt, ...)
-{                               // Simple set this value to a number, i.e. unquoted, using printf style format
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   else
-      j = j_append(j);
+j_t j_store_literalf(j_t j, const char *name, const char *fmt, ...)
+{                               // Store a formatted literal, normally for numbers, at a specified name in an object
    if (!j)
       return NULL;
-   j_null(j);
    va_list ap;
    va_start(ap, fmt);
-   j_vstringf(j, fmt, ap, 0);
+   j_vstringf(j_make(j, name), fmt, ap, 0);
    va_end(ap);
    return j;
 }
 
-j_t j_add_literal(j_t j, const char *tags, const char *val)
-{                               // Simple set this value to a literal, e.g. "null", "true", "false"
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   else
-      j = j_append(j);
-   return j_literal(j, val);
+j_t j_store_literal(j_t j, const char *name, const char *val)
+{                               // Store a literal (typically for true/false) at a specified name in an object
+   return j_literal(j_make(j, name), val);
 }
 
-j_t j_add_literal_free(j_t j, const char *tags, char *val)
-{
-   j = j_add_literal(j, tags, val);
+j_t j_store_literal_free(j_t j, const char *name, char *val)
+{                               // Store a literal (typically for true/false) at a specified name in an object, freeing the value
+   j = j_store_literal(j, name, val);
    freez(val);
    return j;
 }
 
 // Additional functions to combine the above... Returns point for newly added value.
-j_t j_append_object(j_t j, const char *tags)
-{
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   j = j_append(j);
-   return j_object(j);
+j_t j_append_object(j_t j)
+{                               // Append a new (empty) object to an array
+   return j_object(j_append(j));
 }
 
-j_t j_append_array(j_t j, const char *tags)
-{
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   j = j_append(j);
-   return j_array(j);
+j_t j_append_array(j_t j)
+{                               // Append a new (empty) array to an array
+   return j_array(j_append(j));
 }
 
-j_t j_append_string(j_t j, const char *tags, const char *val)
-{                               // Simple set this value to a string (null terminated).
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   j = j_append(j);
-   return j_string(j, val);
+j_t j_append_string(j_t j, const char *val)
+{                               // Append a new string to an array
+   return j_string(j_append(j), val);
 }
 
-j_t j_append_stringf(j_t j, const char *tags, const char *fmt, ...)
-{                               // Simple set this value to a string, using printf style format
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   j = j_append(j);
+j_t j_append_stringf(j_t j, const char *fmt, ...)
+{                               // Append a new (formatted) string to an array
    va_list ap;
    va_start(ap, fmt);
-   j_vstringf(j, fmt, ap, 1);
+   j_vstringf(j_append(j), fmt, ap, 1);
    va_end(ap);
    return j;
 }
 
-j_t j_append_utc(j_t j, const char *tags, time_t t)
-{
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   j = j_append(j);
-   return j_utc(j, t);
+j_t j_append_utc(j_t j, time_t t)
+{                               // Append a UTC time string to an array
+   return j_utc(j_append(j), t);
 }
 
-j_t j_append_datetime(j_t j, const char *tags, time_t t)
-{
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   j = j_append(j);
-   return j_datetime(j, t);
+j_t j_append_datetime(j_t j, time_t t)
+{                               // Append a local time string to an array
+   return j_datetime(j_append(j), t);
 }
 
-j_t j_append_numberf(j_t j, const char *tags, const char *fmt, ...)
-{                               // Simple set this value to a number, i.e. unquoted, using printf style format
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   j = j_append(j);
+j_t j_append_literalf(j_t j, const char *fmt, ...)
+{                               // Append a formatted literal (usually a number) to an array
    va_list ap;
    va_start(ap, fmt);
-   j_vstringf(j, fmt, ap, 0);
+   j_vstringf(j_append(j), fmt, ap, 0);
    va_end(ap);
    return j;
 }
 
-j_t j_append_literal(j_t j, const char *tags, const char *val)
-{                               // Simple set this value to a literal, e.g. "null", "true", "false"
-   if (tags)
-      j = j_findmake(j, tags, 1);
-   j = j_append(j);
-   return j_literal(j, val);
+j_t j_append_literal(j_t j, const char *val)
+{                               // Append a literal (usually true/false) to an array
+   return j_literal(j_append(j), val);
 }
 
-j_t j_append_literal_free(j_t j, const char *tags, char *val)
-{
-   j = j_append_literal(j, tags, val);
+j_t j_append_literal_free(j_t j, char *val)
+{                               // Append a literal and free it
+   j = j_append_literal(j, val);
    freez(val);
    return j;
 }
