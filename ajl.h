@@ -146,7 +146,7 @@ j_t j_add_literal_free(j_t, const char *path, char *);  // Simple set this value
 // Additional functions to combine the above... Returns point for newly added value.
 // These append a new entry to an array. The array is made by j_t and a path. If j_t is the array to which you wish to append then path is NULL.
 // E.g. if you j_append_string(x,"a.b.c","fred") you create object "a" in x, and "b" in "a", and then "c" in "b" which is an array, and add a string "fred" to array "c"
-// E.g. j_add_object(x,"a.b.c") ends up with "a":{"b":{"c":[whateverwasbefore,{}]}} in x
+// E.g. j_append_object(x,"a.b.c") ends up with "a":{"b":{"c":[whateverwasbefore,{}]}} in x
 // Typically path will be NULL where you have the array in question already in the j_t argument
 j_t j_append_object(j_t, const char *path);     // Add object
 j_t j_append_array(j_t, const char *path);      // Add array
