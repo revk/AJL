@@ -374,9 +374,14 @@ j_t j_index(j_t j, int n)
    return j->children[n];
 }
 
+j_t j_named(j_t j, const char *name)
+{                               // Find named entry in an object
+   return j_findtag(j, (const unsigned char *)name);
+}
+
 
 // Information about a point
-const char *j_tag(j_t j)
+const char *j_name(j_t j)
 {                               // The tag of this object in parent, if it is in a parent object, else NULL
    if (!j)
       return NULL;

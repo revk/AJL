@@ -41,6 +41,9 @@
 // Attempt to find/get data that does not exist returns NULL, and length -1, etc
 // Attempting to set a value should always work, converting parent values to objects/arrays, extending arrays, etc, as needed
 // Other error cases are explained in comments below
+//
+// Where "path" is used, it can be a dot separated string and allows [<digits>] for array index
+// Where "name" is used it is the string used as the name/tag for an object, even if that contains dots, etc.
 
 typedef struct j_s *j_t;        // Point in JSON tree, i.e. a value
 
@@ -55,10 +58,11 @@ j_t j_prev(j_t);                // Previous in parent object or array, NULL if a
 j_t j_first(j_t);               // First entry in an object or array (same as j_index with 0)
 j_t j_find(j_t, const char *path);      // Find object within this object by tag/path - NULL if any in path does not exist
 j_t j_path(j_t, const char *path);      // Find, or creates (as null) a path from the object, return the final part (a null value item if newly created)
+j_t j_named(j_t, const char *name);     // Get the named entry, if exists, from a parent object
 j_t j_index(j_t, int);          // Find specific point in an array, or object - NULL if not in the array
 
 // Information about a point
-const char *j_tag(j_t);         // The tag of this object in parent, if it is in a parent object, else NULL
+const char *j_name(j_t);        // The name/tag of this object in parent, if it is in a parent object, else NULL
 int j_pos(j_t);                 // Position in parent array or object, -1 if this is the root object so not in another array/object
 const char *j_val(j_t);         // The value of this object as a string. NULL if not found. Note that a "null" string is a valid literal value
 int j_len(j_t);                 // The length of this value (characters if string or number or literal), or number of entries if object or array
@@ -118,14 +122,14 @@ j_t j_stringn(j_t, const char *, size_t);       // Make this point a string, and
 j_t j_stringf(j_t, const char *fmt, ...);       // Make this point a string, and set (formatted) value
 j_t j_utc(j_t, time_t);         // Make this point a string containing an ISO8601 UTC timestamp (ending Z)
 j_t j_datetime(j_t, time_t);    // Make this point a string containing an ISO8601 local timestamp (no Z)
-j_t j_literalf(j_t, const char *fmt, ...);       // Make this point a (formatted) literal, normally used for numeric values
+j_t j_literalf(j_t, const char *fmt, ...);      // Make this point a (formatted) literal, normally used for numeric values
 j_t j_literal(j_t, const char *);       // Make this point a literal specified as a string (normally for "true" and "false")
 j_t j_literal_free(j_t, char *);        // Make this point a literal specified as a string which is then freed
 j_t j_object(j_t);              // Make this point an object (empty if it was not an object before)
 j_t j_array(j_t);               // Make this point an array (empty if it was not an array before)
 j_t j_make(j_t, const char *name);      // Find the named entry in an object, or make a new named entry if not found (null value)
 j_t j_append(j_t);              // Append a new point to an array (initially a null)
-typedef int j_sort_func(const void *a, const void *b); // Allow sorting
+typedef int j_sort_func(const void *a, const void *b);  // Allow sorting
 void j_sort(j_t);               // Apply a recursive sort so all objects have fields in alphabetic order.
 void j_sort_f(j_t, j_sort_func, int recurse);   // Apply a sort using a function (if recursive, only sorts objects), if not, then sorts object or array at specified point
 
