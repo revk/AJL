@@ -160,4 +160,4 @@ j_t j_append_literalf(j_t, const char *fmt, ...);       // Append a new (formatt
 j_t j_append_literal_free(j_t, char *); // Append a new literal value to an array and free the passed string
 
 // Moving parts of objects...
-j_t j_attach(j_t, j_t);         // Replaces j with o, unlinking o from its parent, returns o
+j_t j_replace(j_t, j_t);         // Overwrites j in situ with o, freeing the pointer o, and returning j

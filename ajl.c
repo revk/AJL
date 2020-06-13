@@ -39,6 +39,8 @@
 #endif
 
 // This is a point in the JSON object
+// A key feature is that the content of a point in a JSON object can be replaced in situ if needed.
+// This means a root j_t passed to a function can be input and output JSON object if needed, replacing in-situ at the pointer (see j_replace)
 // If ->children is not NULL, it is an array of pointers to child objects
 // If ->children is NULL, this point is a string or number or literal (using val and len)
 struct j_s {                    // JSON point strucccture
@@ -376,7 +378,7 @@ j_t j_index(j_t j, int n)
 
 j_t j_named(j_t j, const char *name)
 {                               // Find named entry in an object
-   return j_findtag(j, (const unsigned char *)name);
+   return j_findtag(j, (const unsigned char *) name);
 }
 
 
@@ -1023,18 +1025,24 @@ j_t j_append_literal_free(j_t j, char *val)
 }
 
 // Moving parts of objects...
-j_t j_attach(j_t j, j_t o)
-{                               // Replaces j with o, unlinking o from its parent, returns o
-   if (!j || !o)
+j_t j_replace(j_t j, j_t o)
+{                               //            Overwrites j in situ with o, freeing the pointer o, and returning j
+   if (!j)
+   {
+      if (o)
+         j_delete(o);
       return j;
+   }
    j_null(j);
-   j_unlink(o);
-   o->posn = j->posn;
-   o->parent = j->parent;
-   if (j->parent)
-      j->parent->children[j->posn] = o;
-   freez(j);
-   return o;
+   if (!o)
+      return j;
+   j_unlink(o);                 // Unlink from parent
+   *j = *o;                     // copy content, parent will be null
+   if (j->children)
+      for (int c = 0; c < j->len; c++)
+         j->children[c]->parent = j;    // Link parent
+   freez(o);
+   return j;
 }
 
 #ifdef	JCURL
