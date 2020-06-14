@@ -565,6 +565,7 @@ char *j_read(j_t root, FILE * f)
       fclose(f);
    }
    ajl_end(p);
+   free(p);
    return ret;
 }
 
@@ -639,6 +640,7 @@ static char *j_write_flags(j_t root, FILE * f, int pretty)
    if (e)
       e = strdup(e);
    ajl_end(p);
+   free(p);
    return e;
 }
 
