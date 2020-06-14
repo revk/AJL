@@ -56,7 +56,7 @@ struct ajl_s {
 
 // Local functions
 #define validate(j) if(!j)return "NULL control passed"; if(j->error)return j->error;
-static inline void next(ajl_t j, FILE * o)
+static inline void next(const ajl_t j, FILE * o)
 {
    if (!j || j->error || j->eof)
       return;
@@ -81,7 +81,7 @@ static inline int isws(unsigned char c)
    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-static inline const char *skip_ws(ajl_t j)
+static inline const char *skip_ws(const ajl_t j)
 {                               // Skip white space
    validate(j);
    while (!j->eof && isws(j->peek))
@@ -89,7 +89,7 @@ static inline const char *skip_ws(ajl_t j)
    return NULL;
 }
 
-static inline const char *skip_comma(ajl_t j)
+static inline const char *skip_comma(const ajl_t j)
 {                               // Skip initial comma and whitespace
    validate(j);
    skip_ws(j);
@@ -104,7 +104,7 @@ static inline const char *skip_comma(ajl_t j)
    return NULL;
 }
 
-static inline const char *check_string(ajl_t j, FILE * o)
+static inline const char *check_string(const ajl_t j, FILE * o)
 {                               // Process a string (i.e. starting and ending with quotes and using escapes), writing decoded string to file if not zero
    validate(j);
    if (j->eof || j->peek != '"')
@@ -202,7 +202,7 @@ static inline const char *check_string(ajl_t j, FILE * o)
 #define checkeof if(j->eof&&!j->error)j->error="Unexpected EOF";checkerr
 #define makeerr(e) do{j->error=e;return AJL_ERROR;}while(0)
 
-static inline const char *check_number(ajl_t j, FILE * o)
+static inline const char *check_number(const ajl_t j, FILE * o)
 {                               // Process a number strictly to JSON spec for a number, writing to file if not null
    validate(j);
    if (j->peek == '-')
@@ -240,7 +240,19 @@ static inline const char *check_number(ajl_t j, FILE * o)
 }
 
 // Common functions
-const char *ajl_end(ajl_t j)
+const char *ajl_end_free(ajl_t j)
+{                               // Close control structure (DOES NOT CLOSE file). Free j
+   validate(j);
+   if (j->pretty)
+      fputc('\n', j->f);
+   fflush(j->f);
+   if (j->flags)
+      free(j->flags);
+   free(j);
+   return NULL;
+};
+
+const char *ajl_end(const ajl_t j)
 {                               // Close control structure (DOES NOT CLOSE file).
    validate(j);
    if (j->pretty)
@@ -250,7 +262,7 @@ const char *ajl_end(ajl_t j)
    return NULL;
 };
 
-const char *ajl_close(ajl_t j)
+const char *ajl_close(const ajl_t j)
 {                               // Close control structure (closes file). For write_mem, this sets buffer and len correctly and adds a NULL after len.
    validate(j);
    if (j->pretty)
@@ -260,7 +272,7 @@ const char *ajl_close(ajl_t j)
    return NULL;
 };
 
-ajl_t ajl_delete(ajl_t j)
+ajl_t ajl_delete(const ajl_t j)
 {                               // Free the handle, returns NULL
    if (j)
    {
@@ -273,7 +285,7 @@ ajl_t ajl_delete(ajl_t j)
    return NULL;
 };
 
-const char *ajl_error(ajl_t j)
+const char *ajl_error(const ajl_t j)
 {                               // Return if error set in JSON object, or NULL if not error
    validate(j);
    return NULL;
@@ -309,35 +321,35 @@ ajl_t ajl_read_mem(unsigned char *buffer, size_t len)
    return ajl_read(fmemopen(buffer, len, "r"));
 };
 
-int ajl_line(ajl_t j)
+int ajl_line(const ajl_t j)
 {                               // Return current line number in source
    if (!j)
       return -1;
    return j->line;
 };
 
-int ajl_char(ajl_t j)
+int ajl_char(const ajl_t j)
 {                               // Return current character position in source
    if (!j)
       return -1;
    return j->posn;
 };
 
-int ajl_level(ajl_t j)
+int ajl_level(const ajl_t j)
 {                               // return current level of nesting
    if (!j)
       return -1;
    return j->level;
 }
 
-FILE *ajl_file(ajl_t j)
+FILE *ajl_file(const ajl_t j)
 {
    if (!j)
       return NULL;
    return j->f;
 }
 
-int ajl_isobject(ajl_t j)
+int ajl_isobject(const ajl_t j)
 {
    return j->flags[j->level] & OBJECT;
 }
@@ -346,7 +358,7 @@ int ajl_isobject(ajl_t j)
 // If the element is within an object, then the tag is parsed and mallocd and stored in tag
 // The value of the element is parsed, and malloced and stored in value (a null is appended, not included in len)
 // The length of the value is stored in len - this is mainly to allow for strings that contain a null
-ajl_type_t ajl_parse(ajl_t j, unsigned char **tag, unsigned char **value, size_t *len)
+ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, size_t *len)
 {
    if (tag)
       *tag = NULL;
@@ -477,12 +489,12 @@ ajl_t ajl_write_mem(unsigned char **buffer, size_t *len)
    return ajl_write(open_memstream((char **) buffer, len));
 };
 
-void ajl_pretty(ajl_t j)
+void ajl_pretty(const ajl_t j)
 {
    j->pretty = 1;
 }
 
-static void add_string(ajl_t j, const unsigned char *value, ssize_t len)
+static void add_string(const ajl_t j, const unsigned char *value, ssize_t len)
 {                               // Add escaped string
    if (!value)
    {
@@ -506,7 +518,7 @@ static void add_string(ajl_t j, const unsigned char *value, ssize_t len)
    fputc('"', j->f);
 }
 
-static void j_indent(ajl_t j)
+static void j_indent(const ajl_t j)
 {
    if (j->started && j->pretty)
    {
@@ -519,7 +531,7 @@ static void j_indent(ajl_t j)
          fputc(' ', j->f);
 }
 
-static const char *add_tag(ajl_t j, const unsigned char *tag)
+static const char *add_tag(const ajl_t j, const unsigned char *tag)
 {                               // Add prefix tag or comma
    validate(j);
    if (j->flags[j->level] & COMMA)
@@ -537,7 +549,7 @@ static const char *add_tag(ajl_t j, const unsigned char *tag)
    return j->error;
 }
 
-const char *ajl_add(ajl_t j, const unsigned char *tag, const unsigned char *value)
+const char *ajl_add(const ajl_t j, const unsigned char *tag, const unsigned char *value)
 {                               // Add pre-formatted value (expects quotes, escapes, etc)
    validate(j);
    add_tag(j, tag);
@@ -546,7 +558,7 @@ const char *ajl_add(ajl_t j, const unsigned char *tag, const unsigned char *valu
    return j->error;
 };
 
-const char *ajl_add_string(ajl_t j, const unsigned char *tag, const unsigned char *value, ssize_t len)
+const char *ajl_add_string(const ajl_t j, const unsigned char *tag, const unsigned char *value, ssize_t len)
 {                               // Note len=-1 means use strlen(value)
    validate(j);
    add_tag(j, tag);
@@ -554,7 +566,7 @@ const char *ajl_add_string(ajl_t j, const unsigned char *tag, const unsigned cha
    return j->error;
 };
 
-const char *ajl_add_number(ajl_t j, const unsigned char *tag, const char *fmt, ...)
+const char *ajl_add_number(const ajl_t j, const unsigned char *tag, const char *fmt, ...)
 {                               // Add number (formattted)
    validate(j);
    add_tag(j, tag);
@@ -565,7 +577,7 @@ const char *ajl_add_number(ajl_t j, const unsigned char *tag, const char *fmt, .
    return j->error;
 }
 
-const char *ajl_add_boolean(ajl_t j, const unsigned char *tag, unsigned char value)
+const char *ajl_add_boolean(const ajl_t j, const unsigned char *tag, unsigned char value)
 {
    validate(j);
    add_tag(j, tag);
@@ -573,7 +585,7 @@ const char *ajl_add_boolean(ajl_t j, const unsigned char *tag, unsigned char val
    return j->error;
 };
 
-const char *ajl_add_null(ajl_t j, const unsigned char *tag)
+const char *ajl_add_null(const ajl_t j, const unsigned char *tag)
 {
    validate(j);
    add_tag(j, tag);
@@ -581,7 +593,7 @@ const char *ajl_add_null(ajl_t j, const unsigned char *tag)
    return j->error;
 };
 
-const char *ajl_add_object(ajl_t j, const unsigned char *tag)
+const char *ajl_add_object(const ajl_t j, const unsigned char *tag)
 {                               // Start an object
    validate(j);
    add_tag(j, tag);
@@ -593,7 +605,7 @@ const char *ajl_add_object(ajl_t j, const unsigned char *tag)
    return j->error;
 };
 
-const char *ajl_add_array(ajl_t j, const unsigned char *tag)
+const char *ajl_add_array(const ajl_t j, const unsigned char *tag)
 {                               // Start an array
    validate(j);
    add_tag(j, tag);
@@ -605,7 +617,7 @@ const char *ajl_add_array(ajl_t j, const unsigned char *tag)
    return j->error;
 };
 
-const char *ajl_add_close(ajl_t j)
+const char *ajl_add_close(const ajl_t j)
 {                               // close current array or object
    validate(j);
    if (!j->level)

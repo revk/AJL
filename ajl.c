@@ -215,7 +215,7 @@ j_t j_create(void)
    return calloc(1, sizeof(struct j_s));
 }
 
-static void j_unlink(j_t j)
+static void j_unlink(const j_t j)
 {                               // Unlink from parent
    j_t p = j->parent;
    if (!p)
@@ -229,7 +229,7 @@ static void j_unlink(j_t j)
    }
 }
 
-static j_t j_extend(j_t j)
+static j_t j_extend(const j_t j)
 {                               // Extend children
    if (!j)
       return NULL;
@@ -241,7 +241,7 @@ static j_t j_extend(j_t j)
    return n;
 }
 
-static j_t j_findtag(j_t j, const unsigned char *tag)
+static j_t j_findtag(const j_t j, const unsigned char *tag)
 {
    if (!j || !j->children || j->isarray)
       return NULL;
@@ -264,47 +264,49 @@ j_t j_delete(j_t j)
 
 
 // Moving around the tree, these return the j_t of the new point (or NULL if does not exist)
-j_t j_root(j_t j)
+j_t j_root(const j_t j)
 {                               // Return root point
    if (!j)
       return j;
-   while (j->parent)
-      j = j->parent;
-   return j;
+   j_t r = j;
+   while (r->parent)
+      r = r->parent;
+   return r;
 }
 
-j_t j_parent(j_t j)
+j_t j_parent(const j_t j)
 {                               // Parent of this point (NULL if this point is root)
    if (!j)
       return j;
    return j->parent;
 }
 
-j_t j_next(j_t j)
+j_t j_next(const j_t j)
 {                               // Next in parent object or array, NULL if at end
    if (!j || !j->parent || j->posn + 1 >= j->parent->len)
       return NULL;
    return j->parent->children[j->posn + 1];
 }
 
-j_t j_prev(j_t j)
+j_t j_prev(const j_t j)
 {                               // Previous in parent object or array, NULL if at start
    if (!j || !j->parent || j->posn <= 0)
       return NULL;
    return j->parent->children[j->posn - 1];
 }
 
-j_t j_first(j_t j)
+j_t j_first(const j_t j)
 {                               // First entry in an object or array (same as j_index with 0)
    if (!j || !j->children || !j->len)
       return NULL;
    return j->children[0];
 }
 
-static j_t j_findmake(j_t j, const char *path, int make)
+static j_t j_findmake(const j_t cj, const char *path, int make)
 {                               // Find object within this object by tag/path - make if any in path does not exist and make is set
-   if (!j || !path)
+   if (!cj || !path)
       return NULL;
+   j_t j = cj;
    unsigned char *t = (unsigned char *) strdupa(path);
    while (*t)
    {
@@ -364,47 +366,49 @@ static j_t j_findmake(j_t j, const char *path, int make)
    return j;
 }
 
-j_t j_find(j_t j, const char *path)
+j_t j_find(const j_t j, const char *path)
 {                               // Find object within this object by tag/path - NULL if any in path does not exist
+   if (!path)
+      return j;
    return j_findmake(j, path, 0);
 }
 
-j_t j_index(j_t j, int n)
+j_t j_index(const j_t j, int n)
 {                               // Find specific point in an array, or object - NULL if not in the array
    if (!j || !j->children || n < 0 || n >= j->len)
       return NULL;
    return j->children[n];
 }
 
-j_t j_named(j_t j, const char *name)
+j_t j_named(const j_t j, const char *name)
 {                               // Find named entry in an object
    return j_findtag(j, (const unsigned char *) name);
 }
 
 
 // Information about a point
-const char *j_name(j_t j)
+const char *j_name(const j_t j)
 {                               // The tag of this object in parent, if it is in a parent object, else NULL
    if (!j)
       return NULL;
    return (char *) j->tag;
 }
 
-int j_pos(j_t j)
+int j_pos(const j_t j)
 {                               // Position in parent array or object, -1 if this is the root object so not in another array/object
    if (!j)
       return -1;
    return j->posn;
 }
 
-const char *j_val(j_t j)
+const char *j_val(const j_t j)
 {                               // The value of this object as a string. NULL if not found. Note that a "null" string is a valid literal value
    if (!j || j->children)
       return NULL;
    return (char *) (j->val ? : valnull);
 }
 
-int j_len(j_t j)
+int j_len(const j_t j)
 {                               // The length of this value (characters if string or number or literal), or number of entries if object or array
    if (!j)
       return -1;
@@ -413,54 +417,51 @@ int j_len(j_t j)
    return j->len;
 }
 
-const char *j_get(j_t j, const char *path)
+const char *j_get(const j_t j, const char *path)
 {                               // Find and get val using path, NULL for not found
-   if (path)
-      j = j_find(j, path);
-   return j_val(j);
+   return j_val(j_find(j, path));
 }
 
-const char *j_get_not_null(j_t j, const char *path)
+const char *j_get_not_null(const j_t j, const char *path)
 {                               // Find and get val using path, NULL for not found or null
-   if (path)
-      j = j_find(j, path);
-   if (j_isnull(j))
+   j_t f = j_find(j, path);
+   if (j_isnull(f))
       return NULL;
-   return j_val(j);
+   return j_val(f);
 }
 
 // Information about data type of this point
-int j_isarray(j_t j)
+int j_isarray(const j_t j)
 {                               // True if is an array
    return j && j->isarray;
 }
 
-int j_isobject(j_t j)
+int j_isobject(const j_t j)
 {                               // True if is an object
    return j && j->children && !j->isarray;
 }
 
-int j_isnull(j_t j)
+int j_isnull(const j_t j)
 {                               // True if is null literal
    return j && !j->children && !j->isstring && !j->val;
 }
 
-int j_isbool(j_t j)
+int j_isbool(const j_t j)
 {                               // True if is a Boolean literal
    return j && !j->children && !j->isstring && j->val && (*j->val == 't' || *j->val == 'f');
 }
 
-int j_istrue(j_t j)
+int j_istrue(const j_t j)
 {                               // True if is true literal
    return j && !j->children && !j->isstring && j->val && *j->val == 't';
 }
 
-int j_isnumber(j_t j)
+int j_isnumber(const j_t j)
 {                               // True if is a number
    return j && !j->children && !j->isstring && j->val && (*j->val == '-' || isdigit(*j->val));
 }
 
-int j_isstring(j_t j)
+int j_isstring(const j_t j)
 {                               // True if is a string (i.e. quoted, note "123" is a string, 123 is a number)
    return j && j->isstring;
 }
@@ -468,7 +469,7 @@ int j_isstring(j_t j)
 
 // Loading an object. This replaces value at the j_t specified, which is usually a root from j_create()
 // Returns NULL if all is well, else a malloc'd error string
-char *j_read(j_t root, FILE * f)
+char *j_read(const j_t root, FILE * f)
 {                               // Read object from open file
    const char *e = NULL;
    assert(root);
@@ -564,19 +565,18 @@ char *j_read(j_t root, FILE * f)
       }
       fclose(f);
    }
-   ajl_end(p);
-   free(p);
+   ajl_end_free(p);
    return ret;
 }
 
-char *j_read_close(j_t root, FILE * f)
+char *j_read_close(const j_t root, FILE * f)
 {                               // Read object from open file
    char *e = j_read(root, f);
    fclose(f);
    return e;
 }
 
-char *j_read_file(j_t j, const char *filename)
+char *j_read_file(const j_t j, const char *filename)
 {                               // Read object from named file
    assert(j);
    assert(filename);
@@ -590,7 +590,7 @@ char *j_read_file(j_t j, const char *filename)
    return j_read_close(j, f);
 }
 
-char *j_read_mem(j_t j, const char *buffer)
+char *j_read_mem(const j_t j, const char *buffer)
 {                               // Read object from string in memory (NULL terminated)
    assert(j);
    assert(buffer);
@@ -600,7 +600,7 @@ char *j_read_mem(j_t j, const char *buffer)
 
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
-static char *j_write_flags(j_t root, FILE * f, int pretty)
+static char *j_write_flags(const j_t root, FILE * f, int pretty)
 {
    assert(root);
    assert(f);
@@ -639,36 +639,35 @@ static char *j_write_flags(j_t root, FILE * f, int pretty)
    char *e = (char *) ajl_error(p);
    if (e)
       e = strdup(e);
-   ajl_end(p);
-   free(p);
+   ajl_end_free(p);
    return e;
 }
 
-char *j_write(j_t root, FILE * f)
+char *j_write(const j_t root, FILE * f)
 {
    return j_write_flags(root, f, 0);
 }
 
-char *j_write_close(j_t root, FILE * f)
+char *j_write_close(const j_t root, FILE * f)
 {
    char *e = j_write_flags(root, f, 0);
    fclose(f);
    return e;
 }
 
-char *j_write_pretty(j_t root, FILE * f)
+char *j_write_pretty(const j_t root, FILE * f)
 {
    return j_write_flags(root, f, 1);
 }
 
-char *j_write_pretty_close(j_t root, FILE * f)
+char *j_write_pretty_close(const j_t root, FILE * f)
 {
    char *e = j_write_flags(root, f, 1);
    fclose(f);
    return e;
 }
 
-char *j_write_file(j_t j, const char *filename)
+char *j_write_file(const j_t j, const char *filename)
 {
    assert(j);
    assert(filename);
@@ -682,7 +681,7 @@ char *j_write_file(j_t j, const char *filename)
    return j_write(j, f);
 }
 
-char *j_write_mem(j_t j, char **buffer, size_t *len)
+char *j_write_mem(const j_t j, char **buffer, size_t *len)
 {
    assert(j);
    assert(buffer);
@@ -691,7 +690,7 @@ char *j_write_mem(j_t j, char **buffer, size_t *len)
 }
 
 // Changing an object/value
-j_t j_null(j_t j)
+j_t j_null(const j_t j)
 {                               // Null this point - used a lot internally to clear a point before setting to correct type
    assert(j);
    if (j->children)
@@ -717,7 +716,7 @@ j_t j_null(j_t j)
    return j;
 }
 
-j_t j_string(j_t j, const char *val)
+j_t j_string(const j_t j, const char *val)
 {                               // Simple set this value to a string (null terminated).
    if (!j)
       return j;
@@ -731,7 +730,7 @@ j_t j_string(j_t j, const char *val)
    return j;
 }
 
-j_t j_stringn(j_t j, const char *val, size_t len)
+j_t j_stringn(const j_t j, const char *val, size_t len)
 {                               // Simple set this value to a string with specified length (allows embedded nulls in string)
    if (!j)
       return j;
@@ -747,7 +746,7 @@ j_t j_stringn(j_t j, const char *val, size_t len)
    return j;
 }
 
-static void j_vstringf(j_t j, const char *fmt, va_list ap, int isstring)
+static void j_vstringf(const j_t j, const char *fmt, va_list ap, int isstring)
 {
    assert(vasprintf((char **) &j->val, fmt, ap) >= 0);
    j->len = strlen((char *) j->val);
@@ -755,7 +754,7 @@ static void j_vstringf(j_t j, const char *fmt, va_list ap, int isstring)
    j->isstring = isstring;
 }
 
-j_t j_stringf(j_t j, const char *fmt, ...)
+j_t j_stringf(const j_t j, const char *fmt, ...)
 {                               // Simple set this value to a string, using printf style format
    if (!j)
       return j;
@@ -767,7 +766,7 @@ j_t j_stringf(j_t j, const char *fmt, ...)
    return j;
 }
 
-j_t j_utc(j_t j, time_t t)
+j_t j_utc(const j_t j, time_t t)
 {
    char v[30];
    struct tm tm;
@@ -776,7 +775,7 @@ j_t j_utc(j_t j, time_t t)
    return j_string(j, v);
 }
 
-j_t j_datetime(j_t j, time_t t)
+j_t j_datetime(const j_t j, time_t t)
 {
    char v[30];
    struct tm tm;
@@ -785,7 +784,7 @@ j_t j_datetime(j_t j, time_t t)
    return j_string(j, v);
 }
 
-j_t j_literalf(j_t j, const char *fmt, ...)
+j_t j_literalf(const j_t j, const char *fmt, ...)
 {                               // Simple set this value to a number, i.e. unquoted, using printf style format
    if (!j)
       return j;
@@ -797,7 +796,7 @@ j_t j_literalf(j_t j, const char *fmt, ...)
    return j;
 }
 
-j_t j_literal(j_t j, const char *val)
+j_t j_literal(const j_t j, const char *val)
 {                               // Simple set this value to a literal, e.g. "null", "true", "false"
    if (!j)
       return j;
@@ -821,14 +820,14 @@ j_t j_literal(j_t j, const char *val)
    return j;
 }
 
-j_t j_literal_free(j_t j, char *val)
+j_t j_literal_free(const j_t j, char *val)
 {                               // Simple set this value to a literal, e.g. "null", "true", "false" - free arg
-   j = j_literal(j, val);
+   j_t r = j_literal(j, val);
    freez(val);
-   return j;
+   return r;
 }
 
-j_t j_object(j_t j)
+j_t j_object(const j_t j)
 {                               // Simple set this value to be an object if not already
    if (!j)
       return j;
@@ -839,7 +838,7 @@ j_t j_object(j_t j)
    return j;
 }
 
-j_t j_array(j_t j)
+j_t j_array(const j_t j)
 {                               // Simple set this value to be an array if not already
    if (!j)
       return j;
@@ -851,12 +850,12 @@ j_t j_array(j_t j)
    return j;
 }
 
-j_t j_path(j_t j, const char *path)
+j_t j_path(const j_t j, const char *path)
 {                               // Find or create a path from j
    return j_findmake(j, path, 1);
 }
 
-j_t j_append(j_t j)
+j_t j_append(const j_t j)
 {                               // Create new point at end of array
    if (!j)
       return j;
@@ -869,7 +868,7 @@ static int j_sort_tag(const void *a, const void *b)
    return strcmp((char *) (*(j_t *) a)->tag, (char *) (*(j_t *) b)->tag);
 }
 
-void j_sort_f(j_t j, j_sort_func * f, int recurse)
+void j_sort_f(const j_t j, j_sort_func * f, int recurse)
 {                               // Apply a recursive sort
    if (!j || !j->children)
       return;
@@ -883,12 +882,12 @@ void j_sort_f(j_t j, j_sort_func * f, int recurse)
       j->children[q]->posn = q;
 }
 
-void j_sort(j_t j)
+void j_sort(const j_t j)
 {                               // Recursive tag sort
    j_sort_f(j, j_sort_tag, 1);
 }
 
-j_t j_make(j_t j, const char *name)
+j_t j_make(const j_t j, const char *name)
 {
    if (!name)
       return j_append(j);
@@ -903,7 +902,7 @@ j_t j_make(j_t j, const char *name)
 
 // Additional functions to combine the above... Returns point for newly added value.
 
-j_t j_remove(j_t j, const char *name)
+j_t j_remove(const j_t j, const char *name)
 {
    j_t n = j_findtag(j, (const unsigned char *) name);
    if (n)
@@ -911,22 +910,22 @@ j_t j_remove(j_t j, const char *name)
    return n;
 }
 
-j_t j_store_array(j_t j, const char *name)
+j_t j_store_array(const j_t j, const char *name)
 {                               // Store an array at specified name in object
    return j_array(j_make(j, name));
 }
 
-j_t j_store_object(j_t j, const char *name)
+j_t j_store_object(const j_t j, const char *name)
 {                               // Store an object at specified name in an object
    return j_object(j_make(j, name));
 }
 
-j_t j_store_string(j_t j, const char *name, const char *val)
+j_t j_store_string(const j_t j, const char *name, const char *val)
 {                               // Store a string at specified name in an object
    return j_string(j_make(j, name), val);
 }
 
-j_t j_store_stringf(j_t j, const char *name, const char *fmt, ...)
+j_t j_store_stringf(const j_t j, const char *name, const char *fmt, ...)
 {                               // Store a (formatted) string at specified name in an object
    if (!j)
       return NULL;
@@ -937,17 +936,17 @@ j_t j_store_stringf(j_t j, const char *name, const char *fmt, ...)
    return j;
 }
 
-j_t j_store_utc(j_t j, const char *name, time_t t)
+j_t j_store_utc(const j_t j, const char *name, time_t t)
 {                               // Store a UTC time string at specified name in an object
    return j_utc(j_make(j, name), t);
 }
 
-j_t j_store_datetime(j_t j, const char *name, time_t t)
+j_t j_store_datetime(const j_t j, const char *name, time_t t)
 {                               // Store a localtime string at a specified name in an object
    return j_datetime(j_make(j, name), t);
 }
 
-j_t j_store_literalf(j_t j, const char *name, const char *fmt, ...)
+j_t j_store_literalf(const j_t j, const char *name, const char *fmt, ...)
 {                               // Store a formatted literal, normally for numbers, at a specified name in an object
    if (!j)
       return NULL;
@@ -958,35 +957,35 @@ j_t j_store_literalf(j_t j, const char *name, const char *fmt, ...)
    return j;
 }
 
-j_t j_store_literal(j_t j, const char *name, const char *val)
+j_t j_store_literal(const j_t j, const char *name, const char *val)
 {                               // Store a literal (typically for true/false) at a specified name in an object
    return j_literal(j_make(j, name), val);
 }
 
-j_t j_store_literal_free(j_t j, const char *name, char *val)
+j_t j_store_literal_free(const j_t j, const char *name, char *val)
 {                               // Store a literal (typically for true/false) at a specified name in an object, freeing the value
-   j = j_store_literal(j, name, val);
+   j_t r = j_store_literal(j, name, val);
    freez(val);
-   return j;
+   return r;
 }
 
 // Additional functions to combine the above... Returns point for newly added value.
-j_t j_append_object(j_t j)
+j_t j_append_object(const j_t j)
 {                               // Append a new (empty) object to an array
    return j_object(j_append(j));
 }
 
-j_t j_append_array(j_t j)
+j_t j_append_array(const j_t j)
 {                               // Append a new (empty) array to an array
    return j_array(j_append(j));
 }
 
-j_t j_append_string(j_t j, const char *val)
+j_t j_append_string(const j_t j, const char *val)
 {                               // Append a new string to an array
    return j_string(j_append(j), val);
 }
 
-j_t j_append_stringf(j_t j, const char *fmt, ...)
+j_t j_append_stringf(const j_t j, const char *fmt, ...)
 {                               // Append a new (formatted) string to an array
    va_list ap;
    va_start(ap, fmt);
@@ -995,17 +994,17 @@ j_t j_append_stringf(j_t j, const char *fmt, ...)
    return j;
 }
 
-j_t j_append_utc(j_t j, time_t t)
+j_t j_append_utc(const j_t j, time_t t)
 {                               // Append a UTC time string to an array
    return j_utc(j_append(j), t);
 }
 
-j_t j_append_datetime(j_t j, time_t t)
+j_t j_append_datetime(const j_t j, time_t t)
 {                               // Append a local time string to an array
    return j_datetime(j_append(j), t);
 }
 
-j_t j_append_literalf(j_t j, const char *fmt, ...)
+j_t j_append_literalf(const j_t j, const char *fmt, ...)
 {                               // Append a formatted literal (usually a number) to an array
    va_list ap;
    va_start(ap, fmt);
@@ -1014,20 +1013,20 @@ j_t j_append_literalf(j_t j, const char *fmt, ...)
    return j;
 }
 
-j_t j_append_literal(j_t j, const char *val)
+j_t j_append_literal(const j_t j, const char *val)
 {                               // Append a literal (usually true/false) to an array
    return j_literal(j_append(j), val);
 }
 
-j_t j_append_literal_free(j_t j, char *val)
+j_t j_append_literal_free(const j_t j, char *val)
 {                               // Append a literal and free it
-   j = j_append_literal(j, val);
+   j_t r = j_append_literal(j, val);
    freez(val);
-   return j;
+   return r;
 }
 
 // Moving parts of objects...
-j_t j_replace(j_t j, j_t o)
+j_t j_replace(const j_t j, j_t o)
 {                               //            Overwrites j in situ with o, freeing the pointer o, and returning j
    if (!j)
    {
