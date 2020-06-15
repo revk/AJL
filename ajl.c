@@ -611,18 +611,18 @@ static char *j_write_flags(const j_t root, FILE * f, int pretty)
    do
    {
       if (j->children)
-      {
-         if (j->isarray)
-            ajl_add_array(p, j->tag);
-         else
-            ajl_add_object(p, j->tag);
-         if (!j->len)
-            ajl_add_close(p);   // Empty object/array
-         else
-         {                      // Go in to array
-            j = j->children[0];
+      { // Object or array
+         if (j->len)
+         { // Non empty
+            if (j->isarray)
+               ajl_add_array(p, j->tag);
+            else
+               ajl_add_object(p, j->tag);
+            j = j->children[0]; // In to child
             continue;
          }
+         // Empty object or array
+         ajl_add(p, j->tag, (const unsigned char *)(j->isarray ? "[]" : "{}"));  // For nicer pretty print
       } else if (j->isstring)
          ajl_add_string(p, j->tag, j->val, j->len);
       else
@@ -635,7 +635,8 @@ static char *j_write_flags(const j_t root, FILE * f, int pretty)
          j = j_parent(j);
       }
       j = n;
-   } while (j && j != root);
+   }
+   while (j && j != root);
    char *e = (char *) ajl_error(p);
    if (e)
       e = strdup(e);
