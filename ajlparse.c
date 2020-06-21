@@ -212,15 +212,14 @@ static inline const char *check_number(const ajl_t j, FILE * o)
       next(j, o);
       if (!j->eof && isdigit(j->peek))
          return j->error = "Invalid int starting 0";
-   } else if (!isdigit(j->peek))
+   } else if (j->eof || !isdigit(j->peek))
       return j->error = "Invalid number";
    while (!j->eof && isdigit(j->peek))
       next(j, o);
    if (!j->eof && j->peek == '.')
    {                            // Fraction
       next(j, o);
-      checkeof;
-      if (!isdigit(j->peek))
+      if (j->eof || !isdigit(j->peek))
          return j->error = "Invalid fraction";
       while (!j->eof && isdigit(j->peek))
          next(j, o);
@@ -228,10 +227,9 @@ static inline const char *check_number(const ajl_t j, FILE * o)
    if (!j->eof && (j->peek == 'e' || j->peek == 'E'))
    {                            // Exponent
       next(j, o);
-      checkeof;
-      if (j->peek == '-' || j->peek == '+')
+      if (!j->eof && (j->peek == '-' || j->peek == '+'))
          next(j, o);
-      if (!isdigit(j->peek))
+      if (j->eof || !isdigit(j->peek))
          return j->error = "Invalid exponent";
       while (!j->eof && isdigit(j->peek))
          next(j, o);

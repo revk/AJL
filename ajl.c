@@ -1040,12 +1040,69 @@ j_t j_replace(const j_t j, j_t o)
    if (!o)
       return j;
    j_unlink(o);                 // Unlink from parent
-   *j = *o;                     // copy content, parent will be null
+   j->children = o->children;   // Copy over the key components
+   j->isarray = o->isarray;
+   j->isstring = o->isstring;
+   j->val = o->val;
+   j->len = o->len;
+   j->malloc = o->malloc;
+   // Don't copy parent, tag, and posn, as these apply to j still as it may be in a tree
+   freez(o);                    // Can safely free original as malloced children/val have been moved
    if (j->children)
       for (int c = 0; c < j->len; c++)
          j->children[c]->parent = j;    // Link parent
-   freez(o);
    return j;
+}
+
+const char *j_number_ok(const char *n)
+{                               // Checks if a valid JSON number, returns error description if not
+   if (!n)
+      return "NULL pointer";
+   // RFC8259 section 6
+   if (*n == '-')
+      n++;                      // minus allowed
+   // int is zero or 1-9 and digits
+   if (*n == '0')
+   {
+      n++;
+      if (isdigit(*n))
+         return "Zero followed by digits is invalid int";
+   } else if (isdigit(*n))
+   {
+      while (isdigit(*n))
+         n++;
+   } else
+      return "Missing int part";
+   if (*n == '.')
+   {                            // frac part
+      n++;
+      if (!isdigit(*n))
+         return "Missing digits after decimal point";
+      while (isdigit(*n))
+         n++;
+   }
+   if (*n == 'e' || *n == 'E')
+   {                            // exp
+      n++;
+      if (*n == '-' || *n == '+')
+         n++;                   // minus/plus, optional
+      if (!isdigit(*n))
+         return "Missing digits after e";
+      while (isdigit(*n))
+         n++;
+   }
+   if (*n)
+      return "Extra text on end of number";
+   return NULL;
+}
+
+const char *j_literal_ok(const char *n)
+{                               // Checks if a valid JSON literal (true/false/null/number), returns error description if not
+   if (!n)
+      return "NULL pointer";
+   if (!strcmp(n, "true") || !strcmp(n, "false") || !strcmp(n, "null"))
+      return NULL;              // Valid literal (must be lower case as per RFC8259 section 3)
+   return j_number_ok(n);
 }
 
 #ifdef	JCURL

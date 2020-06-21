@@ -70,7 +70,7 @@ int j_len(const j_t);           // The length of this value (characters if strin
 const char *j_get(const j_t, const char *path); // Find and get val using path, NULL for not found. Pass PATH null to read value of j_t entry
 const char *j_get_not_null(const j_t, const char *path);        // Find and get val using path, NULL for not found or null. Pass PATH null to read value of j_t entry
 
-// Convert
+// Convert/check
 time_t j_timez(const char *t, int z);   // convert iso time to time_t (z means assume utc is not set)
 #define j_time(t) j_timez(t,0)  // Normal XML time, assumes local if no time zone
 #define j_time_utc(t) j_timez(t,1)      // Expects time to be UTC even with no Z suffix
@@ -89,6 +89,9 @@ size_t j_based(char *src, char **buf, const char *alphabet, unsigned int bits);
 #define j_base64d(src,dst) j_based(src,dst,JBASE64,6)
 #define j_base32d(src,dst) j_based(src,dst,JBASE32,5)
 #define j_base16d(src,dst) j_based(src,dst,JBASE16,4)
+const char *j_number_ok(const char *n) ; // Checks if a valid JSON number, returns error description if not
+const char *j_literal_ok(const char *n); // Checks if a valid JSON literal (true/false/null/number), returns error description if not
+
 
 // Information about data type of this point
 int j_isarray(const j_t);       // True if is an array
