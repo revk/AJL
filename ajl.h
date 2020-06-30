@@ -90,6 +90,7 @@ size_t j_based(char *src, char **buf, const char *alphabet, unsigned int bits);
 #define j_base32d(src,dst) j_based(src,dst,JBASE32,5)
 #define j_base16d(src,dst) j_based(src,dst,JBASE16,4)
 const char *j_number_ok(const char *n) ; // Checks if a valid JSON number, returns error description if not
+const char *j_datetime_ok(const char *n) ; // Checks if a valid datetime, returns error description if not
 const char *j_literal_ok(const char *n); // Checks if a valid JSON literal (true/false/null/number), returns error description if not
 
 

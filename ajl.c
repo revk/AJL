@@ -1054,6 +1054,64 @@ j_t j_replace(const j_t j, j_t o)
    return j;
 }
 
+const char *j_datetime_ok(const char *n)
+{                               // Checks if string is valid datetime, return error description if not
+   if (!n)
+      return "NULL pointer";
+   int y,
+    m,
+    d,
+    H,
+    M,
+    S;
+   if (!isdigit(n[0]) || !isdigit(n[1]) || !isdigit(n[2]) || !isdigit(n[3]))
+      return "No year";
+   y = atoi(n);
+   n += 4;
+   if (*n++ != '-')
+      return "No - after year";
+   if (!isdigit(n[0]) || !isdigit(n[1]))
+      return "No month";
+   m = atoi(n);
+   n += 2;
+   if (*n++ != '-')
+      return "No - after month";
+   if (!isdigit(n[0]) || !isdigit(n[1]))
+      return "No day";
+   d = atoi(n);
+   n += 2;
+   if (!*n)
+   {
+      if (!(!y && !m && !d) && (m < 1 || m > 12 || d < 1 || d > 31))
+         return "Bad date";
+      return NULL;              // OK date
+   }
+   if (*n != ' ' && *n != 'T')
+      return "Missing T/space after day";
+   n++;
+   if (!isdigit(n[0]) || !isdigit(n[1]))
+      return "No hour";
+   H = atoi(n);
+   n += 2;
+   if (*n++ != ':')
+      return "No : after hour";
+   if (!isdigit(n[0]) || !isdigit(n[1]))
+      return "No minute";
+   M = atoi(n);
+   n += 2;
+   if (*n++ != ':')
+      return "No : after minute";
+   if (!isdigit(n[0]) || !isdigit(n[1]))
+      return "No second";
+   S = atoi(n);
+   n += 2;
+   if (!(H == 24 && M == 60 && M < 62) && (H >= 24 || M >= 60 || S >= 60))
+      return "Bad time";
+   if (*n && *n != 'Z')
+      return "Extra on end of datetime (don't handle timezones apart from Z)";
+   return NULL;
+}
+
 const char *j_number_ok(const char *n)
 {                               // Checks if a valid JSON number, returns error description if not
    if (!n)
