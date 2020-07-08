@@ -1252,10 +1252,10 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
       } else
       {
          j_sort(j);
-         if (isatty(fileno(stdout)))
+         //if (isatty(fileno(stdout)))
             j_write_pretty(j, stdout);
-         else
-            j_write(j, stdout);
+         //else
+            //j_write(j, stdout);
       }
       j = j_delete(j);
    }
