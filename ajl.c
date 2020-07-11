@@ -625,7 +625,7 @@ static char *j_write_flags(const j_t root, FILE * f, int pretty)
          // Empty object or array
          ajl_add(p, j->tag, (const unsigned char *) (j->isarray ? "[]" : "{}"));        // For nicer pretty print
       } else if (j->isstring)
-         ajl_add_string(p, j->tag, j->val, j->len);
+         ajl_add_stringn(p, j->tag, j->val, j->len);
       else
          ajl_add(p, j->tag, j->val ? : (unsigned char *) valnull);
       // Next
@@ -1253,9 +1253,9 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
       {
          j_sort(j);
          //if (isatty(fileno(stdout)))
-            j_write_pretty(j, stdout);
+         j_write_pretty(j, stdout);
          //else
-            //j_write(j, stdout);
+         //j_write(j, stdout);
       }
       j = j_delete(j);
    }

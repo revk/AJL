@@ -83,7 +83,9 @@ ajl_t ajl_write_mem(unsigned char **buffer, size_t *len);
 void ajl_pretty(const ajl_t);   // Mark for pretty output (i.e. additional whitespace)
 
 const char *ajl_add(const ajl_t, const unsigned char *tag, const unsigned char *value); // Add pre-formatted value (expects quotes, escapes, etc)
-const char *ajl_add_string(const ajl_t, const unsigned char *tag, const unsigned char *value, ssize_t len);     // Note len=-1 means use strlen(value)
+const char *ajl_add_string(const ajl_t, const unsigned char *tag, const unsigned char *value);  // Add UTF-8 string, escaped for JSON
+const char *ajl_add_stringn(const ajl_t, const unsigned char *tag, const unsigned char *value, size_t len);     // Add UTF-8 string, escaped for JSON
+const char *ajl_add_binary(const ajl_t, const unsigned char *tag, const unsigned char *value, size_t len);      // Add binary data as string, escaped for JSON
 const char *ajl_add_number(const ajl_t, const unsigned char *tag, const char *fmt, ...);
 const char *ajl_add_boolean(const ajl_t, const unsigned char *tag, unsigned char value);
 const char *ajl_add_null(const ajl_t, const unsigned char *tag);

@@ -492,15 +492,8 @@ void ajl_pretty(const ajl_t j)
    j->pretty = 1;
 }
 
-static void add_string(const ajl_t j, const unsigned char *value, ssize_t len)
-{                               // Add escaped string
-   if (!value)
-   {
-      fprintf(j->f, "null");
-      return;
-   }
-   if (len < 0)
-      len = strlen((char *) value);
+static void add_string(const ajl_t j, const unsigned char *value, size_t len)
+{                               // Add UTF-8 string, escaped as necessary
    fputc('"', j->f);
    while (len--)
    {
@@ -509,6 +502,28 @@ static void add_string(const ajl_t j, const unsigned char *value, ssize_t len)
       escapes
 #undef esc
           if (c < ' ')
+         fprintf(j->f, "\\u00%02X", c);
+      else
+         fputc(c, j->f);
+   }
+   fputc('"', j->f);
+}
+
+static void add_binary(const ajl_t j, const unsigned char *value, size_t len)
+{                               // Add binary data, escaped as necessary
+   if (!value)
+   {
+      fprintf(j->f, "null");
+      return;
+   }
+   fputc('"', j->f);
+   while (len--)
+   {
+      unsigned char c = *value++;
+#define esc(a,b) if(c==b){fputc('\\',j->f);fputc(a,j->f);} else
+      escapes
+#undef esc
+          if (c < ' ' || c >= 0x80)
          fprintf(j->f, "\\u00%02X", c);
       else
          fputc(c, j->f);
@@ -540,7 +555,7 @@ static const char *add_tag(const ajl_t j, const unsigned char *tag)
    {
       if (!(j->flags[j->level] & OBJECT))
          return j->error = "Not in object";
-      add_string(j, tag, -1);
+      add_string(j, tag, strlen((char *) tag));
       fputc(':', j->f);
    } else if (j->flags[j->level] & OBJECT)
       return j->error = "Tag required";
@@ -556,11 +571,33 @@ const char *ajl_add(const ajl_t j, const unsigned char *tag, const unsigned char
    return j->error;
 };
 
-const char *ajl_add_string(const ajl_t j, const unsigned char *tag, const unsigned char *value, ssize_t len)
-{                               // Note len=-1 means use strlen(value)
+const char *ajl_add_string(const ajl_t j, const unsigned char *tag, const unsigned char *value)
+{                               // Add UTF-8 String, escaped for JSON
    validate(j);
    add_tag(j, tag);
-   add_string(j, value, len);
+   if (!value)
+      fprintf(j->f, "null");
+   else
+      add_string(j, value, strlen((char *) value));
+   return j->error;
+};
+
+const char *ajl_add_stringn(const ajl_t j, const unsigned char *tag, const unsigned char *value, size_t len)
+{                               // Add UTF-8 String, escaped for JSON
+   validate(j);
+   add_tag(j, tag);
+   if (!value)
+      fprintf(j->f, "null");
+   else
+      add_string(j, value, len);
+   return j->error;
+};
+
+const char *ajl_add_binary(const ajl_t j, const unsigned char *tag, const unsigned char *value, size_t len)
+{                               // Add binary data as string, escaped for JSON
+   validate(j);
+   add_tag(j, tag);
+   add_binary(j, value, len);
    return j->error;
 };
 
