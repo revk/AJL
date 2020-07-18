@@ -255,15 +255,15 @@ static j_t j_findtag(const j_t j, const unsigned char *tag)
    return NULL;
 }
 
-j_t j_delete(j_t j)
+void j_delete(j_t * jp)
 {                               // Delete this value (remove from parent object if not root) and all sub objects, returns NULL
-   if (!j)
-      return j;
+   if (!jp || !*jp)
+      return;
+   j_t j = *jp;
    j_null(j);                   // Clear all sub content, etc.
    j_unlink(j);
    freez(j->tag);
-   freez(j);
-   return NULL;
+   freez(*jp);
 }
 
 
@@ -911,7 +911,7 @@ j_t j_remove(const j_t j, const char *name)
 {
    j_t n = j_findtag(j, (const unsigned char *) name);
    if (n)
-      n = j_delete(n);
+      j_delete(&n);
    return n;
 }
 
@@ -974,9 +974,9 @@ j_t j_store_literal_free(const j_t j, const char *name, char *val)
    return r;
 }
 
-j_t j_store_json(const j_t j, const char *name, j_t val)
+j_t j_store_json(const j_t j, const char *name, j_t * vp)
 {                               // Add a complete JSON entry, freeing second argument, returns first
-   return j_replace(j_make(j, name), val);
+   return j_replace(j_make(j, name), vp);
 }
 
 // Additional functions to combine the above... Returns point for newly added value.
@@ -1035,23 +1035,23 @@ j_t j_append_literal_free(const j_t j, char *val)
    return r;
 }
 
-j_t j_append_json(const j_t j, j_t val)
+j_t j_append_json(const j_t j, j_t * vp)
 {                               // Append a complete JSON entry, freeing second argument, returns first
-   return j_replace(j_append(j), val);
+   return j_replace(j_append(j), vp);
 }
 
 // Moving parts of objects...
-j_t j_replace(const j_t j, j_t o)
-{                               //            Overwrites j in situ with o, freeing the pointer o, and returning j
+j_t j_replace(const j_t j, j_t * op)
+{                               //            Overwrites j in situ with o, freeing and nulling the pointer at *op, and returning j
    if (!j)
    {
-      if (o)
-         j_delete(o);
+      j_delete(op);
       return j;
    }
    j_null(j);
-   if (!o)
+   if (!op || !*op)
       return j;
+   j_t o = *op;
    j_unlink(o);                 // Unlink from parent
    j->children = o->children;   // Copy over the key components
    j->isarray = o->isarray;
@@ -1060,7 +1060,7 @@ j_t j_replace(const j_t j, j_t o)
    j->len = o->len;
    j->malloc = o->malloc;
    // Don't copy parent, tag, and posn, as these apply to j still as it may be in a tree
-   freez(o);                    // Can safely free original as malloced children/val have been moved
+   freez(*op);                  // Can safely free original as malloced children/val have been moved
    if (j->children)
       for (int c = 0; c < j->len; c++)
          j->children[c]->parent = j;    // Link parent
@@ -1197,7 +1197,7 @@ void j_log(int debug, const char *who, const char *what, j_t a, j_t b)
    p += snprintf(p, path + sizeof(path) - p, "%06lu-%s-%s", tv.tv_usec, norm(strdupa(who ? : "-")), norm(strdupa(what ? : "-")));
    for (char *q = path + 13; q; q = strchr(q + 1, '/'))
    {
-     *q = 0;
+      *q = 0;
       if (access(path, W_OK) && mkdir(path, 0777) && access(path, W_OK))
          warnx("Cannot make log path %s", path);
       *q = '/';
@@ -1287,7 +1287,7 @@ j_t j_curl(CURL * curlv, j_t input, const char *bearer, const char *url, ...)
       if (e)
       {
          fprintf(stderr, "Failed: %s\n%s\n", e, reply);
-         output = j_delete(output);
+         j_delete(&output);
       }
       free(reply);
    }
@@ -1316,7 +1316,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
          //else
          //j_write(j, stdout);
       }
-      j = j_delete(j);
+      j_delete(&j);
    }
    return 0;
 }
