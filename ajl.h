@@ -49,6 +49,8 @@ typedef struct j_s *j_t;        // Point in JSON tree, i.e. a value
 
 j_t j_create();                 // Allocate a new JSON object tree that is empty, ready to be added to or read in to, NULL for error
 void j_delete(j_t *);           // Delete this value (remove from parent object if not root) and all sub objects, NULLs the pointer
+void j_free(j_t);               // Same as j_delete but where you don't care about zapping the pointer itself
+
 void j_log(int debug, const char *who, const char *what, j_t a, j_t b); // Generate log files
 
 // Moving around the tree, these return the j_t of the new point (or NULL if does not exist)
@@ -167,3 +169,4 @@ j_t j_append_json(const j_t, j_t *);    // Append a complete JSON entry, freeing
 
 // Moving parts of objects...
 j_t j_replace(const j_t, j_t *);        // Overwrites j in situ, returning j (unchanged), but the replacement object is freed and NULL'd
+j_t j_detach(j_t j);            // Detach from parent so a to make a top level object in itself

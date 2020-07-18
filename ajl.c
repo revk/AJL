@@ -224,6 +224,7 @@ static void j_unlink(const j_t j)
    j_t p = j->parent;
    if (!p)
       return;                   // No parent
+   j->parent = NULL;
    assert(p->len);
    p->len--;
    for (int q = j->posn; q < p->len; q++)
@@ -266,6 +267,15 @@ void j_delete(j_t * jp)
    freez(*jp);
 }
 
+void j_free(j_t j)
+{                               // Same as j_delete but where you don't care about zapping the pointer itself
+   if (!j)
+      return;
+   j_null(j);                   // Clear all sub content, etc.
+   j_unlink(j);
+   freez(j->tag);
+   freez(j);
+}
 
 // Moving around the tree, these return the j_t of the new point (or NULL if does not exist)
 j_t j_root(const j_t j)
@@ -1041,6 +1051,14 @@ j_t j_append_json(const j_t j, j_t * vp)
 }
 
 // Moving parts of objects...
+j_t j_detach(j_t j)
+{                               // Detach from parent so a to make a top level object in itself
+   if (!j)
+      return j;
+   j_unlink(j);                 // Unlink from parent, but otherwise leave intact
+   return j;
+}
+
 j_t j_replace(const j_t j, j_t * op)
 {                               //            Overwrites j in situ with o, freeing and nulling the pointer at *op, and returning j
    if (!j)
