@@ -25,6 +25,9 @@
 #include <time.h>
 #include "ajl.h"
 #include "ajlparse.c"
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
@@ -971,6 +974,11 @@ j_t j_store_literal_free(const j_t j, const char *name, char *val)
    return r;
 }
 
+j_t j_store_json(const j_t j, const char *name, j_t val)
+{                               // Add a complete JSON entry, freeing second argument, returns first
+   return j_replace(j_make(j, name), val);
+}
+
 // Additional functions to combine the above... Returns point for newly added value.
 j_t j_append_object(const j_t j)
 {                               // Append a new (empty) object to an array
@@ -1025,6 +1033,11 @@ j_t j_append_literal_free(const j_t j, char *val)
    j_t r = j_append_literal(j, val);
    freez(val);
    return r;
+}
+
+j_t j_append_json(const j_t j, j_t val)
+{                               // Append a complete JSON entry, freeing second argument, returns first
+   return j_replace(j_append(j), val);
 }
 
 // Moving parts of objects...
@@ -1161,6 +1174,52 @@ const char *j_literal_ok(const char *n)
    if (!strcmp(n, "true") || !strcmp(n, "false") || !strcmp(n, "null"))
       return NULL;              // Valid literal (must be lower case as per RFC8259 section 3)
    return j_number_ok(n);
+}
+
+void j_log(int debug, const char *who, const char *what, j_t a, j_t b)
+{                               // Generate log files
+   if (!a && !b)
+      return;
+   char *norm(char *x) {
+      char *p;
+      for (p = x; *p; p++)
+         if (!isalnum(*p))
+            *p = '_';
+      return x;
+   }
+   umask(0);
+   char path[1000] = "",
+       *p = path;
+   struct timeval tv;
+   struct timezone tz;
+   gettimeofday(&tv, &tz);
+   p += strftime(path, sizeof(path) - 1, "/var/log/json/%Y/%m/%d/%H%M%S", gmtime(&tv.tv_sec));
+   p += snprintf(p, path + sizeof(path) - p, "%06lu-%s-%s", tv.tv_usec, norm(strdupa(who ? : "-")), norm(strdupa(what ? : "-")));
+   for (char *q = path + 8; q; q = strchr(q + 1, '/'))
+   {
+     *q = 0;
+      if (access(path, W_OK) && mkdir(path, 0777) && access(path, W_OK))
+         warnx("Cannot make log path %s", path);
+      *q = '/';
+   }
+   if (a)
+   {
+      *p = 0;
+      if (a && b)
+         sprintf(p, ".a");
+      j_write_file(a, path);
+      if (debug)
+         j_write_pretty(a, stderr);
+   }
+   if (b)
+   {
+      *p = 0;
+      if (a && b)
+         sprintf(p, ".b");
+      j_write_file(b, path);
+      if (debug)
+         j_write_pretty(b, stderr);
+   }
 }
 
 #ifdef	JCURL

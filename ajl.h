@@ -49,6 +49,7 @@ typedef struct j_s *j_t;        // Point in JSON tree, i.e. a value
 
 j_t j_create();                 // Allocate a new JSON object tree that is empty, ready to be added to or read in to, NULL for error
 j_t j_delete(j_t);              // Delete this value (remove from parent object if not root) and all sub objects, returns NULL
+void j_log(int debug, const char *who, const char *what, j_t a, j_t b); // Generate log files
 
 // Moving around the tree, these return the j_t of the new point (or NULL if does not exist)
 j_t j_root(const j_t);          // Return root point
@@ -92,7 +93,6 @@ size_t j_based(char *src, char **buf, const char *alphabet, unsigned int bits);
 const char *j_number_ok(const char *n); // Checks if a valid JSON number, returns error description if not
 const char *j_datetime_ok(const char *n);       // Checks if a valid datetime, returns error description if not
 const char *j_literal_ok(const char *n);        // Checks if a valid JSON literal (true/false/null/number), returns error description if not
-
 
 // Information about data type of this point
 int j_isarray(const j_t);       // True if is an array
@@ -149,6 +149,7 @@ j_t j_store_datetime(const j_t, const char *name, time_t);      // Add a named I
 j_t j_store_literal(const j_t, const char *name, const char *); // Add a named literal (usually "true" or "false") to an object
 j_t j_store_literalf(const j_t, const char *name, const char *fmt, ...);        // Add a named (formatted) literal *usually a number) to an object
 j_t j_store_literal_free(const j_t, const char *name, char *);  // Add a named literal to an object and free the passed string
+j_t j_store_json(const j_t, const char *name, j_t);     // Add a complete JSON entry, freeing second argument, returns first
 j_t j_remove(const j_t, const char *name);      // Removed the named entry from an object
 
 // Additional functions to combine the above... Returns point for newly added value.
@@ -162,6 +163,7 @@ j_t j_append_datetime(const j_t, time_t);       // Append a new string formatted
 j_t j_append_literal(const j_t, const char *);  // Append a new literal value (normally "true" or "false") to an array
 j_t j_append_literalf(const j_t, const char *fmt, ...); // Append a new (formatted) literal (usually for a number) to an array
 j_t j_append_literal_free(const j_t, char *);   // Append a new literal value to an array and free the passed string
+j_t j_append_json(const j_t, j_t);      // Append a complete JSON entry, freeing second argument, returns first
 
 // Moving parts of objects...
 j_t j_replace(const j_t, j_t);  // Overwrites j in situ with o, freeing the pointer o, and returning j
