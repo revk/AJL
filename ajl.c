@@ -70,7 +70,7 @@ const char JBASE32[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 const char JBASE16[] = "0123456789ABCDEF";
 
 // Safe free and NULL value
-#define freez(x)        do{if(x)free(x);x=NULL;}while(0)
+#define freez(x)        do{if(x)free(x);(x)=NULL;}while(0)
 
 time_t j_timez(const char *t, int z)    // convert iso time to time_t
 {                               // Can do HH:MM:SS, or YYYY-MM-DD or YYYY-MM-DD HH:MM:SS, 0 for invalid
