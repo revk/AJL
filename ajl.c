@@ -700,8 +700,13 @@ char *j_write_mem(const j_t j, char **buffer, size_t *len)
 {
    assert(j);
    assert(buffer);
-   assert(len);
-   return j_write(j, open_memstream(buffer, len));;
+   size_t l;
+   if (!len)
+      len = &l;
+   FILE *f = open_memstream(buffer, len);
+   char *err = j_write(j, f);
+   fclose(f);
+   return err;
 }
 
 // Changing an object/value

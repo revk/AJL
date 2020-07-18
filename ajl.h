@@ -119,7 +119,7 @@ char *j_write_close(const j_t, FILE *); // Also closes file
 char *j_write_pretty(const j_t, FILE *);        // Write with formatting, making for debug use
 char *j_write_pretty_close(const j_t, FILE *);  // Write with formatting, making for debug use, closes file
 char *j_write_file(const j_t, const char *filename);
-char *j_write_mem(const j_t, char **buffer, size_t *len);
+char *j_write_mem(const j_t, char **buffer, size_t *len);       // Write to specified buffer/length (len can be NULL if not needed)
 
 // These are low level functions, and not typically used on their own, see j_store/j_append later for more useful functions
 j_t j_null(const j_t);          // Null this point
