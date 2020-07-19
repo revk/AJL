@@ -444,6 +444,16 @@ const char *j_get_not_null(const j_t j, const char *path)
    return j_val(f);
 }
 
+char j_test(const j_t jc, const char *path, char def)
+{                               // Return 0 for false, 1 for true, else def
+   j_t j = j_find(jc, path);
+   if (!j_isbool(j))
+      return def;
+   if (j_istrue(j))
+      return 1;
+   return 0;
+}
+
 // Information about data type of this point
 int j_isarray(const j_t j)
 {                               // True if is an array

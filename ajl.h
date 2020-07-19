@@ -71,6 +71,7 @@ const char *j_val(const j_t);   // The value of this object as a string. NULL if
 int j_len(const j_t);           // The length of this value (characters if string or number or literal), or number of entries if object or array
 
 const char *j_get(const j_t, const char *path); // Find and get val using path, NULL for not found. Pass PATH null to read value of j_t entry
+char j_test(const j_t, const char *path, char def);     // Return 0 if false, 1 if true, else def. If path null, then checks passed node
 const char *j_get_not_null(const j_t, const char *path);        // Find and get val using path, NULL for not found or null. Pass PATH null to read value of j_t entry
 
 // Convert/check
@@ -135,6 +136,8 @@ j_t j_object(const j_t);        // Make this point an object (empty if it was no
 j_t j_array(const j_t);         // Make this point an array (empty if it was not an array before)
 j_t j_make(const j_t, const char *name);        // Find the named entry in an object, or make a new named entry if not found (null value)
 j_t j_append(const j_t);        // Append a new point to an array (initially a null)
+
+// Sort
 typedef int j_sort_func(const void *a, const void *b);  // Allow sorting
 void j_sort(const j_t);         // Apply a recursive sort so all objects have fields in alphabetic order.
 void j_sort_f(const j_t, j_sort_func, int recurse);     // Apply a sort using a function (if recursive, only sorts objects), if not, then sorts object or array at specified point
