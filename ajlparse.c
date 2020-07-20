@@ -47,8 +47,8 @@ struct ajl_s {
 
 #define escapes \
 	esc ('"', '"') \
-         esc ('\\', '\\') \
-         esc ('/', '/') \
+        esc ('\\', '\\') \
+        esco ('/', '/') \
 	esc ('b', '\b') \
 	esc ('f', '\f') \
 	esc ('n', '\n') \
@@ -154,7 +154,9 @@ static inline const char *check_string(const ajl_t j, FILE * o)
             }
          }
 #define esc(a,b) else if(j->peek==a){next(j,NULL);if(o)fputc(b,o);}
+#define	esco(a,b) esc(a,b)      // optional
          escapes
+#undef esco
 #undef esc
              else
             return j->error = "Bad escape";
@@ -501,7 +503,9 @@ static void add_string(const ajl_t j, const unsigned char *value, size_t len)
    {
       unsigned char c = *value++;
 #define esc(a,b) if(c==b){fputc('\\',j->f);fputc(a,j->f);} else
+#define	esco(a,b)               // optional
       escapes
+#undef esco
 #undef esc
           if (c < ' ')
          fprintf(j->f, "\\u00%02X", c);
@@ -523,7 +527,9 @@ static void add_binary(const ajl_t j, const unsigned char *value, size_t len)
    {
       unsigned char c = *value++;
 #define esc(a,b) if(c==b){fputc('\\',j->f);fputc(a,j->f);} else
+#define	esco(a,b)               // optional
       escapes
+#undef esco
 #undef esc
           if (c < ' ' || c >= 0x80)
          fprintf(j->f, "\\u00%02X", c);
