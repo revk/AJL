@@ -138,6 +138,7 @@ static inline const char *check_string(const ajl_t j, FILE * o)
                return j->error = "Bad hex escape";
             c = (c << 4) + (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
             next(j, NULL);
+	    // TODO surrogate UTF16 decode
             if (o)
             {
                if (c >= 0x800)
