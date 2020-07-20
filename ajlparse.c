@@ -138,10 +138,45 @@ static inline const char *check_string(const ajl_t j, FILE * o)
                return j->error = "Bad hex escape";
             c = (c << 4) + (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
             next(j, NULL);
-	    // TODO surrogate UTF16 decode
+            if (c >= 0xDC00 && c <= 0xDFFF)
+               return "Unexpected UTF-16 low order";
+            if (c >= 0xD800 && c <= 0xDBFF)
+            {                   // UTF-16
+               if (j->eof || j->peek != '\\')
+                  return "Bad UTF-16, missing second part";
+               next(j, NULL);
+               if (j->eof || j->peek != 'u')
+                  return "Bad UTF-16, missing second part";
+               next(j, NULL);
+               if (!isxdigit(j->peek))
+                  return j->error = "Bad hex escape";
+               unsigned int c2 = (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
+               next(j, NULL);
+               if (!isxdigit(j->peek))
+                  return j->error = "Bad hex escape";
+               c2 = (c2 << 4) + (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
+               next(j, NULL);
+               if (!isxdigit(j->peek))
+                  return j->error = "Bad hex escape";
+               c2 = (c2 << 4) + (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
+               next(j, NULL);
+               if (!isxdigit(j->peek))
+                  return j->error = "Bad hex escape";
+               c2 = (c2 << 4) + (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
+               next(j, NULL);
+               if (c2 < 0xDC00 || c2 > 0xDFFF)
+                  return "Bad UTF-16, second part invalid";
+               c = ((c & 0x3FF) << 10) + (c2 & 0x3FF) + 0x10000;
+            }
             if (o)
             {
-               if (c >= 0x800)
+               if (c >= 0x1000)
+               {
+                  fputc(0xF0 + (c >> 18), o);
+                  fputc(0x80 + ((c >> 12) & 0x3F), o);
+                  fputc(0x80 + ((c >> 6) & 0x3F), o);
+                  fputc(0x80 + (c & 0x3F), o);
+               } else if (c >= 0x800)
                {
                   fputc(0xE0 + (c >> 12), o);
                   fputc(0x80 + ((c >> 6) & 0x3F), o);
