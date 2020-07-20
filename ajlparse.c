@@ -46,13 +46,15 @@ struct ajl_s {
 #define OBJECT	2
 
 #define escapes \
-         esc ('\\', '\\') \
 	esc ('"', '"') \
-	esc ('t', '\t') \
+         esc ('\\', '\\') \
+         esc ('/', '/') \
 	esc ('b', '\b') \
 	esc ('f', '\f') \
+	esc ('n', '\n') \
 	esc ('r', '\r') \
-	esc ('n', '\n')
+	esc ('t', '\t') \
+
 
 // Local functions
 #define validate(j) if(!j)return "NULL control passed"; if(j->error)return j->error;
