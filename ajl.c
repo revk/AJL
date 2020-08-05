@@ -807,6 +807,8 @@ j_t j_utc(const j_t j, time_t t)
 
 j_t j_datetime(const j_t j, time_t t)
 {
+   if (!t)
+      return j_null(j);
    char v[30];
    struct tm tm;
    localtime_r(&t, &tm);
