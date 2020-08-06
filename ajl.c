@@ -621,7 +621,6 @@ char *j_read_mem(const j_t j, const char *buffer)
    return j_read_close(j, fmemopen((char *) buffer, strlen(buffer), "r"));
 }
 
-
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
 static char *j_write_flags(const j_t root, FILE * f, int pretty)
@@ -634,23 +633,26 @@ static char *j_write_flags(const j_t root, FILE * f, int pretty)
    j_t j = root;
    do
    {
+      const unsigned char *tag = j->tag;
+      if (j == root)
+         tag = NULL;
       if (j->children)
       {                         // Object or array
          if (j->len)
          {                      // Non empty
             if (j->isarray)
-               ajl_add_array(p, j->tag);
+               ajl_add_array(p, tag);
             else
-               ajl_add_object(p, j->tag);
+               ajl_add_object(p, tag);
             j = j->children[0]; // In to child
             continue;
          }
          // Empty object or array
-         ajl_add(p, j->tag, (const unsigned char *) (j->isarray ? "[]" : "{}"));        // For nicer pretty print
+         ajl_add(p, tag, (const unsigned char *) (j->isarray ? "[]" : "{}"));   // For nicer pretty print
       } else if (j->isstring)
-         ajl_add_stringn(p, j->tag, j->val, j->len);
+         ajl_add_stringn(p, tag, j->val, j->len);
       else
-         ajl_add(p, j->tag, j->val ? : (unsigned char *) valnull);
+         ajl_add(p, tag, j->val ? : (unsigned char *) valnull);
       // Next
       j_t n = NULL;
       while (j && j != root && !(n = j_next(j)))
@@ -1257,6 +1259,64 @@ void j_log(int debug, const char *who, const char *what, j_t a, j_t b)
    }
 }
 
+char *j_formdata(j_t j)
+{
+   if (!j)
+      return NULL;
+   int n = 0;
+   size_t len;
+   char *data;
+   FILE *f = open_memstream(&data, &len);
+   void add(const char *s) {
+      if (!s)
+         return;
+      while (*s)
+      {
+         if (*s == ' ')
+            fprintf(f, "+");
+         else if (*s < ' ' || strchr(":/?#[]@!$&'()*+,;=%", *s))
+            fprintf(f, "%%%02X", (unsigned char) *s);
+         else
+            fputc(*s, f);
+         s++;
+      }
+   }
+   void addv(j_t j) {
+      if (j_isnull(j))
+         return;
+      fputc('=', f);
+      if (j_isarray(j) || j_isobject(j))
+      {                         // Expand
+         size_t len;
+         char *buf;
+         const char *err = j_write_mem(j, &buf, &len);
+         if (err)
+            errx(1, "WTF formdata: %s", err);
+         add(buf);
+         free(buf);
+      } else
+         add(j_val(j));
+   }
+   if (j_isobject(j))
+      for (j_t a = j_first(j); a; a = j_next(a))
+      {
+         if (n++)
+            fputc('&', f);
+         add(j_name(a));
+         addv(a);
+   } else if (j_isarray(j))
+      for (j_t a = j_first(j); a; a = j_next(a))
+      {
+         if (n++)
+            fputc('&', f);
+         fprintf(f, "[%d]", j_pos(a));
+         addv(a);
+   } else if (!j_isnull(j))
+      addv(j);
+   fclose(f);
+   return data;
+}
+
 #ifdef	JCURL
 j_t j_curl(CURL * curlv, j_t input, const char *bearer, const char *url, ...)
 {                               // Submit curl, get curl response
@@ -1346,10 +1406,8 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
       } else
       {
          j_sort(j);
-         //if (isatty(fileno(stdout)))
          j_write_pretty(j, stdout);
-         //else
-         //j_write(j, stdout);
+         printf("%s\n", j_formdata(j));
       }
       j_delete(&j);
    }

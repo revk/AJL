@@ -52,6 +52,7 @@ void j_delete(j_t *);           // Delete this value (remove from parent object 
 void j_free(j_t);               // Same as j_delete but where you don't care about zapping the pointer itself
 
 void j_log(int debug, const char *who, const char *what, j_t a, j_t b); // Generate log files
+char *j_formdata(j_t);          // Generate percent encoded name=value sequence from JSON object
 
 // Moving around the tree, these return the j_t of the new point (or NULL if does not exist)
 j_t j_root(const j_t);          // Return root point
