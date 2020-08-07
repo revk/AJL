@@ -32,5 +32,6 @@
 // For posted JSON, formdata is the posted JSON
 // Temp files deleted on exit, so need renaming, or hard link if to be retained as files
 
+#include "ajl.h"
 char *j_cgi(j_t formdata, j_t cookie, j_t header, const char *session);
 char *j_parse_formdata(j_t, const char *);
