@@ -501,7 +501,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
    char *err = j_cgi(j_make(j, "info"), j_make(j, "formdata"), j_make(j, "cookie"), j_make(j, "header"), "JCGITEST");
    if (err)
       printf("Status: 500\r\n");
-   printf("Content-Type: text/plain\r\n\r\n");
+   printf("Content-Type: text/plain; charset=\"utf-8\"\r\n\r\n");
    if (err)
       printf("Failed: %s\n\n", err);
    j_err(j_write_pretty(j, stdout));
