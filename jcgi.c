@@ -357,26 +357,29 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session)
                   n = j_make(formdata, name);
                if (ct)
                {                // Has a content type
-                  j_stringn(j_make(n, "type"), ct, ctl);
-                  if (fn)
-                     j_stringn(j_make(n, "filename"), fn, fnl);
-                  char *t = newtmpfile();
-                  if (!t)
-                     return "Cannot make temp";
-                  FILE *o = fopen(t, "w");
-                  if (!o)
-                     return "Tmp file failed";
-                  if (fwrite(p, e - p, 1, o) != 1)
-                     return "Tmp write failed";
-                  fclose(o);
-                  j_store_string(n, "tmpfile", t);
-                  j_store_literalf(n, "size", "%d", (int) (e - p));
-                  if (ctl == 16 && !strncasecmp(ct, "application/json", ctl))
+                  if (e > p)
                   {
-                     char *e = j_read_file(j_make(n, "data"), t);
-                     if (e)
-                        return e;
+                     char *t = newtmpfile();
+                     if (!t)
+                        return "Cannot make temp";
+                     FILE *o = fopen(t, "w");
+                     if (!o)
+                        return "Tmp file failed";
+                     if (fwrite(p, e - p, 1, o) != 1)
+                        return "Tmp write failed";
+                     fclose(o);
+                     j_store_string(n, "tmpfile", t);
+                     if (ctl == 16 && !strncasecmp(ct, "application/json", ctl))
+                     {
+                        char *e = j_read_file(j_make(n, "data"), t);
+                        if (e)
+                           return e;
+                     }
                   }
+                  if (fn && fnl)
+                     j_stringn(j_make(n, "filename"), fn, fnl);
+                  j_stringn(j_make(n, "type"), ct, ctl);
+                  j_store_literalf(n, "size", "%d", (int) (e - p));
                } else
                   j_stringn(n, p, e - p);
                if (name)
@@ -387,16 +390,19 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session)
             }
          } else
          {                      // Something else.
-            char *t = newtmpfile();
-            if (!t)
-               return "Cannot make temp";
-            FILE *o = fopen(t, "w");
-            if (!o)
-               return "Tmp file failed";
-            if (fwrite(data, len, 1, o) != 1)
-               return "Tmp write failed";
-            fclose(o);
-            j_store_string(formdata, "tmpfile", t);
+            if (len)
+            {
+               char *t = newtmpfile();
+               if (!t)
+                  return "Cannot make temp";
+               FILE *o = fopen(t, "w");
+               if (!o)
+                  return "Tmp file failed";
+               if (fwrite(data, len, 1, o) != 1)
+                  return "Tmp write failed";
+               fclose(o);
+               j_store_string(formdata, "tmpfile", t);
+            }
             j_store_string(formdata, "type", ct);
          }
          if (data)
