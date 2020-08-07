@@ -537,6 +537,7 @@ char *j_read(const j_t root, FILE * f)
             freez(n->val);
          n->malloc = 0;
          n->val = value;
+         n->len = len;
          if (!strcmp((char *) value, (char *) valempty))
             n->val = valempty;
          else if (!strcmp((char *) value, (char *) valzero))
@@ -546,10 +547,11 @@ char *j_read(const j_t root, FILE * f)
          else if (!strcmp((char *) value, (char *) valfalse))
             n->val = valfalse;
          else if (!strcmp((char *) value, (char *) valnull))
+         {
             n->val = NULL;
-         else
+            n->len = strlen((char *) valnull);
+         } else
             n->malloc = 1;
-         n->len = strlen((char *) (n->val ? : valnull));
          if (!n->malloc)
             freez(value);
          if (t == AJL_STRING)
@@ -1267,10 +1269,12 @@ char *j_formdata(j_t j)
    size_t len;
    char *data;
    FILE *f = open_memstream(&data, &len);
-   void add(const char *s) {
+   void add(const char *s, int l) {
       if (!s)
          return;
-      while (*s)
+      if (l < 0)
+         l = strlen(s);
+      while (l--)
       {
          if (*s == ' ')
             fprintf(f, "+");
@@ -1292,17 +1296,17 @@ char *j_formdata(j_t j)
          const char *err = j_write_mem(j, &buf, &len);
          if (err)
             errx(1, "WTF formdata: %s", err);
-         add(buf);
+         add(buf, len);
          free(buf);
       } else
-         add(j_val(j));
+         add(j_val(j), j_len(j));
    }
    if (j_isobject(j))
       for (j_t a = j_first(j); a; a = j_next(a))
       {
          if (n++)
             fputc('&', f);
-         add(j_name(a));
+         add(j_name(a), -1);
          addv(a);
    } else if (j_isarray(j))
       for (j_t a = j_first(j); a; a = j_next(a))
@@ -1393,23 +1397,59 @@ j_t j_curl(CURL * curlv, j_t input, const char *bearer, const char *url, ...)
 #endif
 
 #ifndef	LIB                     // Build as command line for testing
+#include <popt.h>
 int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * argv[])
 {
-   for (int a = 1; a < argc; a++)
-   {
-      j_t j = j_create();
-      char *e = j_read_file(j, argv[a]);
-      if (e)
-      {
-         fprintf(stderr, "%s\n", e);
-         free(e);
-      } else
-      {
-         j_sort(j);
-         j_write_pretty(j, stdout);
-         printf("%s\n", j_formdata(j));
+   int debug = 0;
+   int pretty = 0;
+   int formdata = 0;
+   {                            // POPT
+      poptContext optCon;       // context for parsing command-line options
+      const struct poptOption optionsTable[] = {
+         { "pretty", 'p', POPT_ARG_NONE, &pretty, 0, "Output pretty", NULL },
+         { "formdata", 'f', POPT_ARG_NONE, &formdata, 0, "Output as formdata", NULL },
+         { "debug", 'v', POPT_ARG_NONE, &debug, 0, "Debug", NULL },
+         POPT_AUTOHELP { }
+      };
+
+      optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
+      poptSetOtherOptionHelp(optCon, "[filename]");
+
+      int c;
+      if ((c = poptGetNextOpt(optCon)) < -1)
+         errx(1, "%s: %s\n", poptBadOption(optCon, POPT_BADOPTION_NOALIAS), poptStrerror(c));
+
+      void process(const char *fn) {
+         j_t j = j_create();
+         char *e;
+         if (strcmp(fn, "-"))
+            e = j_read_file(j, fn);
+         else
+            e = j_read(j, stdin);
+         if (e)
+            fprintf(stderr, "%s: %s\n", fn, e);
+         if (formdata)
+         {
+            char *f = j_formdata(j);
+            printf("%s\n", f);
+            free(f);
+         } else if (pretty)
+            j_write_pretty(j, stdout);
+         else
+         {
+            j_write(j, stdout);
+            printf("\n");
+         }
+         j_delete(&j);
       }
-      j_delete(&j);
+
+      const char *v;
+      if (!poptPeekArg(optCon))
+         process("-");
+      else
+         while ((v = poptGetArg(optCon)))
+            process(v);
+      poptFreeContext(optCon);
    }
    return 0;
 }
