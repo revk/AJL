@@ -235,8 +235,8 @@ char *j_cgi(j_t formdata, j_t cookie, j_t header, const char *session)
                         return "Unexpected Content-Disposition";
                   } else if (hl == 12 && !strncasecmp(p, "Content-Type", hl))
                   {
-                     ct = p;
-                     ctl = hl;
+                     ct = v;
+                     ctl = vl;
                   }
                   p = e;
                   if (*p == '\r')
@@ -293,6 +293,12 @@ char *j_cgi(j_t formdata, j_t cookie, j_t header, const char *session)
                   fclose(o);
                   j_store_string(n, "tmpfile", t);
                   j_store_literalf(n, "size", "%d", (int) (e - p));
+                  if (ctl == 16 && !strncasecmp(ct, "application/json", ctl))
+                  {
+                     char *e = j_read_file(j_make(n, "data"), t);
+                     if (e)
+                        return e;
+                  }
                } else
                   j_stringn(n, p, e - p);
                if (name)
