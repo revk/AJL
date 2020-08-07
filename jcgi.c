@@ -265,6 +265,7 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session)
                   while (e < end && *e != '\r' && *e != '\n')
                      e++;
                   int vl = e - v;
+                  fprintf(stderr, "Head [%.*s] [%.*s]\n", hl, p, vl, v);
                   if (hl == 19 && !strncasecmp(p, "Content-Disposition", hl))
                   {             // Should be form-data
                      if (vl >= 9 && !strncasecmp(v, "form-data", 9) && (vl == 9 || v[9] == ';'))
@@ -292,7 +293,11 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session)
                            v++;
                            while (v < e && *v != '"')
                            {
-                              if (*v == '%' && isxdigit(v[1]) && isxdigit(v[2]))
+                              if (*v == '\\')
+                              {
+                                 v++;
+                                 fputc(*v, o);
+                              } else if (*v == '%' && isxdigit(v[1]) && isxdigit(v[2]))
                               {
                                  if (o)
                                     fputc((((v[1] & 0xF) + (isalpha(v[1]) ? 9 : 0)) << 4) + ((v[2] & 0xF) + (isalpha(v[2]) ? 9 : 0)), o);
