@@ -45,15 +45,16 @@
 // This is a point in the JSON object
 // A key feature is that the content of a point in a JSON object can be replaced in situ if needed.
 // This means a root j_t passed to a function can be input and output JSON object if needed, replacing in-situ at the pointer (see j_replace)
-// If ->children is not NULL, it is an array of pointers to child objects
-// If ->children is NULL, this point is a string or number or literal (using val and len)
 struct j_s {                    // JSON point strucccture
    j_t parent;                  // Parent (NULL if root)
-   j_t *children;               // Array of (len) child pointer entries
    unsigned char *tag;          // Always malloced, present when this is a child of an object and so tagged
-   unsigned char *val;          // Malloced if malloc set, can be static, NULL if object, array, or null
-   int len;                     // Len of val or len of child
+   union {                      // Based on children flag
+      j_t *child;               // Array of (len) child pointer entries
+      unsigned char *val;       // Malloced if malloc set, can be static, NULL if object, array, or null
+   };
+   int len;                     // Len of val or len of child (0 for null)
    int posn;                    // Position in parent
+   unsigned char children:1;    // Is object or array, child is used not val
    unsigned char isarray:1;     // This is an array rather than an object (children is set)
    unsigned char isstring:1;    // This is a string rather than a literal (children is NULL)
    unsigned char malloc:1;      // val is malloc'd
@@ -225,12 +226,13 @@ static void j_unlink(const j_t j)
    if (!p)
       return;                   // No parent
    j->parent = NULL;
+   assert(p->children);
    assert(p->len);
    p->len--;
    for (int q = j->posn; q < p->len; q++)
    {
-      p->children[q] = p->children[q + 1];
-      p->children[q]->posn = q;
+      p->child[q] = p->child[q + 1];
+      p->child[q]->posn = q;
    }
 }
 
@@ -238,12 +240,18 @@ static j_t j_extend(const j_t j)
 {                               // Extend children
    if (!j)
       return NULL;
-   assert((j->children = realloc(j->children, sizeof(*j->children) * (j->len + 1))));
+   if (!j->children)
+   {
+      j_null(j);
+      j->children = 1;
+      j->len = 0;
+   }
+   assert((j->child = realloc(j->child, sizeof(*j->child) * (j->len + 1))));
    j_t n = NULL;
-   assert((j->children[j->len] = n = calloc(1, sizeof(*n))));
+   assert((j->child[j->len] = n = calloc(1, sizeof(*n))));
    n->parent = j;
    n->posn = j->len++;
-   return n;
+   return j_null(n);
 }
 
 static j_t j_findtag(const j_t j, const unsigned char *tag)
@@ -251,8 +259,8 @@ static j_t j_findtag(const j_t j, const unsigned char *tag)
    if (!j || !j->children || j->isarray)
       return NULL;
    for (int q = 0; q < j->len; q++)
-      if (!strcmp((char *) j->children[q]->tag, (char *) tag))
-         return j->children[q];
+      if (!strcmp((char *) j->child[q]->tag, (char *) tag))
+         return j->child[q];
    return NULL;
 }
 
@@ -297,23 +305,23 @@ j_t j_parent(const j_t j)
 
 j_t j_next(const j_t j)
 {                               // Next in parent object or array, NULL if at end
-   if (!j || !j->parent || j->posn + 1 >= j->parent->len)
+   if (!j || !j->parent || !j->parent->children || j->posn + 1 >= j->parent->len)
       return NULL;
-   return j->parent->children[j->posn + 1];
+   return j->parent->child[j->posn + 1];
 }
 
 j_t j_prev(const j_t j)
 {                               // Previous in parent object or array, NULL if at start
-   if (!j || !j->parent || j->posn <= 0)
+   if (!j || !j->parent || !j->parent->children || j->posn <= 0)
       return NULL;
-   return j->parent->children[j->posn - 1];
+   return j->parent->child[j->posn - 1];
 }
 
 j_t j_first(const j_t j)
 {                               // First entry in an object or array (same as j_index with 0)
    if (!j || !j->children || !j->len)
       return NULL;
-   return j->children[0];
+   return j->child[0];
 }
 
 static j_t j_findmake(const j_t cj, const char *path, int make)
@@ -391,7 +399,7 @@ j_t j_index(const j_t j, int n)
 {                               // Find specific point in an array, or object - NULL if not in the array
    if (!j || !j->children || n < 0 || n >= j->len)
       return NULL;
-   return j->children[n];
+   return j->child[n];
 }
 
 j_t j_named(const j_t j, const char *name)
@@ -549,17 +557,17 @@ char *j_read(const j_t root, FILE * f)
          else if (!strcmp((char *) value, (char *) valnull))
          {
             n->val = NULL;
-            n->len = strlen((char *) valnull);
+            n->len = 0;
          } else
             n->malloc = 1;
          if (!n->malloc)
             freez(value);
          if (t == AJL_STRING)
             n->isstring = 1;
-      }
-      if (t == AJL_OBJECT || t == AJL_ARRAY)
+      } else if (t == AJL_OBJECT || t == AJL_ARRAY)
       {
-         assert((n->children = realloc(n->children, n->len = 0)));
+         n->children = 1;
+         assert((n->child = realloc(n->child, n->len = 0)));
          if (t == AJL_ARRAY)
             n->isarray = 1;
          j = n;
@@ -646,7 +654,7 @@ static char *j_write_flags(const j_t root, FILE * f, int pretty)
                ajl_add_array(p, tag);
             else
                ajl_add_object(p, tag);
-            j = j->children[0]; // In to child
+            j = j->child[0];    // In to child
             continue;
          }
          // Empty object or array
@@ -732,20 +740,23 @@ j_t j_null(const j_t j)
       int n;
       for (n = 0; n < j->len; n++)
       {
-         j_null(j->children[n]);
-         freez(j->children[n]->tag);
-         freez(j->children[n]);
+         j_null(j->child[n]);
+         freez(j->child[n]->tag);
+         freez(j->child[n]);
       }
-      freez(j->children);
+      freez(j->child);
+      j->children = 0;
+      j->isarray = 0;
+   } else
+   {                            // Value
+      if (j->malloc)
+      {
+         freez(j->val);
+         j->malloc = 0;
+      }
+      j->val = NULL;            // Even if not malloc'd
    }
-   j->isarray = 0;
-   if (j->malloc)
-   {
-      freez(j->val);
-      j->malloc = 0;
-   }
-   j->val = NULL;               // Even if not malloc'd
-   j->len = sizeof(valnull) - 1;
+   j->len = 0;
    j->isstring = 0;
    return j;
 }
@@ -870,7 +881,10 @@ j_t j_object(const j_t j)
    if (!j->children || j->isarray)
       j_null(j);
    if (!j->children)
-      assert((j->children = malloc(j->len = 0)));
+   {
+      assert((j->child = malloc(j->len = 0)));
+      j->children = 1;
+   }
    return j;
 }
 
@@ -881,7 +895,10 @@ j_t j_array(const j_t j)
    if (!j->children || !j->isarray)
       j_null(j);
    if (!j->children)
-      assert((j->children = malloc(j->len = 0)));
+   {
+      j->children = 1;
+      assert((j->child = malloc(j->len = 0)));
+   }
    j->isarray = 1;
    return j;
 }
@@ -910,12 +927,12 @@ void j_sort_f(const j_t j, j_sort_func * f, int recurse)
       return;
    if (recurse && j->children)
       for (int q = 0; q < j->len; q++)
-         j_sort_f(j->children[q], f, 1);
+         j_sort_f(j->child[q], f, 1);
    if ((recurse && j->isarray) || !j->len)
       return;
-   qsort(j->children, j->len, sizeof(*j->children), f);
+   qsort(j->child, j->len, sizeof(*j->child), f);
    for (int q = 0; q < j->len; q++)
-      j->children[q]->posn = q;
+      j->child[q]->posn = q;
 }
 
 void j_sort(const j_t j)
@@ -1092,17 +1109,20 @@ j_t j_replace(const j_t j, j_t * op)
       return j;
    j_t o = *op;
    j_unlink(o);                 // Unlink from parent
-   j->children = o->children;   // Copy over the key components
+   j->children = o->children;
    j->isarray = o->isarray;
+   if (j->children)
+      j->child = o->child;      // Copy over the key components
+   else
+      j->val = o->val;
    j->isstring = o->isstring;
-   j->val = o->val;
    j->len = o->len;
    j->malloc = o->malloc;
    // Don't copy parent, tag, and posn, as these apply to j still as it may be in a tree
    freez(*op);                  // Can safely free original as malloced children/val have been moved
    if (j->children)
       for (int c = 0; c < j->len; c++)
-         j->children[c]->parent = j;    // Link parent
+         j->child[c]->parent = j;       // Link parent
    return j;
 }
 
@@ -1246,18 +1266,18 @@ void j_log(int debug, const char *who, const char *what, j_t a, j_t b)
       *p = 0;
       if (a && b)
          sprintf(p, ".a");
-      j_write_file(a, path);
+      j_err(j_write_file(a, path));
       if (debug)
-         j_write_pretty(a, stderr);
+         j_err(j_write_pretty(a, stderr));
    }
    if (b)
    {
       *p = 0;
       if (a && b)
          sprintf(p, ".b");
-      j_write_file(b, path);
+      j_err(j_write_file(b, path));
       if (debug)
-         j_write_pretty(b, stderr);
+         j_err(j_write_pretty(b, stderr));
    }
 }
 
@@ -1356,7 +1376,7 @@ j_t j_curl(CURL * curlv, j_t input, const char *bearer, const char *url, ...)
       curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
       curl_easy_setopt(curl, CURLOPT_POST, 1L);
       FILE *i = open_memstream(&request, &requestlen);
-      j_write(input, i);
+      j_err(j_write(input, i));
       fclose(i);
       curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request);
       curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long) requestlen);
@@ -1434,10 +1454,10 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
             printf("%s\n", f);
             free(f);
          } else if (pretty)
-            j_write_pretty(j, stdout);
+            j_err(j_write_pretty(j, stdout));
          else
          {
-            j_write(j, stdout);
+            j_err(j_write(j, stdout));
             printf("\n");
          }
          j_delete(&j);
