@@ -33,6 +33,40 @@
 
 extern char **environ;
 
+typedef struct fn_s fn_t;
+static struct fn_s {
+   fn_t *next;
+   char *fn;
+} *cleanup = NULL;
+
+static void docleanup(void)
+{
+   while (cleanup)
+   {
+      fn_t *next = cleanup->next;
+      unlink(cleanup->fn);
+      free(cleanup->fn);
+      free(cleanup);
+      cleanup = next;
+   }
+}
+
+static char *newtmpfile(void)
+{                               // Make temp file
+   char temp[] = "/tmp/jcgi-XXXXXX";
+   int f = mkstemp(temp);
+   if (f < 0)
+      return NULL;
+   close(f);
+   if (!cleanup)
+      atexit(docleanup);
+   fn_t *c = malloc(sizeof(*c));
+   c->fn = strdup(temp);
+   c->next = cleanup;
+   cleanup = c;
+   return c->fn;
+}
+
 char *j_cgi(j_t formdata, j_t cookie, j_t header, const char *session)
 {                               // Fill in formdata, cookies, headers, and manage cookie session, return is NULL if OK, else error. All args can be NULL if not needed
    char *method = getenv("REQUEST_METHOD");
@@ -53,8 +87,64 @@ char *j_cgi(j_t formdata, j_t cookie, j_t header, const char *session)
          }
       } else if (!strcasecmp(method, "POST"))
       {                         // Handle posted (could be url formdata, multipart, or JSON)
+         char *ct = getenv("CONTENT_TYPE");
+         if (!ct)
+            return "No content type for POST";
 
-         // TODO onexit for cleanup
+         char *data = NULL;
+         size_t len = 0;
+         FILE *o = open_memstream(&data, &len);
+         {
+            char buf[1024];
+            long l = -1;
+            char *cl = getenv("CONTENT_LENGTH");
+            if (cl)
+               strtoul(cl, NULL, 0);
+            while (1)
+            {
+               size_t r = fread(buf, 1, sizeof(buf), stdin);
+               if (!r)
+                  break;
+               fwrite(buf, r, 1, o);
+               if (l >= 0 && (l -= r) <= 0)
+                  break;
+            }
+            if (l > 0)
+               return "Read stopped before end";
+         }
+         fclose(o);
+
+         if (!strcasecmp(ct, "application/x-www-form-urlencoded"))
+         {                      // Simple URL encoding
+            char *e = j_parse_formdata(formdata, data);
+            if (e)
+               return e;
+         } else if (!strcasecmp(ct, "application/json"))
+         {                      // JSON
+            char *e = j_read_mem(formdata, data);
+            if (e)
+               return e;
+         } else if(!strncasecmp(ct,"multipart/form-data",19))
+	 { // Form data...
+
+	 }
+	 else
+         {                      // Something else.
+            char *t = newtmpfile();
+            if (!t)
+               return "Cannot make temp";
+            FILE *o = fopen(t, "w");
+            if (!o)
+               return "Tmp file failed";
+            if (fwrite(data, len, 1, o) != 1)
+               return "Tmp write failed";
+            fclose(o);
+            j_store_string(formdata, "tmpfile", t);
+            j_store_string(formdata, "type", ct);
+         }
+	 j_stringn(j_make(formdata,"file"),data,len);// TODO debug
+         if (data)
+            free(data);
       }
       // TODO Query string
       // TODO Posted url formdata
