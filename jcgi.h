@@ -24,6 +24,13 @@
 // This library allows C code to work as apache cgi, checking the environment and
 // if necessary stdin for posted data. It uses the JSON library to provide the data
 // and handle posted JSON.
+//
+// Formdata:-
+// For query string, or posted form data, each tag is a field in JSON, value is string or array if repeated tag
+// For multipart posted, any uploaded file is done as an object in the JSON with details of file, and where tmp file stored
+// For multipart uploaded JSON the JSON is also read in to the object
+// For posted JSON, formdata is the posted JSON
+// Temp files deleted on exit, so need renaming, or hard link if to be retained as files
 
 char *j_cgi(j_p formdata, j_p cookie, j_p header, const char *session);
 char *h_parse_formdata(j_p, const char *);

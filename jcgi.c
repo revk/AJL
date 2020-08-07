@@ -21,10 +21,6 @@
        along with this program.  If not, see <http://www.gnu.org/licenses/>.
      */
 
-// This library allows C code to work as apache cgi, checking the environment and
-// if necessary stdin for posted data. It uses the JSON library to provide the data
-// and handle posted JSON.
-
 char *j_cgi(j_p formdata, j_p cookie, j_p header, const char *session)
 {                               // Fill in formdata, cookies, headers, and manage cookie session, return is NULL if OK, else error. All args can be NULL if not needed
 
@@ -37,6 +33,7 @@ char *h_parse_formdata(j_p j, const char *formdata)
    if (!j)
       return "NULL";
 
+   // TODO onexit for cleanup
 
    return "TODO";
 }
