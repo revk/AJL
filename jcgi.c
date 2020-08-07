@@ -119,8 +119,8 @@ char *j_parse_formdata(j_t j, const char *f)
             j_append_json(n, &was);
          }
          n = j_append(n);
-      }
-      n = j_make(j, name);
+      } else
+         n = j_make(j, name);
       if (value)
          j_stringn(n, value, lvalue);   // Allows for nulls in string
       if (name)
