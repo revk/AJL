@@ -34,4 +34,5 @@
 
 #include "ajl.h"
 char *j_cgi(j_t formdata, j_t cookie, j_t header, const char *session);
-char *j_parse_formdata(j_t, const char *);
+char *j_parse_formdata_sep(j_t, const char *,char sep);
+#define j_parse_formdata(j,f) j_parse_formdata_sep(j,f,'&')

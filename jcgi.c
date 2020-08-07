@@ -21,10 +21,17 @@
        along with this program.  If not, see <http://www.gnu.org/licenses/>.
      */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include <strings.h>
 #include <ctype.h>
 #include "jcgi.h"
+
+extern char **environ;
 
 char *j_cgi(j_t formdata, j_t cookie, j_t header, const char *session)
 {                               // Fill in formdata, cookies, headers, and manage cookie session, return is NULL if OK, else error. All args can be NULL if not needed
@@ -59,39 +66,104 @@ char *j_cgi(j_t formdata, j_t cookie, j_t header, const char *session)
       j_null(cookie);
       char *c = getenv("HTTP_COOKIE");
       if (c)
-      {                         // Process cookies
-
-      }
-
+         j_parse_formdata_sep(cookie, c, ';');
       if (session)
       {                         // Update cookie
-
+         const char *u = j_get(cookie, session);
+         if (!u || strlen(u) != 36)
+         {
+            int f = open("/dev/urandom", O_RDONLY);
+            if (f < 0)
+               warn("Random open failed");
+            else
+            {
+               unsigned char v[16];
+               if (read(f, &v, sizeof(v)) != sizeof(v))
+                  warn("Random read failed");
+               else
+               {
+                  v[6] = 0x40 | (v[6] & 0x0F);  // Version 4: Random
+                  v[8] = 0x80 | (v[8] & 0x3F);  // Variant 1
+                  char uuid[37];
+                  snprintf(uuid, sizeof(uuid), "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
+                  int max = 365 * 86400;
+                  time_t now = time(0) + max;
+                  char temp[50];
+                  strftime(temp, sizeof(temp), "%a, %d-%b-%Y %T GMT", gmtime(&now));
+                  printf("Set-Cookie: %s=%s; Path=/; Max-Age=%d; Expires=%s; HTTPOnly;%s\r\n", session, uuid, max, temp, getenv("HTTPS") ? " Secure" : "");
+                  j_store_string(cookie, session, uuid);
+               }
+               close(f);
+            }
+         }
       }
+      j_sort(cookie);
    }
    if (header)
    {                            // Headers
       j_null(header);
-
+      for (char **ep = environ; *ep; ep++)
+      {
+         char *e = *ep;
+         char *v = strchr(e, '=');
+         if (!v)
+            continue;
+         v++;
+         fprintf(stderr, "%s\n", e);
+         if (!strncmp(e, "HTTP_", 5) && (!cookie || strncmp(e, "HTTP_COOKIE=", 12)))
+         {                      // Header from Apache
+            char *name = malloc(v - e - 5);
+            memcpy(name, e + 5, v - e - 6);
+            name[v - e - 6] = 0;
+            for (char *q = name; *q; q++)
+            {                   // Change to match normal header case and characters
+               if (*q == '_')
+                  *q = '-';
+               else if (isupper(*q) && q != name && isalpha(q[-1]))
+                  *q = tolower(*q);
+            }
+            j_store_string(header, name, v);
+            free(name);
+            continue;
+         }
+         if (!strncmp(e, "SERVER_", 7) || !strncmp(e, "REMOTE_", 7) || !strncmp(e, "REQUEST_", 8) || !strncmp(e, "SCRIPT_", 7) || (!strncmp(e, "QUERY_", 6) && (!formdata || strncmp(e, "QUERY_STRING=", 13))))
+         {                      // Just lower case these
+            char *name = malloc(v - e);
+            memcpy(name, e, v - e - 1);
+            name[v - e - 1] = 0;
+            for (char *q = name; *q; q++)
+               if (isupper(*q))
+                  *q = tolower(*q);
+            j_store_string(header, name, v);
+            free(name);
+            continue;
+         }
+      }
+      if (getenv("HTTPS"))
+         j_store_string(header, "https", getenv("SSL_TLS_SNI"));
+      j_sort(header);
    }
 
    return NULL;
 }
 
-char *j_parse_formdata(j_t j, const char *f)
+char *j_parse_formdata_sep(j_t j, const char *f, char sep)
 {                               // Parse formdata url encoded to JSON object
    if (!j || !f)
       return "NULL";
    j_null(j);
    while (*f)
    {
-      if (*f == '&' || *f == '=')
+      while (isspace(*f))
+         f++;                   // Should not actually have spaces
+      if (*f == sep || *f == '=')
          return "Bad form data";
       size_t lname,
        lvalue;
       char *name = NULL,
           *value = NULL;
       void get(FILE * o) {
-         while (*f && *f != '=' && *f != '&')
+         while (*f && *f != '=' && *f != sep)
          {
             if (*f == '%' && isxdigit(f[1]) && isxdigit(f[2]))
             {
@@ -129,7 +201,7 @@ char *j_parse_formdata(j_t j, const char *f)
          free(value);
       if (!*f)
          break;
-      if (*f != '&')
+      if (*f != sep)
          return "Bad form data";
       f++;
    }
@@ -167,6 +239,9 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
    printf("Content-Type: text/plain\r\n\r\n");
    j_err(j_write_pretty(j, stdout));
    j_delete(&j);
+   printf("\n");
+   for (char **e = environ; *e; e++)
+      printf("%s\n", *e);
    return 0;
 }
 #endif
