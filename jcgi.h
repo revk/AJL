@@ -25,4 +25,5 @@
 // if necessary stdin for posted data. It uses the JSON library to provide the data
 // and handle posted JSON.
 
-char *j_cgi(j_p formdata,j_p cookie,j_p header,const char *session);
+char *j_cgi(j_p formdata, j_p cookie, j_p header, const char *session);
+char *h_parse_formdata(j_p, const char *);

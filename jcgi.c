@@ -25,7 +25,18 @@
 // if necessary stdin for posted data. It uses the JSON library to provide the data
 // and handle posted JSON.
 
-char *j_cgi(j_p formdata,j_p cookie,j_p header,const char *session)
-{ // Fill in formdata, cookies, headers, and manage cookie session, return is NULL if OK, else error
-	return "TODO";
+char *j_cgi(j_p formdata, j_p cookie, j_p header, const char *session)
+{                               // Fill in formdata, cookies, headers, and manage cookie session, return is NULL if OK, else error. All args can be NULL if not needed
+
+
+   return "TODO";
+}
+
+char *h_parse_formdata(j_p j, const char *formdata)
+{                               // Parse formdata url encoded to JSON object
+   if (!j)
+      return "NULL";
+
+
+   return "TODO";
 }
