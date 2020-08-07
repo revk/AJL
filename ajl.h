@@ -183,4 +183,4 @@ j_t j_append_json(const j_t, j_t *);    // Append a complete JSON entry, freeing
 
 // Moving parts of objects...
 j_t j_replace(const j_t, j_t *);        // Overwrites j in situ, returning j (unchanged), but the replacement object is freed and NULL'd
-j_t j_detach(j_t j);        // Detach from parent so a to make a top level object in itself
+j_t j_detach(j_t j);            // Detach from parent so a to make a top level object in itself
