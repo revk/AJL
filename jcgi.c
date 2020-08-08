@@ -67,7 +67,7 @@ static char *newtmpfile(int flags)
    return c->fn;
 }
 
-char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session, int flags)
+char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *session, int flags)
 {                               // Fill in formdata, cookies, headers, and manage cookie session, return is NULL if OK, else error. All args can be NULL if not needed
    char *method = getenv("REQUEST_METHOD");
    if (!method)
@@ -571,7 +571,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
       header = info = cookie = formdata = 1;    // Default
    int flags = (noclean ? JCGI_NOCLEAN : 0) + (nojson ? JCGI_NOJSON : 0) + (notmp ? JCGI_NOTMP : 0) + (jsontmp ? JCGI_JSONTMP : 0) + (jsonerr ? JCGI_JSONERR : 0);
    j_t j = j_create();
-   char *e = j_cgi(info ? j_make(j, "info") : NULL, formdata ? j_make(j, "formdata") : NULL, cookie ? j_make(j, "cookie") : NULL, header ? j_make(j, "header") : NULL, "JCGITEST", flags);
+   char *e = j_cgi_get(info ? j_make(j, "info") : NULL, formdata ? j_make(j, "formdata") : NULL, cookie ? j_make(j, "cookie") : NULL, header ? j_make(j, "header") : NULL, "JCGITEST", flags);
    if (e)
    {
       if (text)

@@ -31,6 +31,8 @@
 // For multipart uploaded JSON the JSON is also read in to the object
 // For posted JSON, formdata is the posted JSON
 // Temp files deleted on exit, so need renaming, or hard link if to be retained as files
+//
+// The macro jcgi simply takes a j_t and creates an object with a full set of sub objects
 
 #include "ajl.h"
 #define	JCGI_NOTMP	1       // Don't make tmp files, just put raw data in "data":
@@ -38,6 +40,7 @@
 #define	JCGI_NOJSON	4       // Don't load JSON objects
 #define	JCGI_JSONTMP	8       // Make tmp files if loading JSON
 #define	JCGI_JSONERR	16      // Fail if json load fails
-char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session, int flags);
+char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *session, int flags);
+#define j_cgi(j) j_cgi_get(j_make(j,"info"),j_make(j,"formdata"),j_make(j,"cookie"),j_make(j,"header"),"JCGI",0)
 char *j_parse_formdata_sep(j_t, const char *, char sep);
 #define j_parse_formdata(j,f) j_parse_formdata_sep(j,f,'&')
