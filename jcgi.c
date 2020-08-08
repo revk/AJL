@@ -268,7 +268,6 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session,
                   while (e < end && *e != '\r' && *e != '\n')
                      e++;
                   int vl = e - v;
-                  fprintf(stderr, "Head [%.*s] [%.*s]\n", hl, p, vl, v);
                   if (hl == 19 && !strncasecmp(p, "Content-Disposition", hl))
                   {             // Should be form-data
                      if (vl >= 9 && !strncasecmp(v, "form-data", 9) && (vl == 9 || v[9] == ';'))
@@ -343,10 +342,12 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session,
                   e--;
                if (e > p && e[-1] == '\r')
                   e--;
+#if 0
                if (e > p && e[-1] == '\n')
                   e--;
                if (e > p && e[-1] == '\r')
                   e--;
+#endif
                // Actual end of file
                if (!name)
                   return "No name in form-data";
@@ -365,6 +366,10 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session,
                   n = j_make(formdata, name);
                if (ct)
                {                // Has a content type
+                  if (fn && fnl)
+                     j_stringn(j_make(n, "filename"), fn, fnl);
+                  j_stringn(j_make(n, "type"), ct, ctl);
+                  j_store_literalf(n, "size", "%d", (int) (e - p));
                   if (e > p)
                   {
                      if (flags & JCGI_NOTMP)
@@ -384,15 +389,11 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session,
                      }
                      if (!(flags & JCGI_NOJSON) && ctl == 16 && !strncasecmp(ct, "application/json", ctl))
                      {
-                        char *e = j_read_mem(j_make(n, "json"), p, e - p);
-                        if (e)
-                           return e;
+                        char *er = j_read_mem(j_make(n, "json"), p, e - p);
+                        if (er)
+                           return er;
                      }
                   }
-                  if (fn && fnl)
-                     j_stringn(j_make(n, "filename"), fn, fnl);
-                  j_stringn(j_make(n, "type"), ct, ctl);
-                  j_store_literalf(n, "size", "%d", (int) (e - p));
                } else
                   j_stringn(n, p, e - p);
                if (name)
