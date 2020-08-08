@@ -36,6 +36,8 @@
 #define	JCGI_NOTMP	1       // Don't make tmp files, just put raw data in "data":
 #define	JCGI_NOCLEAN	2       // Don't clean up tmp files on exit
 #define	JCGI_NOJSON	4       // Don't load JSON objects
+#define	JCGI_JSONTMP	8       // Make tmp files if loading JSON
+#define	JCGI_JSONERR	16      // Fail if json load fails
 char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session, int flags);
 char *j_parse_formdata_sep(j_t, const char *, char sep);
 #define j_parse_formdata(j,f) j_parse_formdata_sep(j,f,'&')

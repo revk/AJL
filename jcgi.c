@@ -194,216 +194,237 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session,
                return "Read stopped before end";
          }
          fclose(o);
-
-         if (!strcasecmp(ct, "application/x-www-form-urlencoded"))
-         {                      // Simple URL encoding
-            char *e = j_parse_formdata(formdata, data);
-            if (e)
-               return e;
-         } else if (!(flags & JCGI_NOJSON) && !strcasecmp(ct, "application/json"))
-         {                      // JSON
-            char *e = j_read_mem(formdata, data, len);
-            if (e)
-               return e;
-         } else if (!strncasecmp(ct, "multipart/form-data", 19))
-         {                      // Form data...
-            char *boundary = NULL;
-            size_t bl = 0;
-            char *p = ct;
-            while (*p)
-            {
-               while (*p && *p != ';')
-                  p++;
-               if (*p == ';')
-                  p++;
-               while (isspace(*p))
-                  p++;
-               if (!strncasecmp(p, "boundary=", 9))
+         if (!data)
+            return "No data";
+         do
+         {
+            if (!strcasecmp(ct, "application/x-www-form-urlencoded"))
+            {                   // Simple URL encoding
+               char *e = j_parse_formdata(formdata, data);
+               free(data);
+               if (e)
+                  return e;
+               continue;
+            }
+            if (!(flags & JCGI_NOJSON) && !strcasecmp(ct, "application/json"))
+            {                   // JSON
+               char *e = j_read_mem(formdata, data, len);
+               free(data);
+               if (e && (flags & JCGI_JSONERR))
+                  return e;
+               if (!e)
+                  continue;     // Load as non json
+            }
+            if (!strncasecmp(ct, "multipart/form-data", 19))
+            {                   // Form data...
+               char *boundary = NULL;
+               size_t bl = 0;
+               char *p = ct;
+               while (*p)
                {
-                  p += 9;
-                  boundary = p;
                   while (*p && *p != ';')
                      p++;
-                  bl = p - boundary;
-                  break;
-               }
-            }
-            if (!boundary)
-               return "No boundary on form data post";
-            if (len < bl + 2)
-               return "Short post form data";
-            char *end = data + len;     // Note, we can rely on final null, so no need to check every test
-            p = data;
-            if (p[0] != '-' || p[1] != '-')
-               return "Form data does not start --";
-            if (memcmp(p + 2, boundary, bl))
-               return "Form data does not start with boundary";
-            p += bl + 2;
-            while (p < end)
-            {                   // Scan the data, extracting each field.
-               if (p + 2 >= end || (p[0] == '-' && p[1] == '-'))
-                  break;        // End
-               if (*p == '\r')
-                  p++;
-               if (*p == '\n')
-                  p++;
-               char *ct = NULL;
-               size_t ctl = 0;
-               char *name = NULL;
-               size_t namel = 0;
-               char *fn = NULL;
-               size_t fnl = 0;
-               // Header lines
-               while (p < end && *p != '\r' && *p != '\n')
-               {
-                  char *e = p;
-                  while (e < end && *e != '\r' && *e != '\n' && *e != ':')
-                     e++;
-                  int hl = e - p;
-                  if (*e == ':')
-                     e++;
-                  while (e < end && isspace(*e))
-                     e++;
-                  char *v = e;
-                  while (e < end && *e != '\r' && *e != '\n')
-                     e++;
-                  int vl = e - v;
-                  if (hl == 19 && !strncasecmp(p, "Content-Disposition", hl))
-                  {             // Should be form-data
-                     if (vl >= 9 && !strncasecmp(v, "form-data", 9) && (vl == 9 || v[9] == ';'))
-                     {          // look for name= and filename=
-                        char *e = v + vl;
-                        v += 9;
-                        while (v < e)
-                        {
-                           if (*v == ';')
-                              v++;
-                           while (isspace(*v))
-                              v++;
-                           // Values RFC2047 coded FFS - Not sure I care
-                           FILE *o = NULL;
-                           if (!name && !strncasecmp(v, "name=", 5))
-                              o = open_memstream(&name, &namel);
-                           else if (!fn && !strncasecmp(v, "filename=", 9))
-                              o = open_memstream(&fn, &fnl);
-                           while (v < e && *v != '=')
-                              v++;
-                           if (*v == '=')
-                              v++;
-                           if (*v != '"')
-                              return "Unquoted tag value";
-                           v++;
-                           while (v < e && *v != '"')
-                           {
-                              if (*v == '\\')
-                              {
-                                 v++;
-                                 fputc(*v, o);
-                              } else if (*v == '%' && isxdigit(v[1]) && isxdigit(v[2]))
-                              {
-                                 if (o)
-                                    fputc((((v[1] & 0xF) + (isalpha(v[1]) ? 9 : 0)) << 4) + ((v[2] & 0xF) + (isalpha(v[2]) ? 9 : 0)), o);
-                                 v += 2;
-                              } else if (o)
-                                 fputc(*v, o);
-                              v++;
-                           }
-                           if (o)
-                              fclose(o);
-                           if (*v != '"')
-                              return "Unquoted tag value";
-                           v++;
-                           while (v < end && isspace(*v))
-                              v++;
-                        }
-                     } else
-                        return "Unexpected Content-Disposition";
-                  } else if (hl == 12 && !strncasecmp(p, "Content-Type", hl))
+                  if (*p == ';')
+                     p++;
+                  while (isspace(*p))
+                     p++;
+                  if (!strncasecmp(p, "boundary=", 9))
                   {
-                     ct = v;
-                     ctl = vl;
+                     p += 9;
+                     boundary = p;
+                     while (*p && *p != ';')
+                        p++;
+                     bl = p - boundary;
+                     break;
                   }
-                  p = e;
+               }
+               if (!boundary)
+                  return "No boundary on form data post";
+               if (len < bl + 2)
+                  return "Short post form data";
+               char *end = data + len;  // Note, we can rely on final null, so no need to check every test
+               p = data;
+               if (p[0] != '-' || p[1] != '-')
+                  return "Form data does not start --";
+               if (memcmp(p + 2, boundary, bl))
+                  return "Form data does not start with boundary";
+               p += bl + 2;
+               while (p < end)
+               {                // Scan the data, extracting each field.
+                  if (p + 2 >= end || (p[0] == '-' && p[1] == '-'))
+                     break;     // End
                   if (*p == '\r')
                      p++;
                   if (*p == '\n')
                      p++;
-               }
-               if (*p == '\r')
-                  p++;
-               if (*p == '\n')
-                  p++;
-               // The content
-               char *e = p;
-               while (e < end && (e[0] != '-' || e[1] != '-' || memcmp(e + 2, boundary, bl)))
-                  e++;
-               char *next = e + bl + 2;
-               if (e > p && e[-1] == '\n')
-                  e--;
-               if (e > p && e[-1] == '\r')
-                  e--;
-#if 0
-               if (e > p && e[-1] == '\n')
-                  e--;
-               if (e > p && e[-1] == '\r')
-                  e--;
-#endif
-               // Actual end of file
-               if (!name)
-                  return "No name in form-data";
-               // Store
-               j_t n = j_find(formdata, name);
-               if (n)
-               {                // Exists
-                  if (!j_isarray(n))
-                  {             // Make array
-                     j_t was = j_detach(n);
-                     n = j_make(formdata, name);
-                     j_append_json(n, &was);
-                  }
-                  n = j_append(n);
-               } else
-                  n = j_make(formdata, name);
-               if (ct)
-               {                // Has a content type
-                  if (fn && fnl)
-                     j_stringn(j_make(n, "filename"), fn, fnl);
-                  j_stringn(j_make(n, "type"), ct, ctl);
-                  j_store_literalf(n, "size", "%d", (int) (e - p));
-                  if (e > p)
+                  char *ct = NULL;
+                  size_t ctl = 0;
+                  char *name = NULL;
+                  size_t namel = 0;
+                  char *fn = NULL;
+                  size_t fnl = 0;
+                  // Header lines
+                  while (p < end && *p != '\r' && *p != '\n')
                   {
-                     if (flags & JCGI_NOTMP)
-                        j_stringn(j_make(n, "data"), p, e - p);
-                     else
+                     char *e = p;
+                     while (e < end && *e != '\r' && *e != '\n' && *e != ':')
+                        e++;
+                     int hl = e - p;
+                     if (*e == ':')
+                        e++;
+                     while (e < end && isspace(*e))
+                        e++;
+                     char *v = e;
+                     while (e < end && *e != '\r' && *e != '\n')
+                        e++;
+                     int vl = e - v;
+                     if (hl == 19 && !strncasecmp(p, "Content-Disposition", hl))
+                     {          // Should be form-data
+                        if (vl >= 9 && !strncasecmp(v, "form-data", 9) && (vl == 9 || v[9] == ';'))
+                        {       // look for name= and filename=
+                           char *e = v + vl;
+                           v += 9;
+                           while (v < e)
+                           {
+                              if (*v == ';')
+                                 v++;
+                              while (isspace(*v))
+                                 v++;
+                              // Values RFC2047 coded FFS - Not sure I care
+                              FILE *o = NULL;
+                              if (!name && !strncasecmp(v, "name=", 5))
+                                 o = open_memstream(&name, &namel);
+                              else if (!fn && !strncasecmp(v, "filename=", 9))
+                                 o = open_memstream(&fn, &fnl);
+                              while (v < e && *v != '=')
+                                 v++;
+                              if (*v == '=')
+                                 v++;
+                              if (*v != '"')
+                                 return "Unquoted tag value";
+                              v++;
+                              while (v < e && *v != '"')
+                              {
+                                 if (*v == '\\')
+                                 {
+                                    v++;
+                                    fputc(*v, o);
+                                 } else if (*v == '%' && isxdigit(v[1]) && isxdigit(v[2]))
+                                 {
+                                    if (o)
+                                       fputc((((v[1] & 0xF) + (isalpha(v[1]) ? 9 : 0)) << 4) + ((v[2] & 0xF) + (isalpha(v[2]) ? 9 : 0)), o);
+                                    v += 2;
+                                 } else if (o)
+                                    fputc(*v, o);
+                                 v++;
+                              }
+                              if (o)
+                                 fclose(o);
+                              if (*v != '"')
+                                 return "Unquoted tag value";
+                              v++;
+                              while (v < end && isspace(*v))
+                                 v++;
+                           }
+                        } else
+                           return "Unexpected Content-Disposition";
+                     } else if (hl == 12 && !strncasecmp(p, "Content-Type", hl))
                      {
-                        char *t = newtmpfile(flags);
-                        if (!t)
-                           return "Cannot make temp";
-                        FILE *o = fopen(t, "w");
-                        if (!o)
-                           return "Tmp file failed";
-                        if (fwrite(p, e - p, 1, o) != 1)
-                           return "Tmp write failed";
-                        fclose(o);
-                        j_store_string(n, "tmpfile", t);
+                        ct = v;
+                        ctl = vl;
                      }
-                     if (!(flags & JCGI_NOJSON) && ctl == 16 && !strncasecmp(ct, "application/json", ctl))
-                     {
-                        char *er = j_read_mem(j_make(n, "json"), p, e - p);
-                        if (er)
-                           return er;
-                     }
+                     p = e;
+                     if (*p == '\r')
+                        p++;
+                     if (*p == '\n')
+                        p++;
                   }
-               } else
-                  j_stringn(n, p, e - p);
-               if (name)
-                  free(name);
-               if (fn)
-                  free(fn);
-               p = next;
+                  if (*p == '\r')
+                     p++;
+                  if (*p == '\n')
+                     p++;
+                  // The content
+                  char *e = p;
+                  while (e < end && (e[0] != '-' || e[1] != '-' || memcmp(e + 2, boundary, bl)))
+                     e++;
+                  char *next = e + bl + 2;
+                  if (e > p && e[-1] == '\n')
+                     e--;
+                  if (e > p && e[-1] == '\r')
+                     e--;
+#if 0
+                  if (e > p && e[-1] == '\n')
+                     e--;
+                  if (e > p && e[-1] == '\r')
+                     e--;
+#endif
+                  // Actual end of file
+                  if (!name)
+                     return "No name in form-data";
+                  // Store
+                  j_t n = j_find(formdata, name);
+                  if (n)
+                  {             // Exists
+                     if (!j_isarray(n))
+                     {          // Make array
+                        j_t was = j_detach(n);
+                        n = j_make(formdata, name);
+                        j_append_json(n, &was);
+                     }
+                     n = j_append(n);
+                  } else
+                     n = j_make(formdata, name);
+                  if (ct)
+                  {             // Has a content type
+                     if (fn && fnl)
+                        j_stringn(j_make(n, "filename"), fn, fnl);
+                     j_stringn(j_make(n, "type"), ct, ctl);
+                     j_store_literalf(n, "size", "%d", (int) (e - p));
+                     if (e > p)
+                     {
+                        j_t j = NULL;
+                        if (!(flags & JCGI_NOJSON) && ctl == 16 && !strncasecmp(ct, "application/json", ctl))
+                        {
+                           j = j_make(n, "json");
+                           char *er = j_read_mem(j, p, e - p);
+                           if (er)
+                           {
+                              j_delete(&j);
+                              if ((flags & JCGI_JSONERR))
+                                 return er;
+                              j_store_string(n, "error", er);
+                           }
+                        }
+                        if ((flags & JCGI_NOTMP) || (!(flags & JCGI_JSONTMP) && j))
+                        {
+                           if (!j)
+                              j_stringn(j_make(n, "data"), p, e - p);
+                        } else
+                        {
+                           char *t = newtmpfile(flags);
+                           if (!t)
+                              return "Cannot make temp";
+                           FILE *o = fopen(t, "w");
+                           if (!o)
+                              return "Tmp file failed";
+                           if (fwrite(p, e - p, 1, o) != 1)
+                              return "Tmp write failed";
+                           fclose(o);
+                           j_store_string(n, "tmpfile", t);
+                        }
+                     }
+                  } else
+                     j_stringn(n, p, e - p);
+                  if (name)
+                     free(name);
+                  if (fn)
+                     free(fn);
+                  p = next;
+               }
+               free(data);
+               continue;
             }
-         } else
-         {                      // Something else.
+            // Something else.
             if (len)
             {
                if (flags & JCGI_NOTMP)
@@ -424,9 +445,8 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session,
                j_store_literalf(formdata, "size", "%d", (int) len);
             }
             j_store_string(formdata, "type", ct);
-         }
-         if (data)
             free(data);
+         } while (0);
       }
    }
    return NULL;
@@ -501,6 +521,8 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
    int noclean = 0;
    int nojson = 0;
    int notmp = 0;
+   int jsontmp = 0;
+   int jsonerr = 0;
    int text = 0;
    int env = 0;
    int log = 0;
@@ -521,6 +543,8 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
          { "no-clean", 'C', POPT_ARG_NONE, &noclean, 0, "No cleanup tmp", NULL },
          { "no-tmp", 'T', POPT_ARG_NONE, &notmp, 0, "No tmp files", NULL },
          { "no-json", 'J', POPT_ARG_NONE, &nojson, 0, "Don't load JSON", NULL },
+         { "json-tmp", 0, POPT_ARG_NONE, &jsontmp, 0, "Make tmp file even if JSON", NULL },
+         { "json-err", 0, POPT_ARG_NONE, &jsonerr, 0, "Fail if JSON load error", NULL },
          { "text", 't', POPT_ARG_NONE, &text, 0, "Text header", NULL },
          { "env", 'e', POPT_ARG_NONE, &env, 0, "Dump environment", NULL },
          { "log", 'l', POPT_ARG_NONE, &log, 0, "Log", NULL },
@@ -540,7 +564,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
    }
    if (!header && !info && !cookie && !formdata)
       header = info = cookie = formdata = 1;    // Default
-   int flags = (noclean ? JCGI_NOCLEAN : 0) + (nojson ? JCGI_NOJSON : 0) + (notmp ? JCGI_NOTMP : 0);
+   int flags = (noclean ? JCGI_NOCLEAN : 0) + (nojson ? JCGI_NOJSON : 0) + (notmp ? JCGI_NOTMP : 0) + (jsontmp ? JCGI_JSONTMP : 0) + (jsonerr ? JCGI_JSONERR : 0);
    j_t j = j_create();
    char *e = j_cgi(info ? j_make(j, "info") : NULL, formdata ? j_make(j, "formdata") : NULL, cookie ? j_make(j, "cookie") : NULL, header ? j_make(j, "header") : NULL, "JCGITEST", flags);
    if (e)
