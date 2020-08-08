@@ -521,6 +521,7 @@ char *j_parse_formdata_sep(j_t j, const char *f, char sep)
 int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * argv[])
 {
    int debug = 0;
+   int quiet = 0;
    int noclean = 0;
    int nojson = 0;
    int notmp = 0;
@@ -552,6 +553,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
          { "env", 'e', POPT_ARG_NONE, &env, 0, "Dump environment", NULL },
          { "log", 'l', POPT_ARG_NONE, &log, 0, "Log", NULL },
          { "out-file", 'o', POPT_ARG_STRING, &outfile, 0, "Outfile", "filename" },
+         { "quiet", 'q', POPT_ARG_NONE, &quiet, 0, "Quiet", NULL },
          { "debug", 'v', POPT_ARG_NONE, &debug, 0, "Debug", NULL },
          POPT_AUTOHELP { }
       };
@@ -587,14 +589,17 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
    j_t o = j;
    if (j_len(j) == 1)
       o = j_first(j);           // Only one thing asked for
-   FILE *of = stdout;
-   if (outfile && strcmp(outfile, "-"))
-      of = fopen(outfile, "w");
-   if (!of)
-      err(1, "Cannot open %s", outfile);
-   j_err(j_write_pretty(o, of));
-   if (outfile)
-      fclose(of);
+   if (!quiet)
+   {
+      FILE *of = stdout;
+      if (outfile && strcmp(outfile, "-"))
+         of = fopen(outfile, "w");
+      if (!of)
+         err(1, "Cannot open %s", outfile);
+      j_err(j_write_pretty(o, of));
+      if (outfile)
+         fclose(of);
+   }
    j_delete(&j);
    if (env)
    {
