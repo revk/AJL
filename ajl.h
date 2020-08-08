@@ -43,6 +43,7 @@
 // Attempt to find/get data that does not exist returns NULL, and length -1, etc
 // Attempting to set a value should always work, converting parent values to objects/arrays, extending arrays, etc, as needed
 // Other error cases are explained in comments below
+// Where an error string is returned from a function, if not NULL, it is malloc'd
 //
 // Where "path" is used, it can be a dot separated string and allows [<digits>] for array index
 // Where "name" is used it is the string used as the name/tag for an object, even if that contains dots, etc.
@@ -54,6 +55,7 @@ inline void j_err_exit(const char *e, const char *fn, int l)
 }
 
 #define j_err(e)	j_err_exit(e,__FILE__,__LINE__)
+char *j_errs(const char *, ...);        // make malloc'd error string
 
 typedef struct j_s *j_t;        // Point in JSON tree, i.e. a value
 

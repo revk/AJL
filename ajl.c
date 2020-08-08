@@ -73,6 +73,18 @@ const char JBASE16[] = "0123456789ABCDEF";
 // Safe free and NULL value
 #define freez(x)        do{if(x)free(x);(x)=NULL;}while(0)
 
+char *j_errs(const char *fmt, ...)
+{                               // Create malloc'd error string to return
+   char *err = NULL;
+   va_list ap;
+   va_start(ap, fmt);
+   int e = vasprintf(&err, fmt, ap);
+   va_end(ap);
+   if (e <= 0)
+      errx(1, "malloc");
+   return err;
+}
+
 time_t j_timez(const char *t, int z)    // convert iso time to time_t
 {                               // Can do HH:MM:SS, or YYYY-MM-DD or YYYY-MM-DD HH:MM:SS, 0 for invalid
    if (!t)
@@ -1131,7 +1143,7 @@ j_t j_replace(const j_t j, j_t * op)
 const char *j_datetime_ok(const char *n)
 {                               // Checks if string is valid datetime, return error description if not
    if (!n)
-      return "NULL pointer";
+      return j_errs("NULL pointer for datetime");
    int y,
     m,
     d,
@@ -1139,57 +1151,57 @@ const char *j_datetime_ok(const char *n)
     M,
     S;
    if (!isdigit(n[0]) || !isdigit(n[1]) || !isdigit(n[2]) || !isdigit(n[3]))
-      return "No year";
+      return j_errs("No year [%s]", n);
    y = atoi(n);
    n += 4;
    if (*n++ != '-')
-      return "No - after year";
+      return j_errs("No - after year [%s]", n);
    if (!isdigit(n[0]) || !isdigit(n[1]))
-      return "No month";
+      return j_errs("No month [%s]", n);
    m = atoi(n);
    n += 2;
    if (*n++ != '-')
-      return "No - after month";
+      return j_errs("No - after month [%s]", n);
    if (!isdigit(n[0]) || !isdigit(n[1]))
-      return "No day";
+      return j_errs("No day [%s]", n);
    d = atoi(n);
    n += 2;
    if (!*n)
    {
       if (!(!y && !m && !d) && (m < 1 || m > 12 || d < 1 || d > 31))
-         return "Bad date";
+         return j_errs("Bad date [%s]", n);
       return NULL;              // OK date
    }
    if (*n != ' ' && *n != 'T')
-      return "Missing T/space after day";
+      return j_errs("Missing T/space after day [%s]", n);
    n++;
    if (!isdigit(n[0]) || !isdigit(n[1]))
-      return "No hour";
+      return j_errs("No hour [%s]", n);
    H = atoi(n);
    n += 2;
    if (*n++ != ':')
-      return "No : after hour";
+      return j_errs("No : after hour [%s]", n);
    if (!isdigit(n[0]) || !isdigit(n[1]))
-      return "No minute";
+      return j_errs("No minute [%s]", n);
    M = atoi(n);
    n += 2;
    if (*n++ != ':')
-      return "No : after minute";
+      return j_errs("No : after minute [%s]", n);
    if (!isdigit(n[0]) || !isdigit(n[1]))
-      return "No second";
+      return j_errs("No second [%s]", n);
    S = atoi(n);
    n += 2;
    if (!(H == 24 && M == 60 && M < 62) && (H >= 24 || M >= 60 || S >= 60))
-      return "Bad time";
+      return j_errs("Bad time [%s]", n);
    if (*n && *n != 'Z')
-      return "Extra on end of datetime (don't handle timezones apart from Z)";
+      return j_errs("Extra on end of datetime (don't handle timezones apart from Z) [%s]", n);
    return NULL;
 }
 
 const char *j_number_ok(const char *n)
 {                               // Checks if a valid JSON number, returns error description if not
    if (!n)
-      return "NULL pointer";
+      return j_errs("NULL pointer for number");
    // RFC8259 section 6
    if (*n == '-')
       n++;                      // minus allowed
@@ -1198,18 +1210,18 @@ const char *j_number_ok(const char *n)
    {
       n++;
       if (isdigit(*n))
-         return "Zero followed by digits is invalid int";
+         return j_errs("Zero followed by digits is invalid int [%s]", n);
    } else if (isdigit(*n))
    {
       while (isdigit(*n))
          n++;
    } else
-      return "Missing int part";
+      return j_errs("Missing int part [%s]", n);
    if (*n == '.')
    {                            // frac part
       n++;
       if (!isdigit(*n))
-         return "Missing digits after decimal point";
+         return j_errs("Missing digits after decimal point [%s]", n);
       while (isdigit(*n))
          n++;
    }
@@ -1219,19 +1231,19 @@ const char *j_number_ok(const char *n)
       if (*n == '-' || *n == '+')
          n++;                   // minus/plus, optional
       if (!isdigit(*n))
-         return "Missing digits after e";
+         return j_errs("Missing digits after e [%s]", n);
       while (isdigit(*n))
          n++;
    }
    if (*n)
-      return "Extra text on end of number";
+      return j_errs("Extra text on end of number [%s]", n);
    return NULL;
 }
 
 const char *j_literal_ok(const char *n)
 {                               // Checks if a valid JSON literal (true/false/null/number), returns error description if not
    if (!n)
-      return "NULL pointer";
+      return j_errs("NULL pointer for literal");
    if (!strcmp(n, "true") || !strcmp(n, "false") || !strcmp(n, "null"))
       return NULL;              // Valid literal (must be lower case as per RFC8259 section 3)
    return j_number_ok(n);

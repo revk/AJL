@@ -33,6 +33,8 @@
 // Temp files deleted on exit, so need renaming, or hard link if to be retained as files
 //
 // The macro jcgi simply takes a j_t and creates an object with a full set of sub objects
+//
+// Return error is non null for error (mallo'd)
 
 #include "ajl.h"
 #define	JCGI_NOTMP	1       // Don't make tmp files, just put raw data in "data":

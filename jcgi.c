@@ -71,7 +71,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
 {                               // Fill in formdata, cookies, headers, and manage cookie session, return is NULL if OK, else error. All args can be NULL if not needed
    char *method = getenv("REQUEST_METHOD");
    if (!method)
-      return "Not running from apache";
+      return j_errs("Not running from apache");
 
    if (cookie)
    {                            // Cookies
@@ -170,7 +170,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
       {                         // Handle posted (could be url formdata, multipart, or JSON)
          char *ct = getenv("CONTENT_TYPE");
          if (!ct)
-            return "No content type for POST";
+            return j_errs("No content type for POST");
 
          char *data = NULL;
          size_t len = 0;
@@ -191,11 +191,11 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                   break;
             }
             if (l > 0)
-               return "Read stopped before end";
+               return j_errs("Read stopped before end");
          }
          fclose(o);
          if (!data)
-            return "No data";
+            return j_errs("No data in post");
          do
          {
             char *er = NULL;
@@ -240,15 +240,15 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                   }
                }
                if (!boundary)
-                  return "No boundary on form data post";
+                  return j_errs("No boundary on form data post");
                if (len < bl + 2)
-                  return "Short post form data";
+                  return j_errs("Short post form data (%d)", (int) len);
                char *end = data + len;  // Note, we can rely on final null, so no need to check every test
                p = data;
                if (p[0] != '-' || p[1] != '-')
-                  return "Form data does not start --";
+                  return j_errs("Form data does not start --");
                if (memcmp(p + 2, boundary, bl))
-                  return "Form data does not start with boundary";
+                  return j_errs("Form data does not start with boundary");
                p += bl + 2;
                while (p < end)
                {                // Scan the data, extracting each field.
@@ -302,7 +302,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                               if (*v == '=')
                                  v++;
                               if (*v != '"')
-                                 return "Unquoted tag value";
+                                 return j_errs("Unquoted tag value [%.*s]", (int) hl, p);
                               v++;
                               while (v < e && *v != '"')
                               {
@@ -322,13 +322,13 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                               if (o)
                                  fclose(o);
                               if (*v != '"')
-                                 return "Unquoted tag value";
+                                 return j_errs("Unquoted tag value [%.*s]", (int) hl, p);
                               v++;
                               while (v < end && isspace(*v))
                                  v++;
                            }
                         } else
-                           return "Unexpected Content-Disposition";
+                           return j_errs("Unexpected Content-Disposition [%.*s]", (int) hl, p);
                      } else if (hl == 12 && !strncasecmp(p, "Content-Type", hl))
                      {
                         ct = v;
@@ -353,15 +353,9 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                      e--;
                   if (e > p && e[-1] == '\r')
                      e--;
-#if 0
-                  if (e > p && e[-1] == '\n')
-                     e--;
-                  if (e > p && e[-1] == '\r')
-                     e--;
-#endif
                   // Actual end of file
                   if (!name)
-                     return "No name in form-data";
+                     return j_errs("No name in form-data");
                   // Store
                   j_t n = j_find(formdata, name);
                   if (n)
@@ -394,6 +388,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                               if ((flags & JCGI_JSONERR))
                                  return er;
                               j_store_string(n, "error", er);
+                              free(er);
                            }
                         }
                         if ((flags & JCGI_NOTMP) || (!(flags & JCGI_JSONTMP) && j))
@@ -404,12 +399,12 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                         {
                            char *t = newtmpfile(flags);
                            if (!t)
-                              return "Cannot make temp";
+                              return j_errs("Cannot make temp");
                            FILE *o = fopen(t, "w");
                            if (!o)
-                              return "Tmp file failed";
+                              return j_errs("Tmp file failed %s", t);
                            if (fwrite(p, e - p, 1, o) != 1)
-                              return "Tmp write failed";
+                              return j_errs("Tmp write failed %s", t);
                            fclose(o);
                            j_store_string(n, "tmpfile", t);
                         }
@@ -434,12 +429,12 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                {
                   char *t = newtmpfile(flags);
                   if (!t)
-                     return "Cannot make temp";
+                     return j_errs("Cannot make temp");
                   FILE *o = fopen(t, "w");
                   if (!o)
-                     return "Tmp file failed";
+                     return j_errs("Tmp file failed %s", t);
                   if (fwrite(data, len, 1, o) != 1)
-                     return "Tmp write failed";
+                     return j_errs("Tmp write failed %s", t);
                   fclose(o);
                   j_store_string(formdata, "tmpfile", t);
                }
@@ -447,7 +442,10 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
             }
             j_store_string(formdata, "type", ct);
             if (er)
+            {
                j_store_string(formdata, "error", er);
+               free(er);
+            }
             free(data);
          } while (0);
       }
@@ -458,13 +456,13 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
 char *j_parse_formdata_sep(j_t j, const char *f, char sep)
 {                               // Parse formdata url encoded to JSON object
    if (!j || !f)
-      return "NULL";
+      return j_errs("NULL");
    while (*f)
    {
       while (isspace(*f))
          f++;                   // Should not actually have spaces
       if (*f == sep || *f == '=')
-         return "Bad form data";
+         return j_errs("Bad form data [%.10s]", f);
       size_t lname,
        lvalue;
       char *name = NULL,
@@ -509,7 +507,7 @@ char *j_parse_formdata_sep(j_t j, const char *f, char sep)
       if (!*f)
          break;
       if (*f != sep)
-         return "Bad form data";
+         return j_errs("Bad form data [%.10s]", f);
       f++;
    }
    return NULL;
@@ -596,7 +594,10 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
          of = fopen(outfile, "w");
       if (!of)
          err(1, "Cannot open %s", outfile);
-      j_err(j_write_pretty(o, of));
+      if (text)
+         j_err(j_write_pretty(o, of));
+      else
+         j_err(j_write(o, of));
       if (outfile)
          fclose(of);
    }
