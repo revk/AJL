@@ -198,6 +198,7 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session,
             return "No data";
          do
          {
+            char *er = NULL;
             if (!strcasecmp(ct, "application/x-www-form-urlencoded"))
             {                   // Simple URL encoding
                char *e = j_parse_formdata(formdata, data);
@@ -208,12 +209,12 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session,
             }
             if (!(flags & JCGI_NOJSON) && !strcasecmp(ct, "application/json"))
             {                   // JSON
-               char *e = j_read_mem(formdata, data, len);
+               er = j_read_mem(formdata, data, len);
                free(data);
-               if (e && (flags & JCGI_JSONERR))
-                  return e;
-               if (!e)
-                  continue;     // Load as non json
+               if (er && (flags & JCGI_JSONERR))
+                  return er;
+               if (!er)
+                  continue;     // Load as non json if error
             }
             if (!strncasecmp(ct, "multipart/form-data", 19))
             {                   // Form data...
@@ -445,6 +446,8 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session,
                j_store_literalf(formdata, "size", "%d", (int) len);
             }
             j_store_string(formdata, "type", ct);
+            if (er)
+               j_store_string(formdata, "error", er);
             free(data);
          } while (0);
       }
