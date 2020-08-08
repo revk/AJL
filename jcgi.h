@@ -33,6 +33,9 @@
 // Temp files deleted on exit, so need renaming, or hard link if to be retained as files
 
 #include "ajl.h"
-char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session);
+#define	JCGI_NOTMP	1       // Don't make tmp files, just put raw data in "data":
+#define	JCGI_NOCLEAN	2       // Don't clean up tmp files on exit
+#define	JCGI_NOJSON	4       // Don't load JSON objects
+char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session, int flags);
 char *j_parse_formdata_sep(j_t, const char *, char sep);
 #define j_parse_formdata(j,f) j_parse_formdata_sep(j,f,'&')

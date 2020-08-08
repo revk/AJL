@@ -624,11 +624,13 @@ char *j_read_file(const j_t j, const char *filename)
    return j_read_close(j, f);
 }
 
-char *j_read_mem(const j_t j, const char *buffer)
+char *j_read_mem(const j_t j, const char *buffer, int len)
 {                               // Read object from string in memory (NULL terminated)
    assert(j);
    assert(buffer);
-   return j_read_close(j, fmemopen((char *) buffer, strlen(buffer), "r"));
+   if (len < 0)
+      len = strlen(buffer);
+   return j_read_close(j, fmemopen((char *) buffer, len, "r"));
 }
 
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
@@ -1402,7 +1404,7 @@ j_t j_curl(CURL * curlv, j_t input, const char *bearer, const char *url, ...)
    if (replylen)
    {
       output = j_create();
-      const char *e = j_read_mem(output, reply);
+      const char *e = j_read_mem(output, reply, -1);
       if (e)
       {
          fprintf(stderr, "Failed: %s\n%s\n", e, reply);

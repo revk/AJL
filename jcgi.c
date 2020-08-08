@@ -51,14 +51,14 @@ static void docleanup(void)
    }
 }
 
-static char *newtmpfile(void)
+static char *newtmpfile(int flags)
 {                               // Make temp file
    char temp[] = "/tmp/jcgi-XXXXXX";
    int f = mkstemp(temp);
    if (f < 0)
       return NULL;
    close(f);
-   if (!cleanup)
+   if (!(flags & JCGI_NOCLEAN) && !cleanup)
       atexit(docleanup);
    fn_t *c = malloc(sizeof(*c));
    c->fn = strdup(temp);
@@ -67,7 +67,7 @@ static char *newtmpfile(void)
    return c->fn;
 }
 
-char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session)
+char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session, int flags)
 {                               // Fill in formdata, cookies, headers, and manage cookie session, return is NULL if OK, else error. All args can be NULL if not needed
    char *method = getenv("REQUEST_METHOD");
    if (!method)
@@ -150,7 +150,10 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session)
       }
       if (info && getenv("HTTPS"))
          j_store_string(info, "https", getenv("SSL_TLS_SNI"));
-      j_sort(header);
+      if (info)
+         j_sort(info);
+      if (header)
+         j_sort(header);
    }
    if (formdata)
    {                            // Process formdata
@@ -197,9 +200,9 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session)
             char *e = j_parse_formdata(formdata, data);
             if (e)
                return e;
-         } else if (!strcasecmp(ct, "application/json"))
+         } else if (!(flags & JCGI_NOJSON) && !strcasecmp(ct, "application/json"))
          {                      // JSON
-            char *e = j_read_mem(formdata, data);
+            char *e = j_read_mem(formdata, data, len);
             if (e)
                return e;
          } else if (!strncasecmp(ct, "multipart/form-data", 19))
@@ -364,19 +367,24 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session)
                {                // Has a content type
                   if (e > p)
                   {
-                     char *t = newtmpfile();
-                     if (!t)
-                        return "Cannot make temp";
-                     FILE *o = fopen(t, "w");
-                     if (!o)
-                        return "Tmp file failed";
-                     if (fwrite(p, e - p, 1, o) != 1)
-                        return "Tmp write failed";
-                     fclose(o);
-                     j_store_string(n, "tmpfile", t);
-                     if (ctl == 16 && !strncasecmp(ct, "application/json", ctl))
+                     if (flags & JCGI_NOTMP)
+                        j_stringn(j_make(n, "data"), p, e - p);
+                     else
                      {
-                        char *e = j_read_file(j_make(n, "data"), t);
+                        char *t = newtmpfile(flags);
+                        if (!t)
+                           return "Cannot make temp";
+                        FILE *o = fopen(t, "w");
+                        if (!o)
+                           return "Tmp file failed";
+                        if (fwrite(p, e - p, 1, o) != 1)
+                           return "Tmp write failed";
+                        fclose(o);
+                        j_store_string(n, "tmpfile", t);
+                     }
+                     if (!(flags & JCGI_NOJSON) && ctl == 16 && !strncasecmp(ct, "application/json", ctl))
+                     {
+                        char *e = j_read_mem(j_make(n, "json"), p, e - p);
                         if (e)
                            return e;
                      }
@@ -397,16 +405,22 @@ char *j_cgi(j_t info, j_t formdata, j_t cookie, j_t header, const char *session)
          {                      // Something else.
             if (len)
             {
-               char *t = newtmpfile();
-               if (!t)
-                  return "Cannot make temp";
-               FILE *o = fopen(t, "w");
-               if (!o)
-                  return "Tmp file failed";
-               if (fwrite(data, len, 1, o) != 1)
-                  return "Tmp write failed";
-               fclose(o);
-               j_store_string(formdata, "tmpfile", t);
+               if (flags & JCGI_NOTMP)
+                  j_stringn(j_make(formdata, "data"), data, len);
+               else
+               {
+                  char *t = newtmpfile(flags);
+                  if (!t)
+                     return "Cannot make temp";
+                  FILE *o = fopen(t, "w");
+                  if (!o)
+                     return "Tmp file failed";
+                  if (fwrite(data, len, 1, o) != 1)
+                     return "Tmp write failed";
+                  fclose(o);
+                  j_store_string(formdata, "tmpfile", t);
+               }
+               j_store_literalf(formdata, "size", "%d", (int) len);
             }
             j_store_string(formdata, "type", ct);
          }
@@ -483,32 +497,83 @@ char *j_parse_formdata_sep(j_t j, const char *f, char sep)
 int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * argv[])
 {
    int debug = 0;
+   int noclean = 0;
+   int nojson = 0;
+   int notmp = 0;
+   int text = 0;
+   int env = 0;
+   int log = 0;
+   int header = 0;
+   int info = 0;
+   int cookie = 0;
+   int formdata = 0;
+   const char *outfile = NULL;
+   if (argc == 1 && getenv("REQUEST_METHOD"))
+      env = text = 1;           // Default for debugging as direct call
    {                            // POPT
       poptContext optCon;       // context for parsing command-line options
       const struct poptOption optionsTable[] = {
+         { "formdata", 'f', POPT_ARG_NONE, &formdata, 0, "formdata object", NULL },
+         { "info", 'i', POPT_ARG_NONE, &info, 0, "info object", NULL },
+         { "cookie", 'c', POPT_ARG_NONE, &cookie, 0, "cookie object", NULL },
+         { "header", 'h', POPT_ARG_NONE, &header, 0, "header object", NULL },
+         { "no-clean", 'C', POPT_ARG_NONE, &noclean, 0, "No cleanup tmp", NULL },
+         { "no-tmp", 'T', POPT_ARG_NONE, &notmp, 0, "No tmp files", NULL },
+         { "no-json", 'J', POPT_ARG_NONE, &nojson, 0, "Don't load JSON", NULL },
+         { "text", 't', POPT_ARG_NONE, &text, 0, "Text header", NULL },
+         { "env", 'e', POPT_ARG_NONE, &env, 0, "Dump environment", NULL },
+         { "log", 'l', POPT_ARG_NONE, &log, 0, "Log", NULL },
+         { "out-file", 'o', POPT_ARG_STRING, &outfile, 0, "Outfile", "filename" },
          { "debug", 'v', POPT_ARG_NONE, &debug, 0, "Debug", NULL },
          POPT_AUTOHELP { }
       };
       optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
-      poptSetOtherOptionHelp(optCon, "[filename]");
+      poptSetOtherOptionHelp(optCon, "[outfile]");
       int c;
       if ((c = poptGetNextOpt(optCon)) < -1)
          errx(1, "%s: %s\n", poptBadOption(optCon, POPT_BADOPTION_NOALIAS), poptStrerror(c));
+      if (!outfile && poptPeekArg(optCon))
+         outfile = poptGetArg(optCon);
+
       poptFreeContext(optCon);
    }
-
+   if (!header && !info && !cookie && !formdata)
+      header = info = cookie = formdata = 1;    // Default
+   int flags = (noclean ? JCGI_NOCLEAN : 0) + (nojson ? JCGI_NOJSON : 0) + (notmp ? JCGI_NOTMP : 0);
    j_t j = j_create();
-   char *err = j_cgi(j_make(j, "info"), j_make(j, "formdata"), j_make(j, "cookie"), j_make(j, "header"), "JCGITEST");
-   if (err)
-      printf("Status: 500\r\n");
-   printf("Content-Type: text/plain; charset=\"utf-8\"\r\n\r\n");
-   if (err)
-      printf("Failed: %s\n\n", err);
-   j_err(j_write_pretty(j, stdout));
+   char *e = j_cgi(info ? j_make(j, "info") : NULL, formdata ? j_make(j, "formdata") : NULL, cookie ? j_make(j, "cookie") : NULL, header ? j_make(j, "header") : NULL, "JCGITEST", flags);
+   if (e)
+   {
+      if (text)
+         printf("Status: 500\r\n");
+      warnx("JCGI: %s", e);
+   }
+   if (text)
+   {
+      printf("Content-Type: text/plain; charset=\"utf-8\"\r\n\r\n");
+      if (e)
+         printf("Failed: %s\n\n", e);
+   }
+   if (log)
+      j_log(debug, "jcgi", j_get(j, "info.script_name"), j, NULL);
+   j_t o = j;
+   if (j_len(j) == 1)
+      o = j_first(j);           // Only one thing asked for
+   FILE *of = stdout;
+   if (outfile && strcmp(outfile, "-"))
+      of = fopen(outfile, "w");
+   if (!of)
+      err(1, "Cannot open %s", outfile);
+   j_err(j_write_pretty(o, of));
+   if (outfile)
+      fclose(of);
    j_delete(&j);
-   printf("\n");
-   for (char **e = environ; *e; e++)
-      printf("%s\n", *e);
+   if (env)
+   {
+      printf("\n");
+      for (char **e = environ; *e; e++)
+         printf("%s\n", *e);
+   }
    return 0;
 }
 #endif

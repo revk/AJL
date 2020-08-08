@@ -122,7 +122,7 @@ int __attribute__((warn_unused_result)) j_isstring(const j_t);  // True if is a 
 char * __attribute__((warn_unused_result)) j_read(const j_t, FILE *);   // Read object from open file
 char * __attribute__((warn_unused_result)) j_read_close(const j_t root, FILE * f);      // Read object and close file
 char * __attribute__((warn_unused_result)) j_read_file(const j_t, const char *filename);        // Read object from named file
-char * __attribute__((warn_unused_result)) j_read_mem(const j_t, const char *buffer);   // Read object from string in memory (NULL terminated)
+char * __attribute__((warn_unused_result)) j_read_mem(const j_t, const char *buffer, int len);  // Read object from string in memory (len=-1 for strlen)
 
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
