@@ -135,7 +135,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
             free(name);
             continue;
          }
-         if (info && (!strncmp(e, "PATH_", 5) || !strncmp(e, "SERVER_", 7) || !strncmp(e, "REMOTE_", 7) || !strncmp(e, "REQUEST_", 8) || !strncmp(e, "SCRIPT_", 7) || (!strncmp(e, "QUERY_", 6) && (!formdata || strncmp(e, "QUERY_STRING=", 13)))))
+         if (info && (!strncmp(e, "PATH_", 5) || !strncmp(e, "SERVER_", 7) || !strncmp(e, "REMOTE_", 7) || (!strncmp(e, "REQUEST_", 8) && (!formdata || strncmp(e, "REQUEST_URI=", 12))) || !strncmp(e, "SCRIPT_", 7) || (!strncmp(e, "QUERY_", 6) && (!formdata || strncmp(e, "QUERY_STRING=", 13)))))
          {                      // Just lower case these
             char *name = malloc(v - e);
             memcpy(name, e, v - e - 1);
