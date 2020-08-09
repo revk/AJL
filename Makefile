@@ -12,10 +12,10 @@ ajlcurl.o: ajlparse.c ajlparse.h ajl.c ajl.h ajlcurl.h Makefile
 ajl: ajlparse.c ajlparse.h ajl.c ajl.h Makefile
 	cc -g -Wall -Wextra -O -o ajl ajl.c -std=gnu99 -lcurl -DJCURL -lpopt
 
-jcgi.o: jcgi.c ajl.h Makefile
+jcgi.o: jcgi.c ajl.h jcgi.h ajlparse.h Makefile
 	cc -g -Wall -Wextra -DLIB -O -c -o jcgi.o jcgi.c -std=gnu99
 
-jcgi: jcgi.c ajl.o Makefile
+jcgi: jcgi.c ajl.o jcgi.h Makefile
 	cc -g -Wall -Wextra -O -o jcgi jcgi.c ajl.o -std=gnu99 -lpopt
 
 clean:

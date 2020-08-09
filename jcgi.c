@@ -176,11 +176,20 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
          size_t len = 0;
          FILE *o = open_memstream(&data, &len);
          {
-            char buf[1024];
+            char buf[16 * 1024];
             long l = -1;
             char *cl = getenv("CONTENT_LENGTH");
             if (cl)
-               strtoul(cl, NULL, 0);
+               l = strtoul(cl, NULL, 0);
+            long m = -1;
+            if ((flags & JCGI_LIMIT) == JCGI_SMALL)
+               m = 50000;
+            else if ((flags & JCGI_LIMIT) == JCGI_MEDIUM)
+               m = 1000000;
+            else if ((flags & JCGI_LIMIT) == JCGI_LARGE)
+               m = 50000000;
+            if (m > 0 && l > 0 && l > m)
+               return j_errs("Post too big %ld>%ld", l, m);
             while (1)
             {
                size_t r = fread(buf, 1, sizeof(buf), stdin);
@@ -189,6 +198,8 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                fwrite(buf, r, 1, o);
                if (l >= 0 && (l -= r) <= 0)
                   break;
+               if (m >= 0 && (m -= l) <= 0)
+                  break;        // Too big
             }
             if (l > 0)
                return j_errs("Read stopped before end");
