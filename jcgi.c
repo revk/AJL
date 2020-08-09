@@ -317,8 +317,10 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                               v++;
                               while (v < e && *v != '"')
                               {
-                                 if (*v == '\\')
-                                 {
+                                 if (*v == '+')
+                                    fputc(' ', o);
+                                 else if (*v == '\\')
+                                 {      // Firefox does this, but as \ is not mandatory escaped, it is risky
                                     v++;
                                     fputc(*v, o);
                                  } else if (*v == '%' && isxdigit(v[1]) && isxdigit(v[2]))
@@ -481,7 +483,9 @@ char *j_parse_formdata_sep(j_t j, const char *f, char sep)
       void get(FILE * o) {
          while (*f && *f != '=' && *f != sep)
          {
-            if (*f == '%' && isxdigit(f[1]) && isxdigit(f[2]))
+            if (*f == '+')
+               fputc(' ', o);
+            else if (*f == '%' && isxdigit(f[1]) && isxdigit(f[2]))
             {
                fputc((((f[1] & 0xF) + (isalpha(f[1]) ? 9 : 0)) << 4) + ((f[2] & 0xF) + (isalpha(f[2]) ? 9 : 0)), o);
                f += 2;
