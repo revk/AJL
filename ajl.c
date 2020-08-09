@@ -992,6 +992,11 @@ j_t j_store_string(const j_t j, const char *name, const char *val)
    return j_string(j_make(j, name), val);
 }
 
+j_t j_store_stringn(const j_t j, const char *name, const char *val, int len)
+{                               // Store a string at specified name in an object
+   return j_stringn(j_make(j, name), val, len);
+}
+
 j_t j_store_stringf(const j_t j, const char *name, const char *fmt, ...)
 {                               // Store a (formatted) string at specified name in an object
    if (!j)
@@ -1055,6 +1060,11 @@ j_t j_append_array(const j_t j)
 j_t j_append_string(const j_t j, const char *val)
 {                               // Append a new string to an array
    return j_string(j_append(j), val);
+}
+
+j_t j_append_stringn(const j_t j, const char *val, int len)
+{                               // Append a new string to an array
+   return j_stringn(j_append(j), val, len);
 }
 
 j_t j_append_stringf(const j_t j, const char *fmt, ...)
