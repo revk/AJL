@@ -319,8 +319,8 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                               {
                                  if (*v == '+')
                                     fputc(' ', o);
-                                 else if (*v == '\\')
-                                 {      // Firefox does this, but as \ is not mandatory escaped, it is risky
+                                 else if (*v == '\\' && v[1] == '"')
+                                 {      // Firefox does this
                                     v++;
                                     fputc(*v, o);
                                  } else if (*v == '%' && isxdigit(v[1]) && isxdigit(v[2]))
