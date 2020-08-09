@@ -642,6 +642,8 @@ char *j_read_mem(const j_t j, const char *buffer, int len)
    assert(buffer);
    if (len < 0)
       len = strlen(buffer);
+   else if (len && !buffer[len - 1])
+      len--;                    // Allow for the fact that some people include the final NULL, FFS
    return j_read_close(j, fmemopen((char *) buffer, len, "r"));
 }
 
