@@ -372,8 +372,8 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                   if (ct)
                   {             // Has a content type
                      if (fn && fnl)
-                        j_stringn(j_make(n, "filename"), fn, fnl);
-                     j_stringn(j_make(n, "type"), ct, ctl);
+                        j_store_stringn(n, "filename", fn, fnl);
+                     j_store_stringn(n, "type", ct, ctl);
                      j_store_literalf(n, "size", "%d", (int) (e - p));
                      if (e > p)
                      {
@@ -394,7 +394,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                         if ((flags & JCGI_NOTMP) || (!(flags & JCGI_JSONTMP) && j))
                         {
                            if (!j)
-                              j_stringn(j_make(n, "data"), p, e - p);
+                              j_store_stringn(n, "data", p, e - p);
                         } else
                         {
                            char *t = newtmpfile(flags);
@@ -424,7 +424,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
             if (len)
             {
                if (flags & JCGI_NOTMP)
-                  j_stringn(j_make(formdata, "data"), data, len);
+                  j_store_stringn(formdata, "data", data, len);
                else
                {
                   char *t = newtmpfile(flags);
