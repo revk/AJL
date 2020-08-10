@@ -1372,7 +1372,8 @@ char *j_formdata(j_t j)
 #ifdef	JCURL
 char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const char *url, ...)
 {                               // Curl... can get, post form, or post JSON
-   j_null(rx);
+   if (rx)
+      j_null(rx);
    CURL *curl = curlv;
    if (!curl)
       curl = curl_easy_init();
