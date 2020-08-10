@@ -748,7 +748,8 @@ char *j_write_mem(const j_t j, char **buffer, size_t *len)
 // Changing an object/value
 j_t j_null(const j_t j)
 {                               // Null this point - used a lot internally to clear a point before setting to correct type
-   assert(j);
+   if (!j)
+      return j;
    if (j->children)
    {                            // Object or array
       int n;
@@ -1372,8 +1373,7 @@ char *j_formdata(j_t j)
 #ifdef	JCURL
 char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const char *url, ...)
 {                               // Curl... can get, post form, or post JSON
-   if (rx)
-      j_null(rx);
+   j_null(rx);
    CURL *curl = curlv;
    if (!curl)
       curl = curl_easy_init();
