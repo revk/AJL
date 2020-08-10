@@ -24,4 +24,12 @@
 #include <ajl.h>
 #include <curl/curl.h>
 
-j_t j_curl(CURL *, j_t, const char *bearer, const char *url, ...);      // Submit curl, get curl response
+// These can be passed existing CURL or NULL to make one
+// tx is what to send, or NULL
+// rx is what is received, or NULL
+// Response is NULL is 2xx response with JSON, else malloc'd error string
+
+char *err j_curl(int type, CURL * crl, j_t tx, j_t rx, const char *bearer, const char *url, ...);
+#define	j_curl_get(curl,tx,rx,bearer,url,...) j_curl(0,curl,tx,rx,bearer,url,__VA_ARGS__)
+#define	j_curl_post(curl,tx,rx,bearer,url,...) j_curl(1,curl,tx,rx,bearer,url,__VA_ARGS__)
+#define	j_curl_send(curl,tx,rx,bearer,url,...) j_curl(2,curl,tx,rx,bearer,url,__VA_ARGS__)

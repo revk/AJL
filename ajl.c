@@ -1370,16 +1370,14 @@ char *j_formdata(j_t j)
 }
 
 #ifdef	JCURL
-j_t j_curl(CURL * curlv, j_t input, const char *bearer, const char *url, ...)
-{                               // Submit curl, get curl response
-   j_t output = NULL;
+char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const char *url, ...)
+{                               // Curl... can get, post form, or post JSON
+   j_null(rx);
    CURL *curl = curlv;
    if (!curl)
       curl = curl_easy_init();
-   char *reply = NULL,
-       *request = NULL;
-   size_t replylen = 0,
-       requestlen = 0;
+   char *reply = NULL;
+   size_t replylen = 0;
    FILE *o = open_memstream(&reply, &replylen);
    char *fullurl = NULL;
    va_list ap;
@@ -1387,60 +1385,91 @@ j_t j_curl(CURL * curlv, j_t input, const char *bearer, const char *url, ...)
    if (vasprintf(&fullurl, url, ap) < 0)
       errx(1, "malloc at line %d", __LINE__);
    va_end(ap);
+   struct curl_slist *headers = NULL;
+   char *data = NULL;
+   char *err = NULL;
+   if (type && !tx)
+   {
+      freez(fullurl);
+      return j_errs("Attempt to POST with no JSON to send (%s)", url);
+   }
+   if (tx)
+      switch (type)
+      {
+      case 0:                  // GET using formdata
+         {
+            curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+            char *formdata = j_formdata(tx);
+            if (!formdata)
+               err = j_errs("Failed to make formdata");
+            else
+            {
+               char *u = fullurl;
+               if (asprintf(&fullurl, "%s?%s", u, formdata) < 0)
+                  errx(1, "malloc");
+               free(u);
+               freez(formdata);
+            }
+         }
+         break;
+      case 1:                  // POST using formdata
+         {
+            curl_easy_setopt(curl, CURLOPT_POST, 1L);
+            char *data = j_formdata(tx);
+            if (!data)
+               err = j_errs("Failed to make formdata");
+         }
+         break;
+      case 2:                  // POST JSON
+         {
+            curl_easy_setopt(curl, CURLOPT_POST, 1L);
+            headers = curl_slist_append(headers, "Content-Type: application/json");     // posting JSON
+            size_t l;
+            err = j_write_mem(tx, &data, &l);
+         }
+         break;
+      }
+   if (!err && rx)
+      headers = curl_slist_append(headers, "Accept: application/json"); // receiving JSON
+   if (!err && data)
+   {
+      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
+      curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long) strlen(data));
+   }
+   if (!err && bearer)
+   {                            // Bearer auth (a common auth for JSON)
+      char *sa = NULL;
+      if (asprintf(&sa, "Authorization: Bearer %s", bearer) < 0)
+         errx(1, "malloc at line %d", __LINE__);
+      headers = curl_slist_append(headers, sa);
+      freez(sa);
+   }
+   if (headers)
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
    curl_easy_setopt(curl, CURLOPT_URL, fullurl);
    curl_easy_setopt(curl, CURLOPT_WRITEDATA, o);
-   struct curl_slist *headers = NULL;
-   if (input)
-   {                            // posting JSON input
-      headers = curl_slist_append(headers, "Content-Type: application/json");   // posting JSON
-      if (bearer)
-      {
-         char *sa;
-         if (asprintf(&sa, "Authorization: Bearer %s", bearer) < 0)
-            errx(1, "malloc at line %d", __LINE__);
-         headers = curl_slist_append(headers, sa);
-         free(sa);
-      }
-      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-      curl_easy_setopt(curl, CURLOPT_POST, 1L);
-      FILE *i = open_memstream(&request, &requestlen);
-      j_err(j_write(input, i));
-      fclose(i);
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request);
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long) requestlen);
-   }                            // if not input, then assume a GET or args preset before call
-   CURLcode result = curl_easy_perform(curl);
+   CURLcode result = 0;
+   if (!err)
+      result = curl_easy_perform(curl);
    fclose(o);
+   freez(fullurl);
+   freez(data);
    // Put back to GET as default
    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, NULL);
    curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
-   free(fullurl);
    if (headers)
       curl_slist_free_all(headers);
-   if (request)
-      free(request);
-   if (result)
-   {
-      if (reply)
-         free(reply);
-      if (!curlv)
-         curl_easy_cleanup(curl);
-      return NULL;              // not a normal result
-   }
-   if (replylen)
-   {
-      output = j_create();
-      const char *e = j_read_mem(output, reply, -1);
-      if (e)
-      {
-         fprintf(stderr, "Failed: %s\n%s\n", e, reply);
-         j_delete(&output);
-      }
-      free(reply);
-   }
+   long code = 0;
+   if (!result)
+      curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+   if (!err && (code / 100) != 2)
+      err = j_errs("Failed (%s) return code %d", url, code ? : result);
+   if (!err && reply && replylen && rx)
+      err = j_read_mem(rx, reply, replylen);
+   freez(reply);
    if (!curlv)
       curl_easy_cleanup(curl);
-   return output;
+   return err;
 }
 #endif
 
