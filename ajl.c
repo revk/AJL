@@ -1415,7 +1415,7 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
       case 1:                  // POST using formdata
          {
             curl_easy_setopt(curl, CURLOPT_POST, 1L);
-            char *data = j_formdata(tx);
+            data = j_formdata(tx);
             if (!data)
                err = j_errs("Failed to make formdata");
          }
