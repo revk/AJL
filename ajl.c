@@ -1290,7 +1290,9 @@ void j_log(int debug, const char *who, const char *what, j_t a, j_t b)
       *p = 0;
       if (a && b)
          sprintf(p, ".a");
-      j_err(j_write_file(a, path));
+      char *er = j_write_file(a, path);
+      if (er)
+         warnx("Failed: %s", er);
       if (debug)
          j_err(j_write_pretty(a, stderr));
    }
@@ -1299,7 +1301,9 @@ void j_log(int debug, const char *who, const char *what, j_t a, j_t b)
       *p = 0;
       if (a && b)
          sprintf(p, ".b");
-      j_err(j_write_file(b, path));
+      char *er = j_write_file(b, path);
+      if (er)
+         warnx("Failed: %s", er);
       if (debug)
          j_err(j_write_pretty(b, stderr));
    }
