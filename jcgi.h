@@ -47,6 +47,6 @@
 #define	JCGI_MEDIUM	64      // Limit post for small expected file uploads
 #define	JCGI_LARGE	96      // Limit post for large expected file uploads
 char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *session, int flags);
-#define j_cgi(j,flags) j_cgi_get(j_make(j,"info"),j_make(j,"formdata"),j_make(j,"cookie"),j_make(j,"header"),"JCGI",flags)
+#define j_cgi(j,session,flags) j_cgi_get(j_make(j,"info"),j_make(j,"formdata"),j_make(j,"cookie"),j_make(j,"header"),session,flags)
 char *j_parse_formdata_sep(j_t, const char *, char sep);
 #define j_parse_formdata(j,f) j_parse_formdata_sep(j,f,'&')
