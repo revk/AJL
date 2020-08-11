@@ -23,7 +23,7 @@
 
 #define _GNU_SOURCE             /* See feature_test_macros(7) */
 #include <time.h>
-#include "ajl.h"
+#include "ajlcurl.h"
 #include "ajlparse.c"
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -1373,7 +1373,6 @@ char *j_formdata(j_t j)
 #ifdef	JCURL
 char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const char *url, ...)
 {                               // Curl... can get, post form, or post JSON
-   j_null(rx);
    CURL *curl = curlv;
    if (!curl)
       curl = curl_easy_init();
@@ -1430,8 +1429,6 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
          }
          break;
       }
-   if (!err && rx)
-      headers = curl_slist_append(headers, "Accept: application/json"); // receiving JSON
    if (!err && data)
    {
       curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
@@ -1449,6 +1446,7 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
       curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
    curl_easy_setopt(curl, CURLOPT_URL, fullurl);
    curl_easy_setopt(curl, CURLOPT_WRITEDATA, o);
+   j_null(rx);
    CURLcode result = 0;
    if (!err)
       result = curl_easy_perform(curl);
@@ -1466,7 +1464,19 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
    if (!err && (code / 100) != 2)
       err = j_errs("Failed (%s) return code %d", url, code ? : result);
    if (!err && reply && replylen && rx)
-      err = j_read_mem(rx, reply, replylen);
+   {
+      char *e = j_read_mem(rx, reply, replylen);
+      if (e)
+      {
+         char *ct = NULL;
+         if (curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &ct))
+            ct = NULL;
+         if (ct && !strcasecmp(ct, "application/json"))
+            err = e;
+         else
+            j_stringn(rx, reply, replylen);     // Return as a JSON string
+      }
+   }
    freez(reply);
    if (!curlv)
       curl_easy_cleanup(curl);
@@ -1481,11 +1491,17 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
    int debug = 0;
    int pretty = 0;
    int formdata = 0;
+   const char *doget = NULL;
+   const char *dopost = NULL;
+   const char *dosend = NULL;
    {                            // POPT
       poptContext optCon;       // context for parsing command-line options
       const struct poptOption optionsTable[] = {
          { "pretty", 'p', POPT_ARG_NONE, &pretty, 0, "Output pretty", NULL },
          { "formdata", 'f', POPT_ARG_NONE, &formdata, 0, "Output as formdata", NULL },
+         { "get", 'G', POPT_ARG_STRING, &doget, 0, "Curl GET formdata", "URL" },
+         { "post", 'P', POPT_ARG_STRING, &dopost, 0, "Curl POST formdata", "URL" },
+         { "send", 'S', POPT_ARG_STRING, &dosend, 0, "Curl POST JSON", "URL" },
          { "debug", 'v', POPT_ARG_NONE, &debug, 0, "Debug", NULL },
          POPT_AUTOHELP { }
       };
@@ -1497,6 +1513,10 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
       if ((c = poptGetNextOpt(optCon)) < -1)
          errx(1, "%s: %s\n", poptBadOption(optCon, POPT_BADOPTION_NOALIAS), poptStrerror(c));
 
+      CURL *curl = curl_easy_init();
+      if (debug)
+         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
       void process(const char *fn) {
          j_t j = j_create();
          char *e;
@@ -1506,6 +1526,12 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
             e = j_read(j, stdin);
          if (e)
             fprintf(stderr, "%s: %s\n", fn, e);
+         if (doget)
+            j_curl_get(curl, j, j, NULL, "%s", doget);
+         else if (dopost)
+            j_curl_post(curl, j, j, NULL, "%s", dopost);
+         else if (dosend)
+            j_curl_send(curl, j, j, NULL, "%s", dosend);
          if (formdata)
          {
             char *f = j_formdata(j);
@@ -1527,6 +1553,8 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
       else
          while ((v = poptGetArg(optCon)))
             process(v);
+      curl_easy_cleanup(curl);
+
       poptFreeContext(optCon);
    }
    return 0;

@@ -549,7 +549,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
    int formdata = 0;
    const char *outfile = NULL;
    if (argc == 1 && getenv("REQUEST_METHOD"))
-      env = text = 1;           // Default for debugging as direct call
+      text = 1;                 // Default for debugging as direct call
    {                            // POPT
       poptContext optCon;       // context for parsing command-line options
       const struct poptOption optionsTable[] = {
