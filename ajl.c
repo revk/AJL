@@ -1503,7 +1503,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
          { "post", 'P', POPT_ARG_STRING, &dopost, 0, "Curl POST formdata", "URL" },
          { "send", 'S', POPT_ARG_STRING, &dosend, 0, "Curl POST JSON", "URL" },
          { "debug", 'v', POPT_ARG_NONE, &debug, 0, "Debug", NULL },
-         POPT_AUTOHELP { }
+         POPT_AUTOHELP { NULL, 0, 0, NULL, 0, NULL, NULL }
       };
 
       optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);

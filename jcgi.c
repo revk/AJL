@@ -568,7 +568,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
          { "out-file", 'o', POPT_ARG_STRING, &outfile, 0, "Outfile", "filename" },
          { "quiet", 'q', POPT_ARG_NONE, &quiet, 0, "Quiet", NULL },
          { "debug", 'v', POPT_ARG_NONE, &debug, 0, "Debug", NULL },
-         POPT_AUTOHELP { }
+         POPT_AUTOHELP { NULL, 0, 0, NULL, 0, NULL, NULL }
       };
       optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
       poptSetOtherOptionHelp(optCon, "[outfile]");
