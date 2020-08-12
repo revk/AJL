@@ -1474,7 +1474,10 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
          if (ct && !strcasecmp(ct, "application/json"))
             err = e;
          else
+         {
+            free(e);
             j_stringn(rx, reply, replylen);     // Return as a JSON string
+         }
       }
    }
    freez(reply);
