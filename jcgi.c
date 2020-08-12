@@ -516,7 +516,12 @@ char *j_parse_formdata_sep(j_t j, const char *f, char sep)
       } else
          n = j_make(j, name);
       if (value)
-         j_stringn(n, value, lvalue);   // Allows for nulls in string
+      {
+         if ((lvalue == 4 && !strcmp(value, "true")) || (lvalue == 5 && !strcmp(value, "false")) || !j_number_ok(value))
+            j_literal(n, value);
+         else
+            j_stringn(n, value, lvalue);        // Allows for nulls in string
+      }
       if (name)
          free(name);
       if (value)
