@@ -23,6 +23,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -152,6 +153,36 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
       }
       if (info && getenv("HTTPS"))
          j_store_string(info, "https", getenv("SSL_TLS_SNI"));
+
+      if (info)
+      {
+         char *x = getenv("HTTP_X_FORWARDED_FOR");
+         if (x && *x)
+         {                      // Seems to be relayed
+            const char *i = j_get(info, "remote_addr");
+            if (i)
+            {
+               // Integrity check - how do we know to trust this header - it has to be one of our machines relaying
+               // Logic we are using is IPv6 and same /48 for server and relay, then trust forwarded for (works for A&A)
+               unsigned char i6[16],
+                s6[16];
+               const char *s = j_get(info, "server_addr");
+               if (i && s && inet_pton(AF_INET6, i, i6) > 0 && inet_pton(AF_INET6, s, s6) > 0 && !memcmp(i6, s6, 48 / 8))
+               {
+                  char *c = strrchr(x, ',');    // Last entry is ours, earlier ones could be sent by client
+                  if (c)
+                  {
+                     x = c + 1;
+                     while (isspace(*x))
+                        x++;
+                  }
+                  j_store_string(info, "relay_addr", i);
+                  j_store_string(info, "remote_addr", x);
+               }
+            }
+         }
+      }
+
       if (info)
          j_sort(info);
       if (header)
@@ -204,7 +235,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                   break;        // Too big
             }
             if (l > 0)
-               return j_errs("Read stopped before end (%ld)",l);
+               return j_errs("Read stopped before end (%ld)", l);
          }
          fclose(o);
          if (!data)
