@@ -204,7 +204,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                   break;        // Too big
             }
             if (l > 0)
-               return j_errs("Read stopped before end");
+               return j_errs("Read stopped before end (%ld)",l);
          }
          fclose(o);
          if (!data)

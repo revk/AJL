@@ -145,8 +145,43 @@ time_t j_timez(const char *t, int z)    // convert iso time to time_t
    };
    if (*t == 'Z' || z)
       return timegm(&tm);       // UTC
-   tm.tm_isdst = -1;            // work it out
-   return mktime(&tm);          // Local time
+   if (*t == '+' || *t == '-')
+   {                            // Explicit time zone
+      int Z = 0;
+      char s = *t++;
+      if (isdigit(t[0]) && isdigit(t[1]))
+      {                         // Hours
+         Z = ((t[0] - '0') * 10 + t[1]) * 3600;
+         t += 2;
+         if (*t == ':')
+            t++;
+         if (isdigit(t[0]) && isdigit(t[1]))
+         {                      // Minutes
+            Z += ((t[0] - '0') * 10 + t[1]) * 60;
+            t += 2;
+         }
+         if (s == '-')
+            Z = 0 - Z;
+      }
+      return timegm(&tm) - Z;
+   }
+   tm.tm_isdst = -1;            // work it out as local time
+   return timelocal(&tm);       // Local time
+}
+
+char j_iso8601utc = 0;
+void j_format_datetime(time_t t, char v[26])
+{                               // Format datetime
+   struct tm tm;
+   if (j_iso8601utc)
+   {                            // ISO8601 UTC
+      gmtime_r(&t, &tm);
+      strftime(v, 26, "%FT%TZ", &tm);
+   } else
+   {                            // Local time
+      localtime_r(&t, &tm);
+      strftime(v, 26, "%F %T", &tm);
+   }
 }
 
 size_t j_based(char *src, char **buf, const char *alphabet, unsigned int bits)
@@ -826,23 +861,12 @@ j_t j_stringf(const j_t j, const char *fmt, ...)
    return j;
 }
 
-j_t j_utc(const j_t j, time_t t)
-{
-   char v[30];
-   struct tm tm;
-   gmtime_r(&t, &tm);
-   strftime(v, sizeof(v), "%FT%TZ", &tm);
-   return j_string(j, v);
-}
-
 j_t j_datetime(const j_t j, time_t t)
 {
    if (!t)
       return j_null(j);
-   char v[30];
-   struct tm tm;
-   localtime_r(&t, &tm);
-   strftime(v, sizeof(v), "%FT%T", &tm);
+   char v[26];
+   j_format_datetime(t, v);
    return j_string(j, v);
 }
 
@@ -1009,11 +1033,6 @@ j_t j_store_stringf(const j_t j, const char *name, const char *fmt, ...)
    return j;
 }
 
-j_t j_store_utc(const j_t j, const char *name, time_t t)
-{                               // Store a UTC time string at specified name in an object
-   return j_utc(j_make(j, name), t);
-}
-
 j_t j_store_datetime(const j_t j, const char *name, time_t t)
 {                               // Store a localtime string at a specified name in an object
    return j_datetime(j_make(j, name), t);
@@ -1075,11 +1094,6 @@ j_t j_append_stringf(const j_t j, const char *fmt, ...)
    j_vstringf(j_append(j), fmt, ap, 1);
    va_end(ap);
    return j;
-}
-
-j_t j_append_utc(const j_t j, time_t t)
-{                               // Append a UTC time string to an array
-   return j_utc(j_append(j), t);
 }
 
 j_t j_append_datetime(const j_t j, time_t t)
@@ -1180,7 +1194,7 @@ const char *j_datetime_ok(const char *n)
    if (!*n)
    {
       if (!(!y && !m && !d) && (m < 1 || m > 12 || d < 1 || d > 31))
-         return j_errs("Bad date [%s]", n);
+         return j_errs("Bad date [%04d-%02d-%02d]", y, m, d);
       return NULL;              // OK date
    }
    if (*n != ' ' && *n != 'T')
@@ -1203,9 +1217,31 @@ const char *j_datetime_ok(const char *n)
    S = atoi(n);
    n += 2;
    if (!(H == 24 && M == 60 && M < 62) && (H >= 24 || M >= 60 || S >= 60))
-      return j_errs("Bad time [%s]", n);
-   if (*n && *n != 'Z')
-      return j_errs("Extra on end of datetime (don't handle timezones apart from Z) [%s]", n);
+      return j_errs("Bad time [%02d:%02d:%02d]", H, M, S);
+   if (*n == 'Z')
+      n++;
+   else if (*n == '+' || *n == '-')
+   {
+      H = M = 0;
+      char s = *n++;
+      if (!isdigit(n[0]) || !isdigit(n[1]))
+         return j_errs("Bad hours offset [%s]", n);
+      H = (n[0] - '0') * 10 + n[1];
+      n += 2;
+      if (*n)
+      {                         // Minutes
+         if (*n == ':')
+            n++;
+         if (!isdigit(n[0]) || !isdigit(n[1]))
+            return j_errs("Bad minutes offset [%s]", n);
+         M = (n[0] - '0') * 10 + n[1];
+         n += 2;
+      }
+      if (H > 27 || M >= 60 || (s == '-' && !H && !M))
+         return j_errs("Bad offset [%c%02d:%02d]", s, H, M);
+   }
+   if (*n)
+      return j_errs("Extra on end of datetime [%s]", n);
    return NULL;
 }
 

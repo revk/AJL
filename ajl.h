@@ -48,6 +48,10 @@
 // Where "path" is used, it can be a dot separated string and allows [<digits>] for array index
 // Where "name" is used it is the string used as the name/tag for an object, even if that contains dots, etc.
 
+extern char j_iso8601utc; // Used to set preferred datetime format (default 0)
+// If 0 then datetime is server local date and time separated by a space with no timezone, e.g. 2020-08-13 06:26:20
+// If 1 then datetime is ISO8601 UTC with Z timezone suffix, e.g. 2020-08-13T05:26:20Z
+
 inline void j_err_exit(const char *e, const char *fn, int l)
 {
    if (e)
@@ -107,8 +111,9 @@ size_t j_based(char *src, char **buf, const char *alphabet, unsigned int bits);
 #define j_base32d(src,dst) j_based(src,dst,JBASE32,5)
 #define j_base16d(src,dst) j_based(src,dst,JBASE16,4)
 const char * __attribute__((warn_unused_result)) j_number_ok(const char *n);    // Checks if a valid JSON number, returns error description if not
-const char * __attribute__((warn_unused_result)) j_datetime_ok(const char *n);  // Checks if a valid datetime, returns error description if not
+const char * __attribute__((warn_unused_result)) j_datetime_ok(const char *n);  // Checks if a valid datetime, returns error description if not, set time if valid
 const char * __attribute__((warn_unused_result)) j_literal_ok(const char *n);   // Checks if a valid JSON literal (true/false/null/number), returns error description if not
+void j_format_datetime(time_t,char [26]); // Format a datetime (as used by j_datetime)
 
 // Information about data type of this point
 int __attribute__((warn_unused_result)) j_isarray(const j_t);   // True if is an array
@@ -140,8 +145,7 @@ j_t j_null(const j_t);          // Null this point
 j_t j_string(const j_t, const char *);  // Make this point a string, and set value
 j_t j_stringn(const j_t, const char *, size_t); // Make this point a string with length (allows embedded nulls)
 j_t j_stringf(const j_t, const char *fmt, ...); // Make this point a string, and set (formatted) value
-j_t j_utc(const j_t, time_t);   // Make this point a string containing an ISO8601 UTC timestamp (ending Z)
-j_t j_datetime(const j_t, time_t);      // Make this point a string containing an ISO8601 local timestamp (no Z)
+j_t j_datetime(const j_t, time_t);      // Make this point a datetime (see notes on datetime)
 j_t j_literalf(const j_t, const char *fmt, ...);        // Make this point a (formatted) literal, normally used for numeric values
 j_t j_literal(const j_t, const char *); // Make this point a literal specified as a string (normally for "true" and "false")
 j_t j_literal_free(const j_t, char *);  // Make this point a literal specified as a string which is then freed
@@ -163,8 +167,7 @@ j_t j_store_array(const j_t, const char *name); // Add a new named array to an o
 j_t j_store_string(const j_t, const char *name, const char *);  // Add a named string to an object
 j_t j_store_stringn(const j_t, const char *name, const char *, int);    // Add a string with length (allows embedded nulls)
 j_t j_store_stringf(const j_t, const char *name, const char *fmt, ...); // Add a named (formatted) string to an object
-j_t j_store_utc(const j_t, const char *name, time_t);   // Add a named ISO8601 UTC string to an object
-j_t j_store_datetime(const j_t, const char *name, time_t);      // Add a named ISO8601 local time string to an object
+j_t j_store_datetime(const j_t, const char *name, time_t);      // Add a named datetime (see notes on datetime)
 j_t j_store_literal(const j_t, const char *name, const char *); // Add a named literal (usually "true" or "false") to an object
 j_t j_store_literalf(const j_t, const char *name, const char *fmt, ...);        // Add a named (formatted) literal *usually a number) to an object
 j_t j_store_literal_free(const j_t, const char *name, char *);  // Add a named literal to an object and free the passed string
@@ -178,8 +181,7 @@ j_t j_append_array(const j_t);  // Append a new (empty) array to an array
 j_t j_append_string(const j_t, const char *);   // Append a new string with length (allows embedded nulls)
 j_t j_append_stringn(const j_t, const char *, int);     // Append a new string to an array
 j_t j_append_stringf(const j_t, const char *fmt, ...);  // Append a new (formatted) string to an array
-j_t j_append_utc(const j_t, time_t);    // Append a new string formatted as ISO8601 UTC datetime to an array
-j_t j_append_datetime(const j_t, time_t);       // Append a new string formatted as an ISO8601 local time to an array
+j_t j_append_datetime(const j_t, time_t);       // Append a new datetime (see notes on datetime)
 j_t j_append_literal(const j_t, const char *);  // Append a new literal value (normally "true" or "false") to an array
 j_t j_append_literalf(const j_t, const char *fmt, ...); // Append a new (formatted) literal (usually for a number) to an array
 j_t j_append_literal_free(const j_t, char *);   // Append a new literal value to an array and free the passed string
