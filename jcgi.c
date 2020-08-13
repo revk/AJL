@@ -447,7 +447,16 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                         }
                      }
                   } else
-                     j_stringn(n, p, e - p);
+                  {
+                     int lvalue = e - p;
+                     char c = *e;
+                     *e = 0;
+                     if ((lvalue == 4 && !strcmp(p, "true")) || (lvalue == 5 && !strcmp(p, "false")) || !j_number_ok(p))
+                        j_literal(n, p);
+                     else
+                        j_stringn(n, p, lvalue);        // Allows for nulls in string
+                     *e = c;
+                  }
                   if (name)
                      free(name);
                   if (fn)
