@@ -190,16 +190,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
    }
    if (formdata)
    {                            // Process formdata
-      if (!strcasecmp(method, "GET"))
-      {                         // Handle query string formdata
-         const char *q = getenv("QUERY_STRING");
-         if (q)
-         {
-            char *e = j_parse_formdata(formdata, q);
-            if (e)
-               return e;
-         }
-      } else if (!strcasecmp(method, "POST"))
+      if (!strcasecmp(method, "POST"))
       {                         // Handle posted (could be url formdata, multipart, or JSON)
          char *ct = getenv("CONTENT_TYPE");
          if (!ct)
@@ -494,6 +485,13 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
             }
             free(data);
          } while (0);
+      }
+      const char *q = getenv("QUERY_STRING");
+      if (q && *q)
+      {                         // Overload query string on top of formdata
+         char *e = j_parse_formdata(formdata, q);
+         if (e)
+            return e;
       }
    }
    return NULL;

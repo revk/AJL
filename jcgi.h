@@ -26,10 +26,10 @@
 // and handle posted JSON.
 //
 // Formdata:-
-// For query string, or posted form data, each tag is a field in JSON, value is string or array if repeated tag
 // For multipart posted, any uploaded file is done as an object in the JSON with details of file, and where tmp file stored
 // For multipart uploaded JSON the JSON is also read in to the object
 // For posted JSON, formdata is the posted JSON
+// Any QUERY string, even if there is posted JSON/form-data, is also processed as additional form-data compounding on the form-data object
 // Temp files deleted on exit, so need renaming, or hard link if to be retained as files
 //
 // The macro jcgi simply takes a j_t and creates an object with a full set of sub objects

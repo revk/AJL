@@ -48,7 +48,7 @@
 // Where "path" is used, it can be a dot separated string and allows [<digits>] for array index
 // Where "name" is used it is the string used as the name/tag for an object, even if that contains dots, etc.
 
-extern char j_iso8601utc; // Used to set preferred datetime format (default 0)
+extern char j_iso8601utc;       // Used to set preferred datetime format (default 0)
 // If 0 then datetime is server local date and time separated by a space with no timezone, e.g. 2020-08-13 06:26:20
 // If 1 then datetime is ISO8601 UTC with Z timezone suffix, e.g. 2020-08-13T05:26:20Z
 
@@ -113,7 +113,7 @@ size_t j_based(char *src, char **buf, const char *alphabet, unsigned int bits);
 const char * __attribute__((warn_unused_result)) j_number_ok(const char *n);    // Checks if a valid JSON number, returns error description if not
 const char * __attribute__((warn_unused_result)) j_datetime_ok(const char *n);  // Checks if a valid datetime, returns error description if not, set time if valid
 const char * __attribute__((warn_unused_result)) j_literal_ok(const char *n);   // Checks if a valid JSON literal (true/false/null/number), returns error description if not
-void j_format_datetime(time_t,char [26]); // Format a datetime (as used by j_datetime)
+void j_format_datetime(time_t, char[26]);       // Format a datetime (as used by j_datetime)
 
 // Information about data type of this point
 int __attribute__((warn_unused_result)) j_isarray(const j_t);   // True if is an array
