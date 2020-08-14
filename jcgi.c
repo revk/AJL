@@ -559,7 +559,8 @@ char *j_parse_formdata_sep(j_t j, const char *f, char sep)
             j_literal(n, value);
          else
             j_stringn(n, value, lvalue);        // Allows for nulls in string
-      }
+      } else
+         j_literal(n, "true");  // No value is treated as a flag, so set true
       if (name)
          free(name);
       if (value)
