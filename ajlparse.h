@@ -92,3 +92,6 @@ const char *ajl_add_null(const ajl_t, const unsigned char *tag);
 const char *ajl_add_object(const ajl_t, const unsigned char *tag);      // Start an object
 const char *ajl_add_array(const ajl_t, const unsigned char *tag);       // Start an array
 const char *ajl_add_close(const ajl_t); // close current array or object
+
+// Low level.
+const char *ajl_string(const ajl_t j, FILE * o);// Process a string (i.e. starting and ending with quotes and using escapes), writing decoded string to file if not zero

@@ -106,7 +106,7 @@ static inline const char *skip_comma(const ajl_t j)
    return NULL;
 }
 
-static inline const char *check_string(const ajl_t j, FILE * o)
+const char *ajl_string(const ajl_t j, FILE * o)
 {                               // Process a string (i.e. starting and ending with quotes and using escapes), writing decoded string to file if not zero
    validate(j);
    if (j->eof || j->peek != '"')
@@ -429,7 +429,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
       FILE *o = NULL;
       if (tag)
          o = open_memstream((char **) tag, &len);
-      check_string(j, o);
+      ajl_string(j, o);
       if (o)
          fclose(o);
       checkerr;
@@ -468,7 +468,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
       o = open_memstream((char **) value, len);
    if (j->peek == '"')
    {
-      check_string(j, o);
+      ajl_string(j, o);
       if (o)
          fclose(o);
       checkerr;
