@@ -47,9 +47,11 @@ ajl_t ajl_delete(const ajl_t);  // Free the handle, returns NULL
 const char *ajl_error(const ajl_t);     // Return if error set in JSON object, or NULL if not error
 
 // Allocate control structure for parsing, from file or from memory
-ajl_t ajl_read(FILE *);
-ajl_t ajl_read_file(const char *filename);
-ajl_t ajl_read_mem(unsigned char *buffer, size_t len);
+ajl_t ajl_text(const char *text);       // Parse start simple text string to null termination - no file handling done
+const char *ajl_done(ajl_t j);  // Get end of parse from text and free j
+ajl_t ajl_read(FILE *);         // Parse start file handle
+ajl_t ajl_read_file(const char *filename);      // Parse start read file
+ajl_t ajl_read_mem(unsigned char *buffer, size_t len);  // Parse start mem region
 int ajl_line(const ajl_t);      // Return current line number in source
 int ajl_char(const ajl_t);      // Return current character position in source
 int ajl_level(const ajl_t);     // return current level of nesting

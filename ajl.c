@@ -1168,49 +1168,15 @@ j_t j_replace(const j_t j, j_t * op)
 const char *j_string_ok(const char *n, const char **end)
 {                               // Return is const fixed string if error
    if (!n)
-      return "NULL pointer for datetime";
-   if (*n != '"')
-      return "String does not start with quote";
-   n++;
-   while (*n && *n != '"')
-   {
-      if (*n == '\\')
-      {                         // Escape
-         n++;
-         if (*n == 'u')
-         {                      // \uXXXX hex escape
-            if (!isxdigit(n[1]) || !isxdigit(n[2]) || !isxdigit(n[3]) || !isxdigit(n[4]))
-               return "Bad \\uXXXX escape";
-            n += 4;
-         } else if (!strchr("\"\\/bfnrt", *n))
-            return "Invalid \\ escape";
-      } else if ((*n & 0xC0) == 0x80)
-         return "Bad UTF-8";
-      else if ((*n & 0xC0) == 0xC0)
-      {                         // Check UTF-8 valid
-         int b = 0;
-         if ((*n & 0xE0) == 0xC0)
-            b = 1;
-         else if ((*n & 0xF0) == 0xE0)
-            b = 2;
-         else if ((*n & 0xF8) == 0xF0)
-            b = 3;
-         else
-            return "Bad UTF-8";
-         while (b--)
-            if (((*++n) & 0xC0) != 0x80)
-               return "Bad UTF-8";
-      }
-      // Note, not checking \uXXXX UTF-16 sequence valid, and not checking invalid codes in UTF-8.
-      n++;
-   }
-   if (*n != '"')
-      return "String does not end with quote";
+      return "NULL pointer for string";
+   ajl_t j = ajl_text(n);
+   const char *err = ajl_string(j, NULL);
+   const char *e = ajl_done(j);
    if (end)
-      *end = n;
-   else if (*n)
-      return "Extra on end of datetime";
-   return NULL;
+      *end = e;
+   else if (*e)
+      return "Extra on end of string";
+   return err;
 }
 
 const char *j_datetime_ok(const char *n, const char **end)
@@ -1225,44 +1191,46 @@ const char *j_datetime_ok(const char *n, const char **end)
     S;
    if (!isdigit(n[0]) || !isdigit(n[1]) || !isdigit(n[2]) || !isdigit(n[3]))
       return "No year";
-   y = atoi(n);
+   y = (n[0] - '0') * 1000 + (n[1] - '0') * 100 + (n[2] - '0') * 10 + n[3] - '0';
    n += 4;
    if (*n++ != '-')
       return "No - after year";
    if (!isdigit(n[0]) || !isdigit(n[1]))
       return "No month";
-   m = atoi(n);
+   m = (n[0] - '0') * 10 + n[1] - '0';
    n += 2;
    if (*n++ != '-')
       return "No - after month";
    if (!isdigit(n[0]) || !isdigit(n[1]))
       return "No day";
-   d = atoi(n);
+   d = (n[0] - '0') * 10 + n[1] - '0';
    n += 2;
-   if (!*n)
+   if (!*n || (*n != 'T' && *n != ' '))
    {
       if (!(!y && !m && !d) && (m < 1 || m > 12 || d < 1 || d > 31))
          return "Bad date";
+      if (end)
+         *end = n;
+      else if (*n)
+         return "Extra on end of date";
       return NULL;              // OK date
    }
-   if (*n != ' ' && *n != 'T')
-      return "Missing T/space after day";
-   n++;
+   n++;                         // T/space
    if (!isdigit(n[0]) || !isdigit(n[1]))
       return "No hour";
-   H = atoi(n);
+   H = (n[0] - '0') * 10 + n[1] - '0';
    n += 2;
    if (*n++ != ':')
       return "No : after hour";
    if (!isdigit(n[0]) || !isdigit(n[1]))
       return "No minute";
-   M = atoi(n);
+   M = (n[0] - '0') * 10 + n[1] - '0';
    n += 2;
    if (*n++ != ':')
       return "No : after minute";
    if (!isdigit(n[0]) || !isdigit(n[1]))
       return "No second";
-   S = atoi(n);
+   S = (n[0] - '0') * 10 + n[1] - '0';
    n += 2;
    if (!(H == 24 && M == 60 && M < 62) && (H >= 24 || M >= 60 || S >= 60))
       return "Bad time";
@@ -1274,7 +1242,7 @@ const char *j_datetime_ok(const char *n, const char **end)
       char s = *n++;
       if (!isdigit(n[0]) || !isdigit(n[1]))
          return "Bad hours timezone";
-      H = (n[0] - '0') * 10 + n[1];
+      H = (n[0] - '0') * 10 + n[1] - '0';
       n += 2;
       if (*n)
       {                         // Minutes
@@ -1282,7 +1250,7 @@ const char *j_datetime_ok(const char *n, const char **end)
             n++;
          if (!isdigit(n[0]) || !isdigit(n[1]))
             return "Bad minutes timezone";
-         M = (n[0] - '0') * 10 + n[1];
+         M = (n[0] - '0') * 10 + n[1] - '0';
          n += 2;
       }
       if (H > 27 || M >= 60 || (s == '-' && !H && !M))
@@ -1299,44 +1267,14 @@ const char *j_number_ok(const char *n, const char **end)
 {                               // Checks if a valid JSON number, returns error description if not
    if (!n)
       return "NULL pointer for number";
-   // RFC8259 section 6
-   if (*n == '-')
-      n++;                      // minus allowed
-   // int is zero or 1-9 and digits
-   if (*n == '0')
-   {
-      n++;
-      if (isdigit(*n))
-         return "Zero followed by digits is invalid int";
-   } else if (isdigit(*n))
-   {
-      while (isdigit(*n))
-         n++;
-   } else
-      return "Missing int part";
-   if (*n == '.')
-   {                            // frac part
-      n++;
-      if (!isdigit(*n))
-         return "Missing digits after decimal point";
-      while (isdigit(*n))
-         n++;
-   }
-   if (*n == 'e' || *n == 'E')
-   {                            // exp
-      n++;
-      if (*n == '-' || *n == '+')
-         n++;                   // minus/plus, optional
-      if (!isdigit(*n))
-         return "Missing digits after e";
-      while (isdigit(*n))
-         n++;
-   }
+   ajl_t j = ajl_text(n);
+   const char *err = ajl_number(j, NULL);
+   const char *e = ajl_done(j);
    if (end)
-      *end = n;
-   else if (*n)
-      return "Extra text on end of number";
-   return NULL;                 // OK
+      *end = e;
+   else if (*e)
+      return "Extra on end of number";
+   return err;
 }
 
 const char *j_literal_ok(const char *n, const char **end)
@@ -1597,6 +1535,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
    const char *doget = NULL;
    const char *dopost = NULL;
    const char *dosend = NULL;
+   const char *test = NULL;
    {                            // POPT
       poptContext optCon;       // context for parsing command-line options
       const struct poptOption optionsTable[] = {
@@ -1605,6 +1544,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
          { "get", 'G', POPT_ARG_STRING, &doget, 0, "Curl GET formdata", "URL" },
          { "post", 'P', POPT_ARG_STRING, &dopost, 0, "Curl POST formdata", "URL" },
          { "send", 'S', POPT_ARG_STRING, &dosend, 0, "Curl POST JSON", "URL" },
+         { "test", 'T', POPT_ARG_STRING, &test, 0, "Run test on OK functions", "string" },
          { "debug", 'v', POPT_ARG_NONE, &debug, 0, "Debug", NULL },
          POPT_AUTOHELP { NULL, 0, 0, NULL, 0, NULL, NULL }
       };
@@ -1646,10 +1586,45 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
          j_delete(&j);
       }
 
+      if (test)
+      {
+         const char *e = NULL;
+         const char *er = j_string_ok(test, &e);
+         if (er)
+            printf("String: %s\n", er);
+         else if (!e)
+            printf("String: no end\n");
+         else
+            printf("String: OK [%s]\n", e);
+         er = j_number_ok(test, &e);
+         if (er)
+            printf("Number: %s\n", er);
+         else if (!e)
+            printf("Number: no end\n");
+         else
+            printf("Number: OK [%s]\n", e);
+         er = j_literal_ok(test, &e);
+         if (er)
+            printf("Literal: %s\n", er);
+         else if (!e)
+            printf("Literal: no end\n");
+         else
+            printf("Literal: OK [%s]\n", e);
+         er = j_datetime_ok(test, &e);
+         if (er)
+            printf("Datetime: %s\n", er);
+         else if (!e)
+            printf("Datetime: no end\n");
+         else
+            printf("Datetime: OK [%s]\n", e);
+      }
+
       const char *v;
       if (!poptPeekArg(optCon))
-         process("-");
-      else
+      {
+         if (!test)
+            process("-");
+      } else
          while ((v = poptGetArg(optCon)))
             process(v);
       curl_easy_cleanup(curl);

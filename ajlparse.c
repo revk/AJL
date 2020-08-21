@@ -31,6 +31,7 @@
 
 struct ajl_s {
    FILE *f;                     // File being parsed or generated
+   const char *text;            // Simple input text
    int line;                    // Line number
    int posn;                    // Character position
    int level;                   // Current level
@@ -75,7 +76,14 @@ void ajl_next(const ajl_t j, FILE * o)
       return;
    if (o)
       fputc(j->peek, o);
-   int c = fgetc(j->f);
+   int c;
+   if (j->text)
+   {                            // Simple text parsing
+      c = *++j->text;
+      if (!c)
+         c = -1;                // EOF in text
+   } else
+      c = fgetc(j->f);
    if (c < 0)
       j->eof = 1;
    else if ((c >= 0x20 && c < 0x80) || c >= 0xC0)
@@ -314,10 +322,13 @@ const char *ajl_end(const ajl_t j)
 const char *ajl_close(const ajl_t j)
 {                               // Close control structure (closes file). For write_mem, this sets buffer and len correctly and adds a NULL after len.
    validate(j);
-   if (j->pretty)
-      fputc('\n', j->f);
-   fclose(j->f);
-   j->f = NULL;
+   if (j->f)
+   {
+      if (j->pretty)
+         fputc('\n', j->f);
+      fclose(j->f);
+      j->f = NULL;
+   }
    return NULL;
 };
 
@@ -341,6 +352,28 @@ const char *ajl_error(const ajl_t j)
 };
 
 // Allocate control structure for parsing, from file or from memory
+ajl_t ajl_text(const char *text)
+{                               // Simple text parse
+   if (!text)
+      return NULL;
+   ajl_t j = calloc(1, sizeof(*j));
+   if (!j)
+      return j;
+   j->text = text;
+   if (!(j->peek = *text))
+      j->eof = 1;
+   return j;
+}
+
+const char *ajl_done(ajl_t j)
+{                               // Get end of parse from text and free j
+   if (!j || !j->text)
+      return NULL;
+   const char *e = j->text;
+   free(j);
+   return e;
+}
+
 ajl_t ajl_read(FILE * f)
 {
    if (!f)
@@ -351,12 +384,8 @@ ajl_t ajl_read(FILE * f)
    assert((j->flags = malloc(j->maxlevel = 10)));
    j->flags[j->level] = 0;
    j->f = f;
-   j->line = 1;
    j->posn = 1;
-   int c = fgetc(f);
-   if (c < 0)
-      j->eof = 1;
-   j->peek = c;
+   ajl_next(j, NULL);
    return j;
 };
 
