@@ -1324,6 +1324,8 @@ const char *j_literal_ok(const char *n, const char **end)
       n += 4;
    else
       return j_number_ok(n, end);       // Check number
+   if (*n && isalnum(*n))
+      return "Extra after literal";
    if (end)
       *end = n;
    else if (*n)
