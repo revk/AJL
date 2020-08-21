@@ -1489,7 +1489,6 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
    if (!err)
       result = curl_easy_perform(curl);
    fclose(o);
-   freez(fullurl);
    freez(data);
    // Put back to GET as default
    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, NULL);
@@ -1500,7 +1499,8 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
    if (!result)
       curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
    if (!err && (code / 100) != 2)
-      err = j_errs("Failed (%s) return code %d", url, code ? : result);
+      err = j_errs("Failed (%s) return code %d", fullurl, code ? : result);
+   freez(fullurl);
    if (!err && reply && replylen && rx)
    {
       char *e = j_read_mem(rx, reply, replylen);
