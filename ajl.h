@@ -110,9 +110,11 @@ size_t j_based(char *src, char **buf, const char *alphabet, unsigned int bits);
 #define j_base64d(src,dst) j_based(src,dst,JBASE64,6)
 #define j_base32d(src,dst) j_based(src,dst,JBASE32,5)
 #define j_base16d(src,dst) j_based(src,dst,JBASE16,4)
-const char * __attribute__((warn_unused_result)) j_number_ok(const char *n);    // Checks if a valid JSON number, returns error description if not
-const char * __attribute__((warn_unused_result)) j_datetime_ok(const char *n);  // Checks if a valid datetime, returns error description if not, set time if valid
-const char * __attribute__((warn_unused_result)) j_literal_ok(const char *n);   // Checks if a valid JSON literal (true/false/null/number), returns error description if not
+// The following _ok functions check if syntax is valid. They return a fixed error if not. If end is set, the end pointer is stored, else any extra characters are an error.
+const char * __attribute__((warn_unused_result)) j_string_ok(const char *n, const char **end);  // Checks if a valid JSON number
+const char * __attribute__((warn_unused_result)) j_number_ok(const char *n, const char **end);  // Checks if a valid JSON number
+const char * __attribute__((warn_unused_result)) j_datetime_ok(const char *n, const char **end);        // Checks if a valid datetime
+const char * __attribute__((warn_unused_result)) j_literal_ok(const char *n, const char **end); // Checks if a valid JSON literal (true/false/null/number)
 void j_format_datetime(time_t, char[26]);       // Format a datetime (as used by j_datetime)
 
 // Information about data type of this point

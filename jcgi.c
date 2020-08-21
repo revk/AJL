@@ -451,7 +451,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                      int lvalue = e - p;
                      char c = *e;
                      *e = 0;
-                     if ((lvalue == 4 && !strcmp(p, "true")) || (lvalue == 5 && !strcmp(p, "false")) || !j_number_ok(p))
+                     if ((lvalue == 4 && !strcmp(p, "true")) || (lvalue == 5 && !strcmp(p, "false")) || !j_number_ok(p, NULL))
                         j_literal(n, p);
                      else
                         j_stringn(n, p, lvalue);        // Allows for nulls in string
@@ -555,7 +555,7 @@ char *j_parse_formdata_sep(j_t j, const char *f, char sep)
          n = j_make(j, name);
       if (value)
       {
-         if ((lvalue == 4 && !strcmp(value, "true")) || (lvalue == 5 && !strcmp(value, "false")) || !j_number_ok(value))
+         if ((lvalue == 4 && !strcmp(value, "true")) || (lvalue == 5 && !strcmp(value, "false")) || !j_number_ok(value, NULL))
             j_literal(n, value);
          else
             j_stringn(n, value, lvalue);        // Allows for nulls in string
