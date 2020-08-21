@@ -58,7 +58,18 @@ struct ajl_s {
 
 // Local functions
 #define validate(j) if(!j)return "NULL control passed"; if(j->error)return j->error;
-static inline void next(const ajl_t j, FILE * o)
+int ajl_peek(const ajl_t j)
+{
+   if (!j)
+      return -3;
+   if (j->error)
+      return -2;
+   if (j->eof)
+      return -1;
+   return j->peek;
+}
+
+void ajl_next(const ajl_t j, FILE * o)
 {
    if (!j || j->error || j->eof)
       return;
@@ -78,29 +89,29 @@ static inline void next(const ajl_t j, FILE * o)
    return;
 }
 
-static inline int isws(unsigned char c)
+int ajl_isws(unsigned char c)
 {
    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-static inline const char *skip_ws(const ajl_t j)
+void ajl_skip_ws(const ajl_t j)
 {                               // Skip white space
-   validate(j);
-   while (!j->eof && isws(j->peek))
-      next(j, NULL);
-   return NULL;
+   if (!j || j->error)
+      return;
+   while (!j->eof && ajl_isws(j->peek))
+      ajl_next(j, NULL);
 }
 
 static inline const char *skip_comma(const ajl_t j)
 {                               // Skip initial comma and whitespace
    validate(j);
-   skip_ws(j);
+   ajl_skip_ws(j);
    if (j->peek == ',')
    {                            // skip comma
       if (!(j->flags[j->level] & COMMA))
          return j->error = "Unexpected comma";
-      next(j, NULL);
-      skip_ws(j);
+      ajl_next(j, NULL);
+      ajl_skip_ws(j);
    } else if (j->flags[j->level] & COMMA)
       return j->error = "Expecting comma";
    return NULL;
@@ -111,59 +122,59 @@ const char *ajl_string(const ajl_t j, FILE * o)
    validate(j);
    if (j->eof || j->peek != '"')
       return j->error = "Missing quote";
-   next(j, NULL);
+   ajl_next(j, NULL);
    while (!j->eof && j->peek != '"')
    {
       if (j->peek == '\\')
       {                         // Escaped character
-         next(j, NULL);
+         ajl_next(j, NULL);
          if (j->eof)
             return j->error = "Bad escape at EOF";
          if (j->peek == 'u')
          {                      // hex
-            next(j, NULL);
+            ajl_next(j, NULL);
             if (!isxdigit(j->peek))
                return j->error = "Bad hex escape";
             unsigned int c = (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
-            next(j, NULL);
+            ajl_next(j, NULL);
             if (!isxdigit(j->peek))
                return j->error = "Bad hex escape";
             c = (c << 4) + (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
-            next(j, NULL);
+            ajl_next(j, NULL);
             if (!isxdigit(j->peek))
                return j->error = "Bad hex escape";
             c = (c << 4) + (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
-            next(j, NULL);
+            ajl_next(j, NULL);
             if (!isxdigit(j->peek))
                return j->error = "Bad hex escape";
             c = (c << 4) + (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
-            next(j, NULL);
+            ajl_next(j, NULL);
             if (c >= 0xDC00 && c <= 0xDFFF)
                return "Unexpected UTF-16 low order";
             if (c >= 0xD800 && c <= 0xDBFF)
             {                   // UTF-16
                if (j->eof || j->peek != '\\')
                   return "Bad UTF-16, missing second part";
-               next(j, NULL);
+               ajl_next(j, NULL);
                if (j->eof || j->peek != 'u')
                   return "Bad UTF-16, missing second part";
-               next(j, NULL);
+               ajl_next(j, NULL);
                if (!isxdigit(j->peek))
                   return j->error = "Bad hex escape";
                unsigned int c2 = (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
-               next(j, NULL);
+               ajl_next(j, NULL);
                if (!isxdigit(j->peek))
                   return j->error = "Bad hex escape";
                c2 = (c2 << 4) + (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
-               next(j, NULL);
+               ajl_next(j, NULL);
                if (!isxdigit(j->peek))
                   return j->error = "Bad hex escape";
                c2 = (c2 << 4) + (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
-               next(j, NULL);
+               ajl_next(j, NULL);
                if (!isxdigit(j->peek))
                   return j->error = "Bad hex escape";
                c2 = (c2 << 4) + (isalpha(j->peek) ? 9 : 0) + (j->peek & 0xF);
-               next(j, NULL);
+               ajl_next(j, NULL);
                if (c2 < 0xDC00 || c2 > 0xDFFF)
                   return "Bad UTF-16, second part invalid";
                c = ((c & 0x3FF) << 10) + (c2 & 0x3FF) + 0x10000;
@@ -189,7 +200,7 @@ const char *ajl_string(const ajl_t j, FILE * o)
                   fputc(c, o);
             }
          }
-#define esc(a,b) else if(j->peek==a){next(j,NULL);if(o)fputc(b,o);}
+#define esc(a,b) else if(j->peek==a){ajl_next(j,NULL);if(o)fputc(b,o);}
 #define	esco(a,b) esc(a,b)      // optional
          escapes
 #undef esco
@@ -200,41 +211,41 @@ const char *ajl_string(const ajl_t j, FILE * o)
          return j->error = "Bad UTF-8";
       else if (j->peek >= 0xF0)
       {                         // 4 byte
-         next(j, o);
+         ajl_next(j, o);
          if (j->peek < 0x80 || j->peek >= 0xC0)
             return j->error = "Bad UTF-8";
-         next(j, o);
+         ajl_next(j, o);
          if (j->peek < 0x80 || j->peek >= 0xC0)
             return j->error = "Bad UTF-8";
-         next(j, o);
+         ajl_next(j, o);
          if (j->peek < 0x80 || j->peek >= 0xC0)
             return j->error = "Bad UTF-8";
-         next(j, o);
+         ajl_next(j, o);
       } else if (j->peek >= 0xE0)
       {                         // 3 byte
-         next(j, o);
+         ajl_next(j, o);
          if (j->peek < 0x80 || j->peek >= 0xC0)
             return j->error = "Bad UTF-8";
-         next(j, o);
+         ajl_next(j, o);
          if (j->peek < 0x80 || j->peek >= 0xC0)
             return j->error = "Bad UTF-8";
-         next(j, o);
+         ajl_next(j, o);
       } else if (j->peek >= 0xC0)
       {                         // 2 byte
-         next(j, o);
+         ajl_next(j, o);
          if (j->peek < 0x80 || j->peek >= 0xC0)
             return j->error = "Bad UTF-8";
-         next(j, o);
+         ajl_next(j, o);
       } else if (j->peek >= 0x80)
          return j->error = "Bad UTF-8";
       else
-         next(j, o);
+         ajl_next(j, o);
    }
    if (j->error)
       return j->error;
    if (j->eof || j->peek != '"')
       return j->error = "Missing quote";
-   next(j, NULL);
+   ajl_next(j, NULL);
    return NULL;
 }
 
@@ -242,37 +253,37 @@ const char *ajl_string(const ajl_t j, FILE * o)
 #define checkeof if(j->eof&&!j->error)j->error="Unexpected EOF";checkerr
 #define makeerr(e) do{j->error=e;return AJL_ERROR;}while(0)
 
-static inline const char *check_number(const ajl_t j, FILE * o)
+const char *ajl_number(const ajl_t j, FILE * o)
 {                               // Process a number strictly to JSON spec for a number, writing to file if not null
    validate(j);
    if (j->peek == '-')
-      next(j, o);               // Optional minus
+      ajl_next(j, o);           // Optional minus
    if (j->peek == '0')
    {
-      next(j, o);
+      ajl_next(j, o);
       if (!j->eof && isdigit(j->peek))
          return j->error = "Invalid int starting 0";
    } else if (j->eof || !isdigit(j->peek))
       return j->error = "Invalid number";
    while (!j->eof && isdigit(j->peek))
-      next(j, o);
+      ajl_next(j, o);
    if (!j->eof && j->peek == '.')
    {                            // Fraction
-      next(j, o);
+      ajl_next(j, o);
       if (j->eof || !isdigit(j->peek))
          return j->error = "Invalid fraction";
       while (!j->eof && isdigit(j->peek))
-         next(j, o);
+         ajl_next(j, o);
    }
    if (!j->eof && (j->peek == 'e' || j->peek == 'E'))
    {                            // Exponent
-      next(j, o);
+      ajl_next(j, o);
       if (!j->eof && (j->peek == '-' || j->peek == '+'))
-         next(j, o);
+         ajl_next(j, o);
       if (j->eof || !isdigit(j->peek))
          return j->error = "Invalid exponent";
       while (!j->eof && isdigit(j->peek))
-         next(j, o);
+         ajl_next(j, o);
    }
    return NULL;
 }
@@ -406,7 +417,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
       *len = 0;
    if (!j || j->error)
       return AJL_ERROR;
-   skip_ws(j);
+   ajl_skip_ws(j);
    if (j->eof)
    {
       if (!j->level)
@@ -418,7 +429,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
       if (!j->level)
          makeerr("Too many closes");
       j->level--;
-      next(j, NULL);
+      ajl_next(j, NULL);
       return AJL_CLOSE;
    }
    skip_comma(j);
@@ -433,12 +444,12 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
       if (o)
          fclose(o);
       checkerr;
-      skip_ws(j);
+      ajl_skip_ws(j);
       checkeof;
       if (j->peek == ':')
       {                         // found colon, skip it and white space
-         next(j, NULL);
-         skip_ws(j);
+         ajl_next(j, NULL);
+         ajl_skip_ws(j);
       } else
          makeerr("Missing colon");
       checkeof;
@@ -450,7 +461,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
          assert((j->flags = realloc(j->flags, j->maxlevel += 10)));
       j->level++;
       j->flags[j->level] = OBJECT;
-      next(j, NULL);
+      ajl_next(j, NULL);
       return AJL_OBJECT;
    }
    if (j->peek == '[')
@@ -459,7 +470,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
          assert((j->flags = realloc(j->flags, j->maxlevel += 10)));
       j->level++;
       j->flags[j->level] = 0;
-      next(j, NULL);
+      ajl_next(j, NULL);
       return AJL_ARRAY;
    }
    // Get the value
@@ -476,7 +487,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
    }
    if (j->peek == '-' || isdigit(j->peek))
    {
-      check_number(j, o);
+      ajl_number(j, o);
       if (o)
          fclose(o);
       checkerr;
@@ -488,7 +499,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
    while (!j->eof && isalpha(j->peek) && p < l + sizeof(l) - 1)
    {
       *p++ = j->peek;
-      next(j, o);
+      ajl_next(j, o);
    }
    *p = 0;
    fclose(o);

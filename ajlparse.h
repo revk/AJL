@@ -94,4 +94,9 @@ const char *ajl_add_array(const ajl_t, const unsigned char *tag);       // Start
 const char *ajl_add_close(const ajl_t); // close current array or object
 
 // Low level.
-const char *ajl_string(const ajl_t j, FILE * o);// Process a string (i.e. starting and ending with quotes and using escapes), writing decoded string to file if not zero
+int ajl_peek(const ajl_t j);    // Peek next character, -1 for eof, -2 for error
+void ajl_next(const ajl_t j, FILE * o); // Advance character (write to o if not null)
+int ajl_isws(unsigned char c);  // Check if whitespace
+void ajl_skip_ws(const ajl_t j);        // Skip any whitespace
+const char *ajl_string(const ajl_t j, FILE * o);        // Process a string (i.e. starting and ending with quotes and using escapes), writing decoded string to file if not zero
+const char *ajl_number(const ajl_t j, FILE * o);        // Process a number, writing number to file
