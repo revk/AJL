@@ -1174,7 +1174,34 @@ const char *j_string_ok(const char *n, const char **end)
    n++;
    while (*n && *n != '"')
    {
-      // TODO
+      if (*n == '\\')
+      {                         // Escape
+         n++;
+         if (*n == 'u')
+         {                      // \uXXXX hex escape
+            if (!isxdigit(n[1]) || !isxdigit(n[2]) || !isxdigit(n[3]) || !isxdigit(n[4]))
+               return "Bad \\uXXXX escape";
+            n += 4;
+         } else if (!strchr("\"\\/bfnrt", *n))
+            return "Invalid \\ escape";
+      } else if ((*n & 0xC0) == 0x80)
+         return "Bad UTF-8";
+      else if ((*n & 0xC0) == 0xC0)
+      {                         // Check UTF-8 valid
+         int b = 0;
+         if ((*n & 0xE0) == 0xC0)
+            b = 1;
+         else if ((*n & 0xF0) == 0xE0)
+            b = 2;
+         else if ((*n & 0xF8) == 0xF0)
+            b = 3;
+         else
+            return "Bad UTF-8";
+         while (b--)
+            if (((*++n) & 0xC0) != 0x80)
+               return "Bad UTF-8";
+      }
+      // Note, not checking \uXXXX UTF-16 sequence valid, and not checking invalid codes in UTF-8.
       n++;
    }
    if (*n != '"')
@@ -1581,18 +1608,14 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
          { "debug", 'v', POPT_ARG_NONE, &debug, 0, "Debug", NULL },
          POPT_AUTOHELP { NULL, 0, 0, NULL, 0, NULL, NULL }
       };
-
       optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
       poptSetOtherOptionHelp(optCon, "[filename]");
-
       int c;
       if ((c = poptGetNextOpt(optCon)) < -1)
          errx(1, "%s: %s\n", poptBadOption(optCon, POPT_BADOPTION_NOALIAS), poptStrerror(c));
-
       CURL *curl = curl_easy_init();
       if (debug)
          curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-
       void process(const char *fn) {
          j_t j = j_create();
          char *e;
@@ -1630,7 +1653,6 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
          while ((v = poptGetArg(optCon)))
             process(v);
       curl_easy_cleanup(curl);
-
       poptFreeContext(optCon);
    }
    return 0;
