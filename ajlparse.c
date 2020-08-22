@@ -572,23 +572,23 @@ void ajl_pretty(const ajl_t j)
    j->pretty = 1;
 }
 
-static void add_string(const ajl_t j, const unsigned char *value, size_t len)
+void ajl_write_string(FILE * o, const unsigned char *value, size_t len)
 {                               // Add UTF-8 string, escaped as necessary
-   fputc('"', j->f);
+   fputc('"', o);
    while (len--)
    {
       unsigned char c = *value++;
-#define esc(a,b) if(c==b){fputc('\\',j->f);fputc(a,j->f);} else
+#define esc(a,b) if(c==b){fputc('\\',o);fputc(a,o);} else
 #define	esco(a,b)               // optional
       escapes
 #undef esco
 #undef esc
           if (c < ' ')
-         fprintf(j->f, "\\u00%02X", c);
+         fprintf(o, "\\u00%02X", c);
       else
-         fputc(c, j->f);
+         fputc(c, o);
    }
-   fputc('"', j->f);
+   fputc('"', o);
 }
 
 static void add_binary(const ajl_t j, const unsigned char *value, size_t len)
@@ -639,7 +639,7 @@ static const char *add_tag(const ajl_t j, const unsigned char *tag)
    {
       if (!(j->flags[j->level] & OBJECT))
          return j->error = "Not in object";
-      add_string(j, tag, strlen((char *) tag));
+      ajl_write_string(j->f, tag, strlen((char *) tag));
       fputc(':', j->f);
    } else if (j->flags[j->level] & OBJECT)
       return j->error = "Tag required";
@@ -662,7 +662,7 @@ const char *ajl_add_string(const ajl_t j, const unsigned char *tag, const unsign
    if (!value)
       fprintf(j->f, "null");
    else
-      add_string(j, value, strlen((char *) value));
+      ajl_write_string(j->f, value, strlen((char *) value));
    return j->error;
 };
 
@@ -673,7 +673,7 @@ const char *ajl_add_stringn(const ajl_t j, const unsigned char *tag, const unsig
    if (!value)
       fprintf(j->f, "null");
    else
-      add_string(j, value, len);
+      ajl_write_string(j->f, value, len);
    return j->error;
 };
 
