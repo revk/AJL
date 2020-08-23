@@ -666,6 +666,14 @@ const char *ajl_add_string(const ajl_t j, const unsigned char *tag, const unsign
    return j->error;
 };
 
+const char *ajl_add_literal(const ajl_t j, const unsigned char *tag, const unsigned char *value)
+{
+   validate(j);
+   add_tag(j, tag);
+   fprintf(j->f, "%s", (char *) value ? : "null");
+   return j->error;
+}
+
 const char *ajl_add_stringn(const ajl_t j, const unsigned char *tag, const unsigned char *value, size_t len)
 {                               // Add UTF-8 String, escaped for JSON
    validate(j);
