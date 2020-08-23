@@ -545,7 +545,6 @@ int j_isstring(const j_t j)
    return j && j->isstring;
 }
 
-
 // Loading an object. This replaces value at the j_t specified, which is usually a root from j_create()
 // Returns NULL if all is well, else a malloc'd error string
 char *j_read(const j_t root, FILE * f)
