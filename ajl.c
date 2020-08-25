@@ -151,13 +151,13 @@ time_t j_timez(const char *t, int z)    // convert iso time to time_t
       char s = *t++;
       if (isdigit(t[0]) && isdigit(t[1]))
       {                         // Hours
-         Z = ((t[0] - '0') * 10 + t[1]) * 3600;
+         Z = ((t[0] - '0') * 10 + t[1] - '0') * 3600;
          t += 2;
          if (*t == ':')
             t++;
          if (isdigit(t[0]) && isdigit(t[1]))
          {                      // Minutes
-            Z += ((t[0] - '0') * 10 + t[1]) * 60;
+            Z += ((t[0] - '0') * 10 + t[1] - '0') * 60;
             t += 2;
          }
          if (s == '-')
