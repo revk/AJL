@@ -1364,7 +1364,7 @@ char *j_formdata(j_t j)
       {
          if (*s == ' ')
             fprintf(f, "+");
-         else if (*s < ' ' || strchr(":/?#[]@!$&'()*+,;=%", *s))
+         else if (*s < ' ' || strchr(":/?#[]@!$&'()*+,;=%<>", *s)) // <> are not strictly needed but seems some systems barf
             fprintf(f, "%%%02X", (unsigned char) *s);
          else
             fputc(*s, f);
