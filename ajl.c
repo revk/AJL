@@ -1498,7 +1498,12 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
    if (!result)
       curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
    if (!err && (code / 100) != 2)
+   {
+      char *s = strchr(fullurl, '?');
+      if (s)
+         *s = 0;                // Sanitisee
       err = j_errs("Failed (%s) return code %d", fullurl, code ? : result);
+   }
    freez(fullurl);
    if (!err && reply && replylen && rx)
    {
