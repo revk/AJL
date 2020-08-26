@@ -1364,7 +1364,7 @@ char *j_formdata(j_t j)
       {
          if (*s == ' ')
             fprintf(f, "+");
-         else if (*s < ' ' || strchr(":/?#[]@!$&'()*+,;=%<>", *s)) // <> are not strictly needed but seems some systems barf
+         else if (!isalpha(*s) && !isdigit(*s) && !strchr("-._~", *s))  // RFC 3986 2.3 unreserved characters.
             fprintf(f, "%%%02X", (unsigned char) *s);
          else
             fputc(*s, f);
