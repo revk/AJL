@@ -1355,14 +1355,16 @@ char *j_formdata(j_t j)
    size_t len;
    char *data;
    FILE *f = open_memstream(&data, &len);
-   void add(const char *s, int l) {
+   void add(const char *s, int l, char bin) {
       if (!s)
          return;
       if (l < 0)
          l = strlen(s);
       while (l--)
       {
-         if (*s == ' ')
+         if (bin)
+            fprintf(f, "%%%02X", (unsigned char) *s);
+         else if (*s == ' ')
             fprintf(f, "+");
          else if (!isalpha(*s) && !isdigit(*s) && !strchr("-._~", *s))  // RFC 3986 2.3 unreserved characters.
             fprintf(f, "%%%02X", (unsigned char) *s);
@@ -1375,24 +1377,27 @@ char *j_formdata(j_t j)
       if (j_isnull(j))
          return;
       fputc('=', f);
-      if (j_isarray(j) || j_isobject(j))
+      j_t b = NULL;
+      if (j_isobject(j) && j_len(j) == 1 && (b = j_find(j, "binary")))
+         add(j_val(b), j_len(b), 1);
+      else if (j_isarray(j) || j_isobject(j))
       {                         // Expand
          size_t len;
          char *buf;
          const char *err = j_write_mem(j, &buf, &len);
          if (err)
             errx(1, "WTF formdata: %s", err);
-         add(buf, len);
+         add(buf, len, 0);
          free(buf);
       } else
-         add(j_val(j), j_len(j));
+         add(j_val(j), j_len(j), 0);
    }
    if (j_isobject(j))
       for (j_t a = j_first(j); a; a = j_next(a))
       {
          if (n++)
             fputc('&', f);
-         add(j_name(a), -1);
+         add(j_name(a), -1, 0);
          addv(a);
    } else if (j_isarray(j))
       for (j_t a = j_first(j); a; a = j_next(a))
