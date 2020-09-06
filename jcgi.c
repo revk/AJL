@@ -636,9 +636,6 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
       if ((c = poptGetNextOpt(optCon)) < -1)
          errx(1, "%s: %s\n", poptBadOption(optCon, POPT_BADOPTION_NOALIAS), poptStrerror(c));
 
-      if (!outfile && poptPeekArg(optCon))
-         outfile = poptGetArg(optCon);
-
       poptFreeContext(optCon);
    }
    if (!header && !info && !cookie && !formdata)
