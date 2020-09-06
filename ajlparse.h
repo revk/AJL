@@ -86,7 +86,7 @@ void ajl_pretty(const ajl_t);   // Mark for pretty output (i.e. additional white
 
 const char *ajl_add(const ajl_t, const unsigned char *tag, const unsigned char *value); // Add pre-formatted value (expects quotes, escapes, etc)
 const char *ajl_add_string(const ajl_t, const unsigned char *tag, const unsigned char *value);  // Add UTF-8 string, escaped for JSON
-const char *ajl_add_literal(const ajl_t, const unsigned char *tag, const unsigned char *value);  // Add unescaped literal
+const char *ajl_add_literal(const ajl_t, const unsigned char *tag, const unsigned char *value); // Add unescaped literal
 const char *ajl_add_stringn(const ajl_t, const unsigned char *tag, const unsigned char *value, size_t len);     // Add UTF-8 string, escaped for JSON
 const char *ajl_add_binary(const ajl_t, const unsigned char *tag, const unsigned char *value, size_t len);      // Add binary data as string, escaped for JSON
 const char *ajl_add_number(const ajl_t, const unsigned char *tag, const char *fmt, ...);
@@ -103,4 +103,4 @@ int ajl_isws(unsigned char c);  // Check if whitespace
 void ajl_skip_ws(const ajl_t j);        // Skip any whitespace
 const char *ajl_string(const ajl_t j, FILE * o);        // Process a string (i.e. starting and ending with quotes and using escapes), writing decoded string to file if not zero
 const char *ajl_number(const ajl_t j, FILE * o);        // Process a number, writing number to file
-void ajl_write_string(FILE *o, const unsigned char *value, size_t len); // Write escaped string
+void ajl_write_string(FILE * o, const unsigned char *value, size_t len);        // Write escaped string
