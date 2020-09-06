@@ -37,16 +37,26 @@
 // Return error is non null for error (mallo'd)
 
 #include "ajl.h"
-#define	JCGI_NOTMP	1       // Don't make tmp files, just put raw data in "data":
-#define	JCGI_NOCLEAN	2       // Don't clean up tmp files on exit
-#define	JCGI_NOJSON	4       // Don't load JSON objects
-#define	JCGI_JSONTMP	8       // Make tmp files if loading JSON
-#define	JCGI_JSONERR	16      // Fail if json load fails
-#define	JCGI_LIMIT	96
-#define	JCGI_SMALL	32      // Limit post where no expected file uploads
-#define	JCGI_MEDIUM	64      // Limit post for small expected file uploads
-#define	JCGI_LARGE	96      // Limit post for large expected file uploads
-char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *session, int flags);
-#define j_cgi(j,session,flags) j_cgi_get(j_make(j,"info"),j_make(j,"formdata"),j_make(j,"cookie"),j_make(j,"header"),session,flags)
+
+typedef struct {
+   j_t all;                     // If set, use as default for info, formdata, cookie and header
+   j_t info;                    // Load info
+   j_t formdata;                // Load formdata
+   j_t cookie;                  // Load cookie
+   j_t header;                  // Load header
+   const char *session;
+   unsigned char notmp:1;       // Don't make tmp files, just put raw data in "data":
+   unsigned char noclean:1;     // Don't clean up tmp files on exit
+   unsigned char nojson:1;      // Don't load JSON objects
+   unsigned char jsontmp:1;     // Make tmp files if loading JSON
+   unsigned char jsonerr:1;     // Fail if json load fails
+   unsigned char small:1;       // Small file expected (set one of these)
+   unsigned char medium:1;      // Medium file expected
+   unsigned char large:1;       // Large file expected
+} jcgi_get_t;
+#define j_cgi_get(...) j_cgi_get_opts((jcgi_get_t){__VA_ARGS__})
+char *j_cgi_get_opts(jcgi_get_t);
+
+
 char *j_parse_formdata_sep(j_t, const char *, char sep);
 #define j_parse_formdata(j,f) j_parse_formdata_sep(j,f,'&')

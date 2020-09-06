@@ -52,14 +52,14 @@ static void docleanup(void)
    }
 }
 
-static char *newtmpfile(int flags)
+static char *newtmpfile(int noclean)
 {                               // Make temp file
    char temp[] = "/tmp/jcgi-XXXXXX";
    int f = mkstemp(temp);
    if (f < 0)
       return NULL;
    close(f);
-   if (!(flags & JCGI_NOCLEAN) && !cleanup)
+   if (!noclean && !cleanup)
       atexit(docleanup);
    fn_t *c = malloc(sizeof(*c));
    c->fn = strdup(temp);
@@ -68,20 +68,31 @@ static char *newtmpfile(int flags)
    return c->fn;
 }
 
-char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *session, int flags)
+char *j_cgi_get_opts(jcgi_get_t o)
 {                               // Fill in formdata, cookies, headers, and manage cookie session, return is NULL if OK, else error. All args can be NULL if not needed
    char *method = getenv("REQUEST_METHOD");
    if (!method)
       return j_errs("Not running from apache");
+   if (o.all)
+   {                            // Default
+      if (!o.info)
+         o.info = o.all;
+      if (!o.formdata)
+         o.formdata = o.all;
+      if (!o.cookie)
+         o.cookie = o.all;
+      if (!o.header)
+         o.header = o.all;
+   }
 
-   if (cookie)
+   if (o.cookie)
    {                            // Cookies
       char *c = getenv("HTTP_COOKIE");
       if (c)
-         j_parse_formdata_sep(cookie, c, ';');
-      if (session)
+         j_parse_formdata_sep(o.cookie, c, ';');
+      if (o.session)
       {                         // Update cookie
-         const char *u = j_get(cookie, session);
+         const char *u = j_get(o.cookie, o.session);
          if (!u || strlen(u) != 36)
          {
             int f = open("/dev/urandom", O_RDONLY);
@@ -102,16 +113,16 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                   time_t now = time(0) + max;
                   char temp[50];
                   strftime(temp, sizeof(temp), "%a, %d-%b-%Y %T GMT", gmtime(&now));
-                  printf("Set-Cookie: %s=%s; Path=/; Max-Age=%d; Expires=%s; HTTPOnly;%s\r\n", session, uuid, max, temp, getenv("HTTPS") ? " Secure" : "");
-                  j_store_string(cookie, session, uuid);
+                  printf("Set-Cookie: %s=%s; Path=/; Max-Age=%d; Expires=%s; HTTPOnly;%s\r\n", o.session, uuid, max, temp, getenv("HTTPS") ? " Secure" : "");
+                  j_store_string(o.cookie, o.session, uuid);
                }
                close(f);
             }
          }
       }
-      j_sort(cookie);
+      j_sort(o.cookie);
    }
-   if (info || header)
+   if (o.info || o.header)
    {                            // Headers
       for (char **ep = environ; *ep; ep++)
       {
@@ -120,7 +131,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
          if (!v)
             continue;
          v++;
-         if (header && !strncmp(e, "HTTP_", 5) && (!cookie || strncmp(e, "HTTP_COOKIE=", 12)))
+         if (o.header && !strncmp(e, "HTTP_", 5) && (!o.cookie || strncmp(e, "HTTP_COOKIE=", 12)))
          {                      // Header from Apache
             char *name = malloc(v - e - 5);
             memcpy(name, e + 5, v - e - 6);
@@ -132,13 +143,13 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                else if (isupper(*q) && q != name && isalpha(q[-1]))
                   *q = tolower(*q);
             }
-            j_store_string(header, name, v);
+            j_store_string(o.header, name, v);
             free(name);
             continue;
          }
-         if (info
-             && (!strncmp(e, "SSL_CLIENT_", 11) || !strncmp(e, "PATH_", 5) || !strncmp(e, "SERVER_", 7) || !strncmp(e, "REMOTE_", 7) || (!strncmp(e, "REQUEST_", 8) && (!formdata || strncmp(e, "REQUEST_URI=", 12))) || !strncmp(e, "SCRIPT_", 7)
-                 || (!strncmp(e, "QUERY_", 6) && (!formdata || strncmp(e, "QUERY_STRING=", 13)))))
+         if (o.info
+             && (!strncmp(e, "SSL_CLIENT_", 11) || !strncmp(e, "PATH_", 5) || !strncmp(e, "SERVER_", 7) || !strncmp(e, "REMOTE_", 7) || (!strncmp(e, "REQUEST_", 8) && (!o.formdata || strncmp(e, "REQUEST_URI=", 12))) || !strncmp(e, "SCRIPT_", 7)
+                 || (!strncmp(e, "QUERY_", 6) && (!o.formdata || strncmp(e, "QUERY_STRING=", 13)))))
          {                      // Just lower case these
             char *name = malloc(v - e);
             memcpy(name, e, v - e - 1);
@@ -146,27 +157,27 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
             for (char *q = name; *q; q++)
                if (isupper(*q))
                   *q = tolower(*q);
-            j_store_string(info, name, v);
+            j_store_string(o.info, name, v);
             free(name);
             continue;
          }
       }
-      if (info && getenv("HTTPS"))
-         j_store_string(info, "https", getenv("SSL_TLS_SNI"));
+      if (o.info && getenv("HTTPS"))
+         j_store_string(o.info, "https", getenv("SSL_TLS_SNI"));
 
-      if (info)
+      if (o.info)
       {
          char *x = getenv("HTTP_X_FORWARDED_FOR");
          if (x && *x)
          {                      // Seems to be relayed
-            const char *i = j_get(info, "remote_addr");
+            const char *i = j_get(o.info, "remote_addr");
             if (i)
             {
                // Integrity check - how do we know to trust this header - it has to be one of our machines relaying
                // Logic we are using is IPv6 and same /48 for server and relay, then trust forwarded for (works for A&A)
                unsigned char i6[16],
                 s6[16];
-               const char *s = j_get(info, "server_addr");
+               const char *s = j_get(o.info, "server_addr");
                if (i && s && inet_pton(AF_INET6, i, i6) > 0 && inet_pton(AF_INET6, s, s6) > 0 && !memcmp(i6, s6, 48 / 8))
                {
                   char *c = strrchr(x, ',');    // Last entry is ours, earlier ones could be sent by client
@@ -176,19 +187,19 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                      while (isspace(*x))
                         x++;
                   }
-                  j_store_string(info, "relay_addr", i);
-                  j_store_string(info, "remote_addr", x);
+                  j_store_string(o.info, "relay_addr", i);
+                  j_store_string(o.info, "remote_addr", x);
                }
             }
          }
       }
 
-      if (info)
-         j_sort(info);
-      if (header)
-         j_sort(header);
+      if (o.info)
+         j_sort(o.info);
+      if (o.header)
+         j_sort(o.header);
    }
-   if (formdata)
+   if (o.formdata)
    {                            // Process formdata
       if (!strcasecmp(method, "POST"))
       {                         // Handle posted (could be url formdata, multipart, or JSON)
@@ -198,7 +209,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
 
          char *data = NULL;
          size_t len = 0;
-         FILE *o = open_memstream(&data, &len);
+         FILE *out = open_memstream(&data, &len);
          {
             char buf[16 * 1024];
             long l = -1;
@@ -206,11 +217,11 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
             if (cl)
                l = strtoul(cl, NULL, 0);
             long m = -1;
-            if ((flags & JCGI_LIMIT) == JCGI_SMALL)
+            if (o.small)
                m = 50000;
-            else if ((flags & JCGI_LIMIT) == JCGI_MEDIUM)
+            else if (o.medium)
                m = 1000000;
-            else if ((flags & JCGI_LIMIT) == JCGI_LARGE)
+            else if (o.large)
                m = 50000000;
             if (m > 0 && l > 0 && l > m)
                return j_errs("Post too big %ld>%ld", l, m);
@@ -219,7 +230,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                size_t r = fread(buf, 1, sizeof(buf), stdin);
                if (!r)
                   break;
-               fwrite(buf, r, 1, o);
+               fwrite(buf, r, 1, out);
                if (l >= 0 && (l -= r) <= 0)
                   break;
                if (m >= 0 && (m -= l) <= 0)
@@ -228,7 +239,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
             if (l > 0)
                return j_errs("Read stopped before end (%ld)", l);
          }
-         fclose(o);
+         fclose(out);
          if (!data)
             return j_errs("No data in post");
          do
@@ -236,17 +247,17 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
             char *er = NULL;
             if (!strcasecmp(ct, "application/x-www-form-urlencoded"))
             {                   // Simple URL encoding
-               char *e = j_parse_formdata(formdata, data);
+               char *e = j_parse_formdata(o.formdata, data);
                free(data);
                if (e)
                   return e;
                continue;
             }
-            if (!(flags & JCGI_NOJSON) && !strcasecmp(ct, "application/json"))
+            if (!o.nojson && !strcasecmp(ct, "application/json"))
             {                   // JSON
-               er = j_read_mem(formdata, data, len);
+               er = j_read_mem(o.formdata, data, len);
                free(data);
-               if (er && (flags & JCGI_JSONERR))
+               if (er && o.jsonerr)
                   return er;
                if (!er)
                   continue;     // Load as non json if error
@@ -327,11 +338,11 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                               while (isspace(*v))
                                  v++;
                               // Values RFC2047 coded FFS - Not sure I care
-                              FILE *o = NULL;
+                              FILE *out = NULL;
                               if (!name && !strncasecmp(v, "name=", 5))
-                                 o = open_memstream(&name, &namel);
+                                 out = open_memstream(&name, &namel);
                               else if (!fn && !strncasecmp(v, "filename=", 9))
-                                 o = open_memstream(&fn, &fnl);
+                                 out = open_memstream(&fn, &fnl);
                               while (v < e && *v != '=')
                                  v++;
                               if (*v == '=')
@@ -342,22 +353,22 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                               while (v < e && *v != '"')
                               {
                                  if (*v == '+')
-                                    fputc(' ', o);
+                                    fputc(' ', out);
                                  else if (*v == '\\' && v[1] == '"')
                                  {      // Firefox does this
                                     v++;
-                                    fputc(*v, o);
+                                    fputc(*v, out);
                                  } else if (*v == '%' && isxdigit(v[1]) && isxdigit(v[2]))
                                  {
-                                    if (o)
-                                       fputc((((v[1] & 0xF) + (isalpha(v[1]) ? 9 : 0)) << 4) + ((v[2] & 0xF) + (isalpha(v[2]) ? 9 : 0)), o);
+                                    if (out)
+                                       fputc((((v[1] & 0xF) + (isalpha(v[1]) ? 9 : 0)) << 4) + ((v[2] & 0xF) + (isalpha(v[2]) ? 9 : 0)), out);
                                     v += 2;
-                                 } else if (o)
-                                    fputc(*v, o);
+                                 } else if (out)
+                                    fputc(*v, out);
                                  v++;
                               }
-                              if (o)
-                                 fclose(o);
+                              if (out)
+                                 fclose(out);
                               if (*v != '"')
                                  return j_errs("Unquoted tag value [%.*s]", (int) hl, p);
                               v++;
@@ -394,18 +405,18 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                   if (!name)
                      return j_errs("No name in form-data");
                   // Store
-                  j_t n = j_find(formdata, name);
+                  j_t n = j_find(o.formdata, name);
                   if (n)
                   {             // Exists
                      if (!j_isarray(n))
                      {          // Make array
                         j_t was = j_detach(n);
-                        n = j_make(formdata, name);
+                        n = j_make(o.formdata, name);
                         j_append_json(n, &was);
                      }
                      n = j_append(n);
                   } else
-                     n = j_make(formdata, name);
+                     n = j_make(o.formdata, name);
                   if (ct)
                   {             // Has a content type
                      if (fn && fnl)
@@ -415,34 +426,34 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
                      if (e > p)
                      {
                         j_t j = NULL;
-                        if (!(flags & JCGI_NOJSON) && ctl == 16 && !strncasecmp(ct, "application/json", ctl))
+                        if (!o.nojson && ctl == 16 && !strncasecmp(ct, "application/json", ctl))
                         {
                            j = j_make(n, "json");
                            char *er = j_read_mem(j, p, e - p);
                            if (er)
                            {
                               j_delete(&j);
-                              if ((flags & JCGI_JSONERR))
+                              if (o.jsonerr)
                                  return er;
                               j_store_string(n, "error", er);
                               free(er);
                            }
                         }
-                        if ((flags & JCGI_NOTMP) || (!(flags & JCGI_JSONTMP) && j))
+                        if (o.notmp || (!o.jsontmp && j))
                         {
                            if (!j)
                               j_store_stringn(n, "data", p, e - p);
                         } else
                         {
-                           char *t = newtmpfile(flags);
+                           char *t = newtmpfile(o.noclean);
                            if (!t)
                               return j_errs("Cannot make temp");
-                           FILE *o = fopen(t, "w");
-                           if (!o)
+                           FILE *out = fopen(t, "w");
+                           if (!out)
                               return j_errs("Tmp file failed %s", t);
-                           if (fwrite(p, e - p, 1, o) != 1)
+                           if (fwrite(p, e - p, 1, out) != 1)
                               return j_errs("Tmp write failed %s", t);
-                           fclose(o);
+                           fclose(out);
                            j_store_string(n, "tmpfile", t);
                         }
                      }
@@ -468,27 +479,27 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
             // Something else.
             if (len)
             {
-               if (flags & JCGI_NOTMP)
-                  j_store_stringn(formdata, "data", data, len);
+               if (o.notmp)
+                  j_store_stringn(o.formdata, "data", data, len);
                else
                {
-                  char *t = newtmpfile(flags);
+                  char *t = newtmpfile(o.noclean);
                   if (!t)
                      return j_errs("Cannot make temp");
-                  FILE *o = fopen(t, "w");
-                  if (!o)
+                  FILE *out = fopen(t, "w");
+                  if (!out)
                      return j_errs("Tmp file failed %s", t);
-                  if (fwrite(data, len, 1, o) != 1)
+                  if (fwrite(data, len, 1, out) != 1)
                      return j_errs("Tmp write failed %s", t);
-                  fclose(o);
-                  j_store_string(formdata, "tmpfile", t);
+                  fclose(out);
+                  j_store_string(o.formdata, "tmpfile", t);
                }
-               j_store_literalf(formdata, "size", "%d", (int) len);
+               j_store_literalf(o.formdata, "size", "%d", (int) len);
             }
-            j_store_string(formdata, "type", ct);
+            j_store_string(o.formdata, "type", ct);
             if (er)
             {
-               j_store_string(formdata, "error", er);
+               j_store_string(o.formdata, "error", er);
                free(er);
             }
             free(data);
@@ -497,7 +508,7 @@ char *j_cgi_get(j_t info, j_t formdata, j_t cookie, j_t header, const char *sess
       const char *q = getenv("QUERY_STRING");
       if (q && *q)
       {                         // Overload query string on top of formdata
-         char *e = j_parse_formdata(formdata, q);
+         char *e = j_parse_formdata(o.formdata, q);
          if (e)
             return e;
       }
@@ -620,6 +631,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
       int c;
       if ((c = poptGetNextOpt(optCon)) < -1)
          errx(1, "%s: %s\n", poptBadOption(optCon, POPT_BADOPTION_NOALIAS), poptStrerror(c));
+
       if (!outfile && poptPeekArg(optCon))
          outfile = poptGetArg(optCon);
 
@@ -627,9 +639,13 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
    }
    if (!header && !info && !cookie && !formdata)
       header = info = cookie = formdata = 1;    // Default
-   int flags = (noclean ? JCGI_NOCLEAN : 0) + (nojson ? JCGI_NOJSON : 0) + (notmp ? JCGI_NOTMP : 0) + (jsontmp ? JCGI_JSONTMP : 0) + (jsonerr ? JCGI_JSONERR : 0);
    j_t j = j_create();
-   char *e = j_cgi_get(info ? j_make(j, "info") : NULL, formdata ? j_make(j, "formdata") : NULL, cookie ? j_make(j, "cookie") : NULL, header ? j_make(j, "header") : NULL, "JCGITEST", flags);
+ char *e = j_cgi_get(info:info ? j_make(j, "info") : NULL,
+                       //
+ formdata:            formdata ? j_make(j, "formdata") : NULL, //
+ cookie:              cookie ? j_make(j, "cookie") : NULL,
+ header:              header ? j_make(j, "header") : NULL, "JCGITEST", //
+ noclean: noclean, nojson: nojson, notmp: notmp, jsontmp: jsontmp, jsonerr:jsonerr);
    if (e)
    {
       if (text)
@@ -649,17 +665,17 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
       o = j_first(j);           // Only one thing asked for
    if (!quiet)
    {
-      FILE *of = stdout;
+      FILE *out = stdout;
       if (outfile && strcmp(outfile, "-"))
-         of = fopen(outfile, "w");
-      if (!of)
+         out = fopen(outfile, "w");
+      if (!out)
          err(1, "Cannot open %s", outfile);
       if (text)
-         j_err(j_write_pretty(o, of));
+         j_err(j_write_pretty(o, out));
       else
-         j_err(j_write(o, of));
+         j_err(j_write(o, out));
       if (outfile)
-         fclose(of);
+         fclose(out);
    }
    j_delete(&j);
    if (env)
