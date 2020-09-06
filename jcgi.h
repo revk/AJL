@@ -40,11 +40,11 @@
 
 typedef struct {
    j_t all;                     // If set, use as default for info, formdata, cookie and header
+   const char *session;
    j_t info;                    // Load info
    j_t formdata;                // Load formdata
    j_t cookie;                  // Load cookie
    j_t header;                  // Load header
-   const char *session;
    unsigned char notmp:1;       // Don't make tmp files, just put raw data in "data":
    unsigned char noclean:1;     // Don't clean up tmp files on exit
    unsigned char nojson:1;      // Don't load JSON objects
