@@ -68,7 +68,7 @@ static char *newtmpfile(int noclean)
    return c->fn;
 }
 
-char *j_cgi_get_opts(jcgi_get_t o)
+char *j_cgi_opts(jcgi_t o)
 {                               // Fill in formdata, cookies, headers, and manage cookie session, return is NULL if OK, else error. All args can be NULL if not needed
    char *method = getenv("REQUEST_METHOD");
    if (!method)
@@ -640,11 +640,11 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
    if (!header && !info && !cookie && !formdata)
       header = info = cookie = formdata = 1;    // Default
    j_t j = j_create();
- char *e = j_cgi_get(info:info ? j_make(j, "info") : NULL,
-                       //
- formdata:            formdata ? j_make(j, "formdata") : NULL, //
- cookie:              cookie ? j_make(j, "cookie") : NULL,
- header:              header ? j_make(j, "header") : NULL, "JCGITEST", //
+ char *e = j_cgi(info:info ? j_make(j, "info") : NULL,
+                   //
+ formdata:        formdata ? j_make(j, "formdata") : NULL,     //
+ cookie:          cookie ? j_make(j, "cookie") : NULL,
+ header:          header ? j_make(j, "header") : NULL, "JCGITEST",     //
  noclean: noclean, nojson: nojson, notmp: notmp, jsontmp: jsontmp, jsonerr:jsonerr);
    if (e)
    {

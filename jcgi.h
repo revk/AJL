@@ -53,10 +53,9 @@ typedef struct {
    unsigned char small:1;       // Small file expected (set one of these)
    unsigned char medium:1;      // Medium file expected
    unsigned char large:1;       // Large file expected
-} jcgi_get_t;
-#define j_cgi_get(...) j_cgi_get_opts((jcgi_get_t){__VA_ARGS__})
-char *j_cgi_get_opts(jcgi_get_t);
-
+} jcgi_t;
+#define j_cgi(...) j_cgi_opts((jcgi_t){__VA_ARGS__})
+char *j_cgi_opts(jcgi_t);
 
 char *j_parse_formdata_sep(j_t, const char *, char sep);
 #define j_parse_formdata(j,f) j_parse_formdata_sep(j,f,'&')
