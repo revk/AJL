@@ -55,7 +55,7 @@ typedef struct {
    unsigned char large:1;       // Large file expected
 } jcgi_t;
 #define j_cgi(...) j_cgi_opts((jcgi_t){__VA_ARGS__})
-char *j_cgi_opts(jcgi_t);
+char * __attribute__((warn_unused_result)) j_cgi_opts(jcgi_t);
 
-char *j_parse_formdata_sep(j_t, const char *, char sep);
+char * __attribute__((warn_unused_result)) j_parse_formdata_sep(j_t, const char *, char sep);
 #define j_parse_formdata(j,f) j_parse_formdata_sep(j,f,'&')

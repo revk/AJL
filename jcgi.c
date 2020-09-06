@@ -89,7 +89,11 @@ char *j_cgi_opts(jcgi_t o)
    {                            // Cookies
       char *c = getenv("HTTP_COOKIE");
       if (c)
-         j_parse_formdata_sep(o.cookie, c, ';');
+      {
+         char *er = j_parse_formdata_sep(o.cookie, c, ';');
+         if (er)
+            return er;
+      }
       if (o.session)
       {                         // Update cookie
          const char *u = j_get(o.cookie, o.session);
@@ -641,10 +645,10 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
       header = info = cookie = formdata = 1;    // Default
    j_t j = j_create();
  char *e = j_cgi(info:info ? j_make(j, "info") : NULL,
-                   //
  formdata:        formdata ? j_make(j, "formdata") : NULL,     //
  cookie:          cookie ? j_make(j, "cookie") : NULL,
- header:          header ? j_make(j, "header") : NULL, "JCGITEST",     //
+ header:          header ? j_make(j, "header") : NULL,
+ session:         "JCGITEST",  //
  noclean: noclean, nojson: nojson, notmp: notmp, jsontmp: jsontmp, jsonerr:jsonerr);
    if (e)
    {
