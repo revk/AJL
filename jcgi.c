@@ -76,13 +76,13 @@ char *j_cgi_opts(jcgi_t o)
    if (o.all)
    {                            // Default
       if (!o.info)
-         o.info = o.all;
+         o.info = j_store_object(o.all, "info");
       if (!o.formdata)
-         o.formdata = o.all;
+         o.formdata = j_store_object(o.all, "formdata");
       if (!o.cookie)
-         o.cookie = o.all;
+         o.cookie = j_store_object(o.all, "cookie");
       if (!o.header)
-         o.header = o.all;
+         o.header = j_store_object(o.all, "header");
    }
 
    if (o.cookie)
