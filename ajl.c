@@ -905,6 +905,8 @@ j_t j_literal(const j_t j, const char *val)
       j->malloc = 1;
    }
    j->val = (void *) val;
+   if (val)
+      j->len = strlen((char *) val);
    return j;
 }
 
