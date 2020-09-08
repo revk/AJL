@@ -842,6 +842,7 @@ j_t j_stringn(const j_t j, const char *val, size_t len)
 
 static void j_vstringf(const j_t j, const char *fmt, va_list ap, int isstring)
 {
+   j_null(j);
    assert(vasprintf((char **) &j->val, fmt, ap) >= 0);
    j->len = strlen((char *) j->val);
    j->malloc = 1;
