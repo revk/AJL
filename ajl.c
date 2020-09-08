@@ -847,6 +847,8 @@ static void j_vstringf(const j_t j, const char *fmt, va_list ap, int isstring)
    j->len = strlen((char *) j->val);
    j->malloc = 1;
    j->isstring = isstring;
+   if (!isstring && !strcmp((char *) j->val, (char *) valnull))
+      freez(j->val);
 }
 
 j_t j_stringf(const j_t j, const char *fmt, ...)
