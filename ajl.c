@@ -600,7 +600,7 @@ char *j_read(const j_t root, FILE * f)
             n->val = valtrue;
          else if (!strcmp((char *) value, (char *) valfalse))
             n->val = valfalse;
-         else if (!strcmp((char *) value, (char *) valnull))
+         else if (t != AJL_STRING && !strcmp((char *) value, (char *) valnull))
          {
             n->val = NULL;
             n->len = 0;
@@ -848,7 +848,11 @@ static void j_vstringf(const j_t j, const char *fmt, va_list ap, int isstring)
    j->malloc = 1;
    j->isstring = isstring;
    if (!isstring && !strcmp((char *) j->val, (char *) valnull))
+   {                            // NULL is special case
       freez(j->val);
+      j->malloc = 0;
+      j->len = 0;
+   }
 }
 
 j_t j_stringf(const j_t j, const char *fmt, ...)
@@ -1597,6 +1601,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
             j_err(j_write(j, stdout));
             printf("\n");
          }
+         //warnx("isnull=%d",j_isnull(j_find(j,"test")));
          j_delete(&j);
       }
 
