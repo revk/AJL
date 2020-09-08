@@ -291,7 +291,6 @@ static j_t j_extend(const j_t j)
    {
       j_null(j);
       j->children = 1;
-      j->len = 0;
    }
    assert((j->child = realloc(j->child, sizeof(*j->child) * (j->len + 1))));
    j_t n = NULL;
@@ -1600,6 +1599,12 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
          {
             j_err(j_write(j, stdout));
             printf("\n");
+         }
+         if (debug)
+         {
+            j_t f = j_find(j, "test");
+            if (f)
+               warnx("test: %s len=%d val=%s isnull=%d", j_val(f), f->len, f->val, j_isnull(f));
          }
          //warnx("isnull=%d",j_isnull(j_find(j,"test")));
          j_delete(&j);
