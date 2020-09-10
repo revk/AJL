@@ -841,8 +841,10 @@ j_t j_stringn(const j_t j, const char *val, size_t len)
 
 static void j_vstringf(const j_t j, const char *fmt, va_list ap, int isstring)
 {
+   char *v = NULL;              // Could be referencing self
+   assert(vasprintf(&v, fmt, ap) >= 0);
    j_null(j);
-   assert(vasprintf((char **) &j->val, fmt, ap) >= 0);
+   j->val = (unsigned char *) v;
    j->len = strlen((char *) j->val);
    j->malloc = 1;
    j->isstring = isstring;
