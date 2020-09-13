@@ -125,6 +125,7 @@ int __attribute__((warn_unused_result)) j_isnull(const j_t);    // True if is nu
 int __attribute__((warn_unused_result)) j_isbool(const j_t);    // True if is a Boolean literal
 int __attribute__((warn_unused_result)) j_istrue(const j_t);    // True if is true literal
 int __attribute__((warn_unused_result)) j_isnumber(const j_t);  // True if is a number
+int __attribute__((warn_unused_result)) j_isliteral(const j_t); // True if is a literl
 int __attribute__((warn_unused_result)) j_isstring(const j_t);  // True if is a string (i.e. quoted, note "123" is a string, 123 is a number)
 
 // Loading an object. This replaces value at the j_t specified, which is usually a root from j_create()

@@ -539,6 +539,11 @@ int j_isnumber(const j_t j)
    return j && !j->children && !j->isstring && j->val && (*j->val == '-' || isdigit(*j->val));
 }
 
+int j_isliteral(const j_t j)
+{                               // True if is a literal
+   return j && !j->children && !j->isstring;
+}
+
 int j_isstring(const j_t j)
 {                               // True if is a string (i.e. quoted, note "123" is a string, 123 is a number)
    return j && j->isstring;
