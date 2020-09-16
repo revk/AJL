@@ -154,6 +154,10 @@ j_t j_datetime(const j_t, time_t);      // Make this point a datetime (see notes
 j_t j_literalf(const j_t, const char *fmt, ...);        // Make this point a (formatted) literal, normally used for numeric values
 j_t j_literal(const j_t, const char *); // Make this point a literal specified as a string (normally for "true" and "false")
 j_t j_literal_free(const j_t, char *);  // Make this point a literal specified as a string which is then freed
+#define	j_int(j,i) j_literalf(j,"%lld",(long long)(i))
+#define	j_boolean(j,i) j_literalf(j,(i)?"true":"false")
+#define	j_true(j,i) j_boolean(j,1)
+#define	j_false(j,i) j_boolean(j,0)
 j_t j_object(const j_t);        // Make this point an object (empty if it was not an object before)
 j_t j_array(const j_t);         // Make this point an array (empty if it was not an array before)
 j_t j_make(const j_t, const char *name);        // Find the named entry in an object, or make a new named entry if not found (null value)
@@ -177,6 +181,10 @@ j_t j_store_datetime(const j_t, const char *name, time_t);      // Add a named d
 j_t j_store_literal(const j_t, const char *name, const char *); // Add a named literal (usually "true" or "false") to an object
 j_t j_store_literalf(const j_t, const char *name, const char *fmt, ...);        // Add a named (formatted) literal *usually a number) to an object
 j_t j_store_literal_free(const j_t, const char *name, char *);  // Add a named literal to an object and free the passed string
+#define	j_store_int(j,n,i) j_store_literalf(j,n,"%lld",(long long)(i))
+#define	j_store_boolean(j,n,i) j_store_literalf(j,n,(i)?"true":"false")
+#define	j_store_true(j,n,i) j_store_boolean(j,n,1)
+#define	j_store_false(j,n,i) j_store_boolean(j,n,0)
 j_t j_store_json(const j_t, const char *name, j_t *);   // Add a complete JSON entry, freeing and nulling second argument, returns first
 j_t j_remove(const j_t, const char *name);      // Removed the named entry from an object
 
@@ -192,6 +200,10 @@ j_t j_append_datetime(const j_t, time_t);       // Append a new datetime (see no
 j_t j_append_literal(const j_t, const char *);  // Append a new literal value (normally "true" or "false") to an array
 j_t j_append_literalf(const j_t, const char *fmt, ...); // Append a new (formatted) literal (usually for a number) to an array
 j_t j_append_literal_free(const j_t, char *);   // Append a new literal value to an array and free the passed string
+#define	j_append_int(j,n,i) j_append_literalf(j,n,"%lld",(long long)(i))
+#define	j_append_boolean(j,n,i) j_append_literalf(j,n,(i)?"true":"false")
+#define	j_append_true(j,n,i) j_append_boolean(j,n,1)
+#define	j_append_false(j,n,i) j_append_boolean(j,n,0)
 j_t j_append_json(const j_t, j_t *);    // Append a complete JSON entry, freeing and nulling second argument, returns first
 
 // Moving parts of objects...
