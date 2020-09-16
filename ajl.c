@@ -817,9 +817,8 @@ j_t j_null(const j_t j)
 j_t j_numberstring(const j_t j, const char *val)
 {                               // Number if valid, else string;
    if (!j_number_ok(val, NULL))
-      j_literal(j, val);
-   else
-      j_string(j, val);
+      return j_literal(j, val);
+   return j_string(j, val);
 }
 
 j_t j_string(const j_t j, const char *val)
