@@ -814,6 +814,14 @@ j_t j_null(const j_t j)
    return j;
 }
 
+j_t j_numberstring(const j_t j, const char *val)
+{                               // Number if valid, else string;
+   if (!j_number_ok(val, NULL))
+      j_literal(j, val);
+   else
+      j_string(j, val);
+}
+
 j_t j_string(const j_t j, const char *val)
 {                               // Simple set this value to a string (null terminated).
    if (!j)
@@ -1026,6 +1034,11 @@ j_t j_store_object(const j_t j, const char *name)
    return j_object(j_make(j, name));
 }
 
+j_t j_store_numberstring(const j_t j, const char *name, const char *val)
+{                               // Store a number / string at specified name in an object
+   return j_numberstring(j_make(j, name), val);
+}
+
 j_t j_store_string(const j_t j, const char *name, const char *val)
 {                               // Store a string at specified name in an object
    return j_string(j_make(j, name), val);
@@ -1089,6 +1102,11 @@ j_t j_append_object(const j_t j)
 j_t j_append_array(const j_t j)
 {                               // Append a new (empty) array to an array
    return j_array(j_append(j));
+}
+
+j_t j_append_numberstring(const j_t j, const char *val)
+{                               // Append a new number / string to an array
+   return j_numberstring(j_append(j), val);
 }
 
 j_t j_append_string(const j_t j, const char *val)

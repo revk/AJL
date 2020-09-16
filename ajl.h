@@ -146,6 +146,7 @@ char * __attribute__((warn_unused_result)) j_write_mem(const j_t, char **buffer,
 
 // These are low level functions, and not typically used on their own, see j_store/j_append later for more useful functions
 j_t j_null(const j_t);          // Null this point
+j_t j_numberstring(const j_t, const char *);    // Make this point a number (if valid) else a string (or null if NULL);
 j_t j_string(const j_t, const char *);  // Make this point a string, and set value
 j_t j_stringn(const j_t, const char *, size_t); // Make this point a string with length (allows embedded nulls)
 j_t j_stringf(const j_t, const char *fmt, ...); // Make this point a string, and set (formatted) value
@@ -168,6 +169,7 @@ void j_sort_f(const j_t, j_sort_func, int recurse);     // Apply a sort using a 
 // If the name passed is NULL, then the corresponding j_append function is used instead
 j_t j_store_object(const j_t, const char *name);        // Add a new named object to an object
 j_t j_store_array(const j_t, const char *name); // Add a new named array to an object
+j_t j_store_numberstring(const j_t, const char *name, const char *);    // Add a number (if valid) else a string (or null if NULL);
 j_t j_store_string(const j_t, const char *name, const char *);  // Add a named string to an object
 j_t j_store_stringn(const j_t, const char *name, const char *, int);    // Add a string with length (allows embedded nulls)
 j_t j_store_stringf(const j_t, const char *name, const char *fmt, ...); // Add a named (formatted) string to an object
@@ -182,6 +184,7 @@ j_t j_remove(const j_t, const char *name);      // Removed the named entry from 
 // These are passed an array (or make what was passed to them in to an array)
 j_t j_append_object(const j_t); // Append a new (empty) object to an array
 j_t j_append_array(const j_t);  // Append a new (empty) array to an array
+j_t j_append_numberstring(const j_t, const char *);     // Append a number (if valid) else a string (or null if NULL);
 j_t j_append_string(const j_t, const char *);   // Append a new string with length (allows embedded nulls)
 j_t j_append_stringn(const j_t, const char *, int);     // Append a new string to an array
 j_t j_append_stringf(const j_t, const char *fmt, ...);  // Append a new (formatted) string to an array
