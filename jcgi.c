@@ -237,7 +237,7 @@ char *j_cgi_opts(jcgi_t o)
                fwrite(buf, r, 1, out);
                if (l >= 0 && (l -= r) <= 0)
                   break;
-               if (m >= 0 && (m -= l) <= 0)
+               if (m >= 0 && (m -= r) <= 0)
                   break;        // Too big
             }
             if (l > 0)
