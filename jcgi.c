@@ -241,7 +241,7 @@ char *j_cgi_opts(jcgi_t o)
                   break;        // Too big
             }
             if (l > 0)
-               return j_errs("Read stopped before end (%ld)", l);
+               return j_errs("Read stopped before end (%ld left of %s)", l, cl ? : "unspecified");
          }
          fclose(out);
          if (!data)
@@ -645,7 +645,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
  formdata:        formdata ? j_make(j, "formdata") : NULL,     //
  cookie:          cookie ? j_make(j, "cookie") : NULL,
  header:          header ? j_make(j, "header") : NULL,
- session:         "JCGITEST",  //
+                   //session:         "JCGITEST",  //
  noclean: noclean, nojson: nojson, notmp: notmp, jsontmp: jsontmp, jsonerr:jsonerr);
    if (e)
    {
