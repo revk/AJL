@@ -31,6 +31,6 @@
 // Response is NULL is 2xx response with JSON, else malloc'd error string
 
 char *j_curl(int type, CURL * crl, j_t tx, j_t rx, const char *bearer, const char *url, ...);
-#define	j_curl_get(curl,tx,rx,bearer,url,...) j_curl(0,curl,tx,rx,bearer,url,__VA_ARGS__)       // GET, formdata
-#define	j_curl_post(curl,tx,rx,bearer,url,...) j_curl(1,curl,tx,rx,bearer,url,__VA_ARGS__)      // POST, formdata
-#define	j_curl_send(curl,tx,rx,bearer,url,...) j_curl(2,curl,tx,rx,bearer,url,__VA_ARGS__)      // POST, json
+#define	j_curl_get(curl,tx,rx,bearer,...) j_curl(0,curl,tx,rx,bearer,__VA_ARGS__)       // GET, formdata
+#define	j_curl_post(curl,tx,rx,bearer,...) j_curl(1,curl,tx,rx,bearer,__VA_ARGS__)      // POST, formdata
+#define	j_curl_send(curl,tx,rx,bearer,...) j_curl(2,curl,tx,rx,bearer,__VA_ARGS__)      // POST, json
