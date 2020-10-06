@@ -381,6 +381,7 @@ const char *ajl_reset(ajl_t j)
    j->level = 0;
    j->line = 1;
    j->posn = 0;
+   j->flags[j->level] = 0;
    return NULL;
 }
 
