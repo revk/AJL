@@ -130,6 +130,8 @@ int __attribute__((warn_unused_result)) j_isstring(const j_t);  // True if is a 
 
 // Loading an object. This replaces value at the j_t specified, which is usually a root from j_create()
 // Returns NULL if all is well, else a malloc'd error string
+typedef char *j_stream_t(j_t); // Called for each JSON, return non NULL (malloced) error to abort stream reading
+char * __attribute__((warn_unused_result)) j_stream(FILE *,j_stream_t *);   // Read streamed objects from file, call func for each, return if error (NULL for EOF)
 char * __attribute__((warn_unused_result)) j_read(const j_t, FILE *);   // Read object from open file
 char * __attribute__((warn_unused_result)) j_read_close(const j_t root, FILE * f);      // Read object and close file
 char * __attribute__((warn_unused_result)) j_read_file(const j_t, const char *filename);        // Read object from named file

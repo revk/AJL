@@ -549,29 +549,22 @@ int j_isstring(const j_t j)
    return j && j->isstring;
 }
 
-// Loading an object. This replaces value at the j_t specified, which is usually a root from j_create()
-// Returns NULL if all is well, else a malloc'd error string
-char *j_read(const j_t root, FILE * f)
-{                               // Read object from open file
+static char *j_scan(j_t root, ajl_t p)
+{                               // Scan parse to end, not error if not EOF, i.e. allow for streamed objects
    const char *e = NULL;
-   assert(root);
-   assert(f);
-   j_null(root);
    j_t j = NULL;
-   ajl_t p = ajl_read(f);
-   ajl_type_t t = 0;
    while (1)
    {
       unsigned char *tag = NULL;
       unsigned char *value = NULL;
       size_t len = 0;
-      t = ajl_parse(p, &tag, &value, &len);     // We expect logical use of tag and value
+      ajl_type_t t = ajl_parse(p, &tag, &value, &len);  // We expect logical use of tag and value
       if (t <= AJL_EOF)
          break;
       if (t == AJL_CLOSE)
       {                         // End of object or array
          if (j == root)
-            break;
+            break;              // End of JSON object
          j = j_parent(j);
          continue;
       }
@@ -624,12 +617,7 @@ char *j_read(const j_t root, FILE * f)
       } else if (n == root)
          break;
    }
-
-   if (t > AJL_EOF)
-      t = ajl_parse(p, NULL, NULL, NULL);
-   if (!e && t > AJL_EOF)
-      e = "Extra data";
-   if (!e && ajl_error(p))
+   if (!e)
       e = ajl_error(p);
    char *ret = NULL;
    if (e)
@@ -649,8 +637,45 @@ char *j_read(const j_t root, FILE * f)
       }
       fclose(f);
    }
-   ajl_end_free(p);
    return ret;
+}
+
+char * __attribute__((warn_unused_result)) j_stream(FILE * f, j_stream_t * func)
+{                               // Read streamed objects, call function for each
+   ajl_t p = ajl_read(f);
+   char *e = NULL;
+   while (!e)
+   {
+      ajl_skip_ws(p);
+      if (ajl_peek(p) < 0)
+         break;                 // End of stream
+      j_t j = j_create();
+      e = j_scan(j, p);
+      if (!e)
+         e = func(j);
+      j_delete(&j);
+   }
+   ajl_end_free(p);
+   return e;
+}
+
+// Loading an object. This replaces value at the j_t specified, which is usually a root from j_create()
+// Returns NULL if all is well, else a malloc'd error string
+char *j_read(const j_t root, FILE * f)
+{                               // Read object from open file
+   assert(root);
+   assert(f);
+   j_null(root);
+   ajl_t p = ajl_read(f);
+   char *e = j_scan(root, p);
+   if (!e)
+   {
+      ajl_skip_ws(p);
+      if (ajl_peek(p) >= 0 && asprintf(&e, "Extra data after object at line %d posn %d\n", ajl_line(p), ajl_char(p)) < 0)
+         errx(1, "malloc");
+   }
+   ajl_end_free(p);
+   return e;
 }
 
 char *j_read_close(const j_t root, FILE * f)
