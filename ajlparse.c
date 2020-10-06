@@ -374,6 +374,16 @@ const char *ajl_done(ajl_t j)
    return e;
 }
 
+const char *ajl_reset(ajl_t j)
+{                               // Reset parse
+   if (!j)
+      return NULL;
+   j->level = 0;
+   j->line = 1;
+   j->posn = 0;
+   return NULL;
+}
+
 ajl_t ajl_read(FILE * f)
 {
    if (!f)

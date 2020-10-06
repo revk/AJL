@@ -551,7 +551,9 @@ int j_isstring(const j_t j)
 
 static char *j_scan(j_t root, ajl_t p)
 {                               // Scan parse to end, not error if not EOF, i.e. allow for streamed objects
-   const char *e = NULL;
+   const char *e = ajl_reset(p);
+   if (e)
+      return strdup(e);
    j_t j = NULL;
    while (1)
    {
