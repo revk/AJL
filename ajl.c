@@ -220,9 +220,8 @@ size_t j_based(const char *src, unsigned char **buf, const char *alphabet, unsig
    return len;
 }
 
-void *j_baseN(size_t slen, const unsigned char *src, size_t dmax, void *dstv, const char *alphabet, unsigned int bits)
+char *j_baseN(size_t slen, const unsigned char *src, size_t dmax, char *dst, const char *alphabet, unsigned int bits)
 {                               // base 16/32/64 binary to string
-   unsigned char *dst = dstv;
    unsigned int i = 0,
        o = 0,
        b = 0,

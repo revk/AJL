@@ -100,7 +100,7 @@ time_t __attribute__((warn_unused_result)) j_timez(const char *t, int z);       
 extern const char JBASE16[];
 extern const char JBASE32[];
 extern const char JBASE64[];
-void * __attribute__((warn_unused_result)) j_baseN(size_t, const unsigned char *, size_t, void *, const char *, unsigned int);
+char * __attribute__((warn_unused_result)) j_baseN(size_t, const unsigned char *, size_t, char *, const char *, unsigned int);
 #define j_base64(len,buf)     j_base64N(len,buf,((len)+2)/3*4+1,alloca(((len)+2)/3*4+1))
 #define j_base64N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE64,6)
 #define j_base32(len,buf)     j_base32N(len,buf,((len)+4)/5*8+1,alloca(((len)+4)/5*8+1))
