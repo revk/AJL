@@ -184,7 +184,7 @@ void j_format_datetime(time_t t, char v[26])
    }
 }
 
-size_t j_based(const char *src, void **buf, const char *alphabet, unsigned int bits)
+size_t j_based(const char *src, unsigned char **buf, const char *alphabet, unsigned int bits)
 {                               // Base16/32/64 string to binary
    if (!buf || !src)
       return -1;
