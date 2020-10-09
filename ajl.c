@@ -184,7 +184,7 @@ void j_format_datetime(time_t t, char v[26])
    }
 }
 
-size_t j_based(const char *src, char **buf, const char *alphabet, unsigned int bits)
+size_t j_based(const char *src, void **buf, const char *alphabet, unsigned int bits)
 {                               // Base16/32/64 string to binary
    if (!buf || !src)
       return -1;
@@ -192,7 +192,7 @@ size_t j_based(const char *src, char **buf, const char *alphabet, unsigned int b
    int b = 0,
        v = 0;
    size_t len = 0;
-   FILE *out = open_memstream(buf, &len);
+   FILE *out = open_memstream((char **) buf, &len);
    while (*src && *src != '=')
    {
       char *q = strchr(alphabet, bits < 6 ? toupper(*src) : *src);
@@ -220,8 +220,9 @@ size_t j_based(const char *src, char **buf, const char *alphabet, unsigned int b
    return len;
 }
 
-char *j_baseN(size_t slen, const unsigned char *src, size_t dmax, char *dst, const char *alphabet, unsigned int bits)
+void *j_baseN(size_t slen, const unsigned char *src, size_t dmax, void *dstv, const char *alphabet, unsigned int bits)
 {                               // base 16/32/64 binary to string
+   unsigned char *dst = dstv;
    unsigned int i = 0,
        o = 0,
        b = 0,
