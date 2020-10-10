@@ -154,14 +154,16 @@ void ajl_next(const ajl_t j)
    // end of buffer?
    if (j->bufptr == j->buflen)
    {                            // Get next buffer
-      j->buflen = j->bufptr = 0;
       if (j->func && !j->buf && !(j->buf = malloc(j->bufmax = 65536)))
          j->bufmax = 0;         // Malloc failed
       if (j->func && j->buf)
       {
          ssize_t l = j->func(j->arg, j->buf, j->bufmax);
          if (l > 0)
+         {
             j->buflen = l;
+            j->bufptr = 0;
+         }
       }
    }
    if (!j->buf || j->bufptr == j->buflen)
