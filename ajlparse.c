@@ -433,7 +433,7 @@ const char *ajl_done(ajl_t j)
 {                               // Get end of parse from text and free j
    if (!j || !j->buf || j->bufmax)
       return NULL;
-   const char *e = j->buf;
+   const char *e = j->buf + j->bufptr;
    free(j);
    return e;
 }
