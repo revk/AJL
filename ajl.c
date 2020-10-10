@@ -21,7 +21,6 @@
        along with this program.  If not, see <http://www.gnu.org/licenses/>.
      */
 
-#define _GNU_SOURCE             /* See feature_test_macros(7) */
 #include <time.h>
 #include "ajlcurl.h"
 #include "ajlparse.c"
@@ -642,9 +641,8 @@ static char *j_scan(j_t root, ajl_t p)
    return ret;
 }
 
-char * __attribute__((warn_unused_result)) j_stream(FILE * f, j_stream_t * func)
+char *j_stream_ajl(ajl_t p, j_stream_t * sfunc)
 {                               // Read streamed objects, call function for each
-   ajl_t p = ajl_read(f);
    char *e = NULL;
    while (!e)
    {
@@ -654,21 +652,29 @@ char * __attribute__((warn_unused_result)) j_stream(FILE * f, j_stream_t * func)
       j_t j = j_create();
       e = j_scan(j, p);
       if (!e)
-         e = func(j);
+         e = sfunc(j);
       j_delete(&j);
    }
-   ajl_end_free(p);
+   ajl_delete(&p);
    return e;
+}
+
+char * __attribute__((warn_unused_result)) j_stream(FILE * f, j_stream_t * sfunc)
+{
+   return j_stream_ajl(ajl_read(f), sfunc);
+}
+
+char * __attribute__((warn_unused_result)) j_stream_func(ajl_func_t func, void *arg, j_stream_t * sfunc)
+{
+   return j_stream_ajl(ajl_read_func(func, arg), sfunc);
 }
 
 // Loading an object. This replaces value at the j_t specified, which is usually a root from j_create()
 // Returns NULL if all is well, else a malloc'd error string
-char *j_read(const j_t root, FILE * f)
+char *j_read_ajl(const j_t root, ajl_t p)
 {                               // Read object from open file
    assert(root);
-   assert(f);
    j_null(root);
-   ajl_t p = ajl_read(f);
    char *e = j_scan(root, p);
    if (!e)
    {
@@ -676,8 +682,14 @@ char *j_read(const j_t root, FILE * f)
       if (ajl_peek(p) >= 0 && asprintf(&e, "Extra data after object at line %d posn %d\n", ajl_line(p), ajl_char(p)) < 0)
          errx(1, "malloc");
    }
-   ajl_end_free(p);
+   ajl_delete(&p);
    return e;
+}
+
+
+char *j_read(const j_t root, FILE * f)
+{
+   return j_read_ajl(root, ajl_read(f));
 }
 
 char *j_read_close(const j_t root, FILE * f)
@@ -701,22 +713,16 @@ char *j_read_file(const j_t j, const char *filename)
    return j_read_close(j, f);
 }
 
-char *j_read_mem(const j_t j, const char *buffer, int len)
+char *j_read_mem(const j_t root, const char *buffer, int len)
 {                               // Read object from string in memory (NULL terminated)
-   assert(j);
-   assert(buffer);
-   if (len < 0)
-      len = strlen(buffer);
-   return j_read_close(j, fmemopen((char *) buffer, len, "r"));
+   return j_read_ajl(root, ajl_read_mem(buffer, len));
 }
 
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
-static char *j_write_flags(const j_t root, FILE * f, int pretty)
+static char *j_write_flags(const j_t root, ajl_t p, int pretty)
 {
    assert(root);
-   assert(f);
-   ajl_t p = ajl_write(f);
    if (pretty)
       ajl_pretty(p);
    j_t j = root;
@@ -755,30 +761,35 @@ static char *j_write_flags(const j_t root, FILE * f, int pretty)
    char *e = (char *) ajl_error(p);
    if (e)
       e = strdup(e);
-   ajl_end_free(p);
+   ajl_delete(&p);
    return e;
+}
+
+char *j_write_func(const j_t root, ajl_func_t func, void *arg)
+{
+   return j_write_flags(root, ajl_write_func(func, arg), 0);
 }
 
 char *j_write(const j_t root, FILE * f)
 {
-   return j_write_flags(root, f, 0);
+   return j_write_flags(root, ajl_write(f), 0);
 }
 
 char *j_write_close(const j_t root, FILE * f)
 {
-   char *e = j_write_flags(root, f, 0);
+   char *e = j_write_flags(root, ajl_write(f), 0);
    fclose(f);
    return e;
 }
 
 char *j_write_pretty(const j_t root, FILE * f)
 {
-   return j_write_flags(root, f, 1);
+   return j_write_flags(root, ajl_write(f), 1);
 }
 
 char *j_write_pretty_close(const j_t root, FILE * f)
 {
-   char *e = j_write_flags(root, f, 1);
+   char *e = j_write_flags(root, ajl_write(f), 1);
    fclose(f);
    return e;
 }

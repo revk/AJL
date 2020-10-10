@@ -36,14 +36,18 @@
 
 // Types
 typedef struct ajl_s *ajl_t;    // The JSON parse control structure
+typedef ssize_t ajl_func_t(void *, void *, size_t);     // Read or write functions (like read() or write())
+
+ssize_t ajl_file_read(void *arg, void *buf, size_t l);  // Standard functions
+ssize_t ajl_file_write(void *arg, void *buf, size_t l);
+ssize_t ajl_fd_read(void *arg, void *buf, size_t l);
+ssize_t ajl_fd_write(void *arg, void *buf, size_t l);
 
 // Those functions returning const char * return NULL for OK, else return error message. Once a parse error is found it is latched
 
 // Common functions
-const char *ajl_end(const ajl_t);       // Close control structure (DOES NOT CLOSE file).
-const char *ajl_end_free(ajl_t);        // Close control structure (DOES NOT CLOSE file). Frees the control
-const char *ajl_close(const ajl_t);     // Close control structure (closes file). For write_mem, this sets buffer and len correctly and adds a NULL after len.
-ajl_t ajl_delete(const ajl_t);  // Free the handle, returns NULL
+const char *ajl_end(const ajl_t);       // Close control structure.
+void ajl_delete(ajl_t *);       // Free the handle, sets NULL
 const char *ajl_error(const ajl_t);     // Return if error set in JSON object, or NULL if not error
 
 // Allocate control structure for parsing, from file or from memory
@@ -51,12 +55,14 @@ ajl_t ajl_text(const char *text);       // Parse start simple text string to nul
 const char *ajl_done(ajl_t j);  // Get end of parse from text and free j
 ajl_t ajl_read(FILE *);         // Parse start file handle
 ajl_t ajl_read_file(const char *filename);      // Parse start read file
-ajl_t ajl_read_mem(unsigned char *buffer, size_t len);  // Parse start mem region
+ajl_t ajl_read_mem(const char *buffer, size_t len);     // Parse start mem region
+ajl_t ajl_read_fd(int);         // Start read from file
+ajl_t ajl_read_func(ajl_func_t *, void *);      // Read using functions
 int ajl_line(const ajl_t);      // Return current line number in source
 int ajl_char(const ajl_t);      // Return current character position in source
 int ajl_level(const ajl_t);     // return current level of nesting
 int ajl_isobject(const ajl_t);  // return non zero if we are within an object and so fields should be tagged
-FILE *ajl_file(const ajl_t);    // return current file handle
+void *ajl_arg(const ajl_t);     // return current arg (e.g. file handle)
 const char *ajl_reset(ajl_t j); // Reset parse
 
 typedef enum {                  // Parse types
@@ -83,6 +89,8 @@ ajl_type_t ajl_parse(const ajl_t, unsigned char **tag, unsigned char **value, si
 ajl_t ajl_write(FILE *);
 ajl_t ajl_write_file(const char *filename);
 ajl_t ajl_write_mem(unsigned char **buffer, size_t *len);
+ajl_t ajl_write_fd(int);        // Start read from file
+ajl_t ajl_write_func(ajl_func_t *, void *);     // Read using functions
 void ajl_pretty(const ajl_t);   // Mark for pretty output (i.e. additional whitespace)
 
 const char *ajl_add(const ajl_t, const unsigned char *tag, const unsigned char *value); // Add pre-formatted value (expects quotes, escapes, etc)
@@ -99,9 +107,10 @@ const char *ajl_add_close(const ajl_t); // close current array or object
 
 // Low level.
 int ajl_peek(const ajl_t j);    // Peek next character, -1 for eof, -2 for error
-void ajl_next(const ajl_t j, FILE * o); // Advance character (write to o if not null)
+void ajl_next(const ajl_t j);   // Advance character
+void ajl_copy(const ajl_t j, FILE * o); // Advance character (copy to o)
 int ajl_isws(unsigned char c);  // Check if whitespace
 void ajl_skip_ws(const ajl_t j);        // Skip any whitespace
 const char *ajl_string(const ajl_t j, FILE * o);        // Process a string (i.e. starting and ending with quotes and using escapes), writing decoded string to file if not zero
 const char *ajl_number(const ajl_t j, FILE * o);        // Process a number, writing number to file
-void ajl_write_string(FILE * o, const unsigned char *value, size_t len);        // Write escaped string
+void ajl_write_string(const ajl_t j, const unsigned char *value, size_t len);   // Write escaped string

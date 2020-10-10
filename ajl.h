@@ -63,6 +63,7 @@ inline void j_err_exit(const char *e, const char *fn, int l)
 char *j_errs(const char *, ...);        // make malloc'd error string
 
 typedef struct j_s *j_t;        // Point in JSON tree, i.e. a value
+typedef ssize_t ajl_func_t(void *, void *, size_t);     // Read or write functions (like read() or write())
 
 j_t __attribute__((warn_unused_result)) j_create();     // Allocate a new JSON object tree that is empty, ready to be added to or read in to, NULL for error
 void j_delete(j_t *);           // Delete this value (remove from parent object if not root) and all sub objects, NULLs the pointer
@@ -132,6 +133,8 @@ int __attribute__((warn_unused_result)) j_isstring(const j_t);  // True if is a 
 // Returns NULL if all is well, else a malloc'd error string
 typedef char *j_stream_t(j_t);  // Called for each JSON, return non NULL (malloced) error to abort stream reading
 char * __attribute__((warn_unused_result)) j_stream(FILE *, j_stream_t *);      // Read streamed objects from file, call func for each, return if error (NULL for EOF)
+char * __attribute__((warn_unused_result)) j_stream_func(ajl_func_t, void *, j_stream_t);       // Read object using function
+char * __attribute__((warn_unused_result)) j_read_func(const j_t, ajl_func_t, void *);  // Read object using function
 char * __attribute__((warn_unused_result)) j_read(const j_t, FILE *);   // Read object from open file
 char * __attribute__((warn_unused_result)) j_read_close(const j_t root, FILE * f);      // Read object and close file
 char * __attribute__((warn_unused_result)) j_read_file(const j_t, const char *filename);        // Read object from named file
@@ -140,6 +143,7 @@ char * __attribute__((warn_unused_result)) j_read_mem(const j_t, const char *buf
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
 char * __attribute__((warn_unused_result)) j_write(const j_t, FILE *);
+char * __attribute__((warn_unused_result)) j_write_func(const j_t, ajl_func_t, void *); // Write object using function
 char * __attribute__((warn_unused_result)) j_write_close(const j_t, FILE *);    // Also closes file
 char * __attribute__((warn_unused_result)) j_write_pretty(const j_t, FILE *);   // Write with formatting, making for debug use
 char * __attribute__((warn_unused_result)) j_write_pretty_close(const j_t, FILE *);     // Write with formatting, making for debug use, closes file
