@@ -664,6 +664,11 @@ char * __attribute__((warn_unused_result)) j_stream(FILE * f, j_stream_t * sfunc
    return j_stream_ajl(ajl_read(f), sfunc);
 }
 
+char * __attribute__((warn_unused_result)) j_stream_fd(int f, j_stream_t * sfunc)
+{
+   return j_stream_ajl(ajl_read_fd(f), sfunc);
+}
+
 char * __attribute__((warn_unused_result)) j_stream_func(ajl_func_t func, void *arg, j_stream_t * sfunc)
 {
    return j_stream_ajl(ajl_read_func(func, arg), sfunc);
@@ -686,10 +691,14 @@ char *j_read_ajl(const j_t root, ajl_t p)
    return e;
 }
 
-
 char *j_read(const j_t root, FILE * f)
 {
    return j_read_ajl(root, ajl_read(f));
+}
+
+char *j_read_fd(const j_t root, int f)
+{
+   return j_read_ajl(root, ajl_read_fd(f));
 }
 
 char *j_read_close(const j_t root, FILE * f)
@@ -773,6 +782,11 @@ char *j_write_func(const j_t root, ajl_func_t func, void *arg)
 char *j_write(const j_t root, FILE * f)
 {
    return j_write_flags(root, ajl_write(f), 0);
+}
+
+char *j_write_fd(const j_t root, int f)
+{
+   return j_write_flags(root, ajl_write_fd(f), 0);
 }
 
 char *j_write_close(const j_t root, FILE * f)
