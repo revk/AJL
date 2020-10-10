@@ -44,6 +44,7 @@ struct ajl_s {
    const char *error;           // Current error
    unsigned char *flags;        // Flags
    unsigned char peek;          // Next character for read
+   unsigned char isread:1;      // Is read, not write
    unsigned char eof:1;         // Have reached end of file (peek no longer valid)
    unsigned char pretty:1;      // Formatted output
    unsigned char started:1;     // Formatting started
@@ -89,7 +90,7 @@ ssize_t ajl_fd_write(void *arg, void *buf, size_t l)
 
 void ajl_flush(const ajl_t j)
 {                               // Flush out buffered write
-   if (!j || j->error)
+   if (!j || j->error || j->isread)
       return;
    if (j->buf && j->bufptr)
    {
@@ -453,7 +454,7 @@ const char *ajl_reset(ajl_t j)
    return NULL;
 }
 
-ajl_t ajl_init(void)
+ajl_t ajl_init(unsigned char isread)
 {
    ajl_t j = calloc(1, sizeof(*j));
    if (!j)
@@ -462,12 +463,13 @@ ajl_t ajl_init(void)
    j->flags[j->level] = 0;
    j->line = 1;
    j->posn = 1;
+   j->isread = isread;
    return j;
 }
 
 ajl_t ajl_read_func(ajl_func_t * func, void *arg)
 {                               // Read using functions
-   ajl_t j = ajl_init();
+   ajl_t j = ajl_init(1);
    j->func = func;
    j->arg = arg;
    ajl_next(j);
@@ -497,7 +499,7 @@ ajl_t ajl_read_mem(const char *buffer, size_t len)
 {
    if (!buffer)
       return NULL;
-   ajl_t j = ajl_init();
+   ajl_t j = ajl_init(1);
    j->buf = (char *) buffer;
    j->buflen = len;
    return j;
@@ -650,7 +652,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
 //
 ajl_t ajl_write_func(ajl_func_t * func, void *arg)
 {                               // Read using functions
-   ajl_t j = ajl_init();
+   ajl_t j = ajl_init(0);
    j->func = func;
    j->arg = arg;
    return j;
