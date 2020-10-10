@@ -520,7 +520,7 @@ int ajl_level(const ajl_t j)
    return j->level;
 }
 
-void *ajl_file(const ajl_t j)
+void *ajl_arg(const ajl_t j)
 {
    if (!j)
       return NULL;
