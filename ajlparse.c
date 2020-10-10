@@ -89,7 +89,7 @@ ssize_t ajl_fd_write(void *arg, void *buf, size_t l)
 
 void ajl_flush(const ajl_t j)
 {                               // Flush out buffered write
-   if (!j || j->error || !j->bufptr)
+   if (!j || j->error)
       return;
    if (j->buf && j->bufptr)
    {
