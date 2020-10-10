@@ -113,4 +113,4 @@ int ajl_isws(unsigned char c);  // Check if whitespace
 void ajl_skip_ws(const ajl_t j);        // Skip any whitespace
 const char *ajl_string(const ajl_t j, FILE * o);        // Process a string (i.e. starting and ending with quotes and using escapes), writing decoded string to file if not zero
 const char *ajl_number(const ajl_t j, FILE * o);        // Process a number, writing number to file
-void ajl_write_string(const ajl_t j, const unsigned char *value, size_t len);   // Write escaped string
+void ajl_fwrite_string(FILE * o, const unsigned char *value, size_t len);       // Write escaped string

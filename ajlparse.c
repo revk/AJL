@@ -681,6 +681,30 @@ void ajl_pretty(const ajl_t j)
    j->pretty = 1;
 }
 
+void ajl_fwrite_string(FILE * o, const unsigned char *value, size_t len)
+{                               // Write file UTF-8 string, escaped as necessary - to file
+   if (!value)
+   {
+      fprintf(o, "null");
+      return;
+   }
+   fputc('"', o);
+   while (len--)
+   {
+      unsigned char c = *value++;
+#define esc(a,b) if(c==b){fputc('\\',o);fputc(a,o);} else
+#define	esco(a,b)               // optional
+      escapes
+#undef esco
+#undef esc
+          if (c < ' ')
+         fprintf(o, "\\u00%02X", c);
+      else
+         fputc(c, o);
+   }
+   fputc('"', o);
+}
+
 void ajl_write_string(ajl_t j, const unsigned char *value, size_t len)
 {                               // Write file UTF-8 string, escaped as necessary
    if (!value)
