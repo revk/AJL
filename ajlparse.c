@@ -65,6 +65,8 @@ struct ajl_s {
 // Local functions
 #define validate(j) if(!j)return "NULL control passed"; if(j->error)return j->error;
 
+#define	BUFBLOCK	(256*1024)
+
 ssize_t ajl_file_read(void *arg, void *buf, size_t l)
 {
    return fread(buf, 1, l, arg);
@@ -118,7 +120,7 @@ void ajl_put(const ajl_t j, char c)
    if (j->bufptr == j->bufmax)
    {
       ajl_flush(j);
-      if (!j->buf && !(j->buf = malloc(j->bufmax = 65536)))
+      if (!j->buf && !(j->buf = malloc(j->bufmax = BUFBLOCK)))
          j->bufmax = 0;         // Malloc failed
    }
    if (j->buf && j->bufptr < j->bufmax)
@@ -154,7 +156,7 @@ void ajl_next(const ajl_t j)
    // end of buffer?
    if (j->bufptr == j->buflen)
    {                            // Get next buffer
-      if (j->func && !j->buf && !(j->buf = malloc(j->bufmax = 65536)))
+      if (j->func && !j->buf && !(j->buf = malloc(j->bufmax = BUFBLOCK)))
          j->bufmax = 0;         // Malloc failed
       if (j->func && j->buf)
       {
