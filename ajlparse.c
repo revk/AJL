@@ -845,7 +845,8 @@ const char *ajl_add_number(const ajl_t j, const unsigned char *tag, const char *
    va_list ap;
    va_start(ap, fmt);
    char *s = NULL;
-   vasprintf(&s, fmt, ap);
+   if (vasprintf(&s, fmt, ap) < 0)
+      j->error = "malloc";
    va_end(ap);
    ajl_puts(j, s);
    free(s);
