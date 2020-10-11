@@ -66,7 +66,7 @@ struct ajl_s {
 // Local functions
 #define validate(j) if(!j)return "NULL control passed"; if(j->error)return j->error;
 
-#define	BUFBLOCK	(256*1024)
+#define	BUFBLOCK	(16*1024)
 
 ssize_t ajl_file_read(void *arg, void *buf, size_t l)
 {
