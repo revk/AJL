@@ -62,7 +62,6 @@ int ajl_line(const ajl_t);      // Return current line number in source
 int ajl_char(const ajl_t);      // Return current character position in source
 int ajl_level(const ajl_t);     // return current level of nesting
 int ajl_isobject(const ajl_t);  // return non zero if we are within an object and so fields should be tagged
-void *ajl_arg(const ajl_t);     // return current arg (e.g. file handle)
 const char *ajl_reset(ajl_t j); // Reset parse
 
 typedef enum {                  // Parse types
