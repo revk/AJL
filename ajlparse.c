@@ -526,13 +526,6 @@ int ajl_level(const ajl_t j)
    return j->level;
 }
 
-void *ajl_arg(const ajl_t j)
-{
-   if (!j)
-      return NULL;
-   return j->arg;
-}
-
 int ajl_isobject(const ajl_t j)
 {
    return j->flags[j->level] & OBJECT;
