@@ -48,6 +48,7 @@ struct ajl_s {
    unsigned char eof:1;         // Have reached end of file (peek no longer valid)
    unsigned char pretty:1;      // Formatted output
    unsigned char started:1;     // Formatting started
+   unsigned char peeked:1;      // We are one byte ahead
 };
 #define	COMMA	1               // flags
 #define OBJECT	2
@@ -152,6 +153,7 @@ int ajl_peek(const ajl_t j)
 void ajl_next(const ajl_t j)
 {                               // Read next (and possibly copy to o)
    j->peek = 0;
+   j->peeked = 0;
    if (!j || j->error || j->eof)
       return;
    // end of buffer?
@@ -174,6 +176,7 @@ void ajl_next(const ajl_t j)
    if (j->eof)
       return;
    j->peek = j->buf[j->bufptr++];
+   j->peeked = 1;
    if ((j->peek >= 0x20 && j->peek < 0x80) || j->peek >= 0xC0)
       j->posn++;                // Count character (UTF-8 as one)
    else if (j->peek == '\n')
@@ -434,14 +437,22 @@ ajl_t ajl_text(const char *text)
    return j;
 }
 
-const char *ajl_done(ajl_t j)
-{                               // Get end of parse from text and free j
-   if (!j || !j->buf || j->bufmax)
+const char *ajl_done(ajl_t * jp)
+{                               // delete J and return pointer to next character where this was processing fixed text input
+   if (!jp)
       return NULL;
-   if (j->bufptr && !j->eof)
-      j->bufptr--;
-   const char *e = j->buf + j->bufptr;
+   ajl_t j = *jp;
+   if (!j)
+      return NULL;
+   const char *e = NULL;
+   if (j->buf && !j->bufmax && (!j->peeked || j->bufptr))
+   {
+      e = j->buf + j->bufptr;
+      if (j->peeked)
+         e--;
+   }
    free(j);
+   *jp = NULL;
    return e;
 }
 
@@ -559,6 +570,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
       if (!j->level)
          makeerr("Too many closes");
       j->level--;
+      j->peeked = 0;            // Ensure ajl_done is not confused
       j->peek = ' ';            // for purposes of parse, add space here, rather than actually reading next character - allows streaming with no reading one ahead
       // Alternative is reading ahead: ajl_next(j);
       return AJL_CLOSE;

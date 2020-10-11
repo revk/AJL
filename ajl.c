@@ -1254,7 +1254,7 @@ const char *j_string_ok(const char *n, const char **end)
       return "NULL pointer for string";
    ajl_t j = ajl_text(n);
    const char *err = ajl_string(j, NULL);
-   const char *e = ajl_done(j);
+   const char *e = ajl_done(&j);
    if (end)
       *end = e;
    else if (*e)
@@ -1352,7 +1352,7 @@ const char *j_number_ok(const char *n, const char **end)
       return "NULL pointer for number";
    ajl_t j = ajl_text(n);
    const char *err = ajl_number(j, NULL);
-   const char *e = ajl_done(j);
+   const char *e = ajl_done(&j);
    if (end)
       *end = e;
    else if (*e)
