@@ -722,7 +722,7 @@ char *j_read_file(const j_t j, const char *filename)
    return j_read_close(j, f);
 }
 
-char *j_read_mem(const j_t root, const char *buffer, int len)
+char *j_read_mem(const j_t root, const char *buffer, ssize_t len)
 {                               // Read object from string in memory (NULL terminated)
    return j_read_ajl(root, ajl_read_mem(buffer, len));
 }

@@ -508,10 +508,12 @@ ajl_t ajl_read_file(const char *filename)
    return ajl_read(fopen(filename, "r"));
 };
 
-ajl_t ajl_read_mem(const char *buffer, size_t len)
+ajl_t ajl_read_mem(const char *buffer, ssize_t len)
 {
    if (!buffer)
       return NULL;
+   if (len < 0)
+      len = strlen(buffer);
    ajl_t j = ajl_init(1);
    j->buf = (char *) buffer;
    j->buflen = len;
