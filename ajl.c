@@ -1717,6 +1717,13 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
             printf("Datetime: no end\n");
          else
             printf("Datetime: OK [%s]\n", e);
+         j_t j = j_create();
+         er = j_read_mem(j, test, -1);
+         if (er)
+            printf("JSON: %s\n", er);
+         else
+            j_err(j_write_pretty(j, stdout));
+         j_delete(&j);
       }
 
       const char *v;

@@ -517,6 +517,7 @@ ajl_t ajl_read_mem(const char *buffer, ssize_t len)
    ajl_t j = ajl_init(1);
    j->buf = (char *) buffer;
    j->buflen = len;
+   ajl_next(j);
    return j;
 };
 
