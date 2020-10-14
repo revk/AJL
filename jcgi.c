@@ -534,8 +534,8 @@ char *j_parse_formdata_sep(j_t j, const char *f, char sep)
        lvalue;
       char *name = NULL,
           *value = NULL;
-      void get(FILE * o) {
-         while (*f && *f != '=' && *f != sep)
+      void get(FILE * o, char e) {
+         while (*f && *f != e && *f != sep)
          {
             if (*f == '+')
                fputc(' ', o);
@@ -549,11 +549,11 @@ char *j_parse_formdata_sep(j_t j, const char *f, char sep)
          }
          fclose(o);
       }
-      get(open_memstream(&name, &lname));
+      get(open_memstream(&name, &lname), '=');
       if (*f == '=')
       {                         // Value
          f++;
-         get(open_memstream(&value, &lvalue));
+         get(open_memstream(&value, &lvalue), 0);
       }
       j_t n = j_find(j, name);
       if (n)
