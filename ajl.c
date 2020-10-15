@@ -1159,6 +1159,7 @@ j_t j_extend(const j_t j, int len)
 {
    if (!j)
       return NULL;
+   j_array(j);
    while (len > j_len(j))
       j_append_null(j);
    return j;
