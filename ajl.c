@@ -1157,6 +1157,8 @@ j_t j_append_null(const j_t j)
 
 j_t j_extend(const j_t j, int len)
 {
+   if (!j)
+      return NULL;
    while (len > j_len(j))
       j_append_null(j);
    return j;
