@@ -212,10 +212,10 @@ j_t j_append_literal(const j_t, const char *);  // Append a new literal value (n
 j_t j_append_literalf(const j_t, const char *fmt, ...); // Append a new (formatted) literal (usually for a number) to an array
 j_t j_append_literal_free(const j_t, char *);   // Append a new literal value to an array and free the passed string
 j_t j_extend(const j_t, int);   // Extend array to have specified length (nulls)
-#define	j_append_int(j,n,i) j_append_literalf(j,n,"%lld",(long long)(i))
-#define	j_append_boolean(j,n,i) j_append_literalf(j,n,(i)?"true":"false")
-#define	j_append_true(j,n,i) j_append_boolean(j,n,1)
-#define	j_append_false(j,n,i) j_append_boolean(j,n,0)
+#define	j_append_int(j,i) j_append_literalf(j,"%lld",(long long)(i))
+#define	j_append_boolean(j,i) j_append_literalf(j,(i)?"true":"false")
+#define	j_append_true(j,i) j_append_boolean(j,1)
+#define	j_append_false(j,i) j_append_boolean(j,0)
 j_t j_append_json(const j_t, j_t *);    // Append a complete JSON entry, freeing and nulling second argument, returns first
 
 // Moving parts of objects...
