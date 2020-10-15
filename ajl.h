@@ -180,6 +180,7 @@ void j_sort_f(const j_t, j_sort_func, int recurse);     // Apply a sort using a 
 // These functions allow values to be stored in an object - each takes a point, and the name of the value in that object
 // If the point passed is not an object, it is changed to one and made empty, first
 // If the name passed is NULL, then the corresponding j_append function is used instead
+j_t j_store_null(const j_t, const char *name);  // Add a new named null to an object
 j_t j_store_object(const j_t, const char *name);        // Add a new named object to an object
 j_t j_store_array(const j_t, const char *name); // Add a new named array to an object
 j_t j_store_numberstring(const j_t, const char *name, const char *);    // Add a number (if valid) else a string (or null if NULL);
@@ -199,6 +200,7 @@ j_t j_remove(const j_t, const char *name);      // Removed the named entry from 
 
 // Additional functions to combine the above... Returns point for newly added value.
 // These are passed an array (or make what was passed to them in to an array)
+j_t j_append_null(const j_t);   // Append a new null to an array
 j_t j_append_object(const j_t); // Append a new (empty) object to an array
 j_t j_append_array(const j_t);  // Append a new (empty) array to an array
 j_t j_append_numberstring(const j_t, const char *);     // Append a number (if valid) else a string (or null if NULL);
@@ -209,6 +211,7 @@ j_t j_append_datetime(const j_t, time_t);       // Append a new datetime (see no
 j_t j_append_literal(const j_t, const char *);  // Append a new literal value (normally "true" or "false") to an array
 j_t j_append_literalf(const j_t, const char *fmt, ...); // Append a new (formatted) literal (usually for a number) to an array
 j_t j_append_literal_free(const j_t, char *);   // Append a new literal value to an array and free the passed string
+j_t j_extend(const j_t, int);   // Extend array to have specified length (nulls)
 #define	j_append_int(j,n,i) j_append_literalf(j,n,"%lld",(long long)(i))
 #define	j_append_boolean(j,n,i) j_append_literalf(j,n,(i)?"true":"false")
 #define	j_append_true(j,n,i) j_append_boolean(j,n,1)

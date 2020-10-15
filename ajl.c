@@ -282,7 +282,7 @@ static void j_unlink(const j_t j)
    }
 }
 
-static j_t j_extend(const j_t j)
+static j_t j_add_chiled(const j_t j)
 {                               // Extend children
    if (!j)
       return NULL;
@@ -420,7 +420,7 @@ static j_t j_findmake(const j_t cj, const char *path, int make)
             return NULL;        // Not found
          if (!n)
          {
-            n = j_extend(j);
+            n = j_add_chiled(j);
             n->tag = (unsigned char *) strdup((char *) t);
          }
          *e = q;
@@ -571,7 +571,7 @@ static char *j_scan(j_t root, ajl_t p)
       }
       j_t n = root;
       if (j)
-         n = j_extend(j);
+         n = j_add_chiled(j);
       if (tag)
       {                         // Tag in parent
          freez(n->tag);
@@ -1025,7 +1025,7 @@ j_t j_append(const j_t j)
    if (!j)
       return j;
    j_array(j);
-   return j_extend(j);
+   return j_add_chiled(j);
 }
 
 static int j_sort_tag(const void *a, const void *b)
@@ -1059,7 +1059,7 @@ j_t j_make(const j_t j, const char *name)
    j_t n = j_findtag(j, (const unsigned char *) name);
    if (!n)
    {
-      n = j_extend(j);
+      n = j_add_chiled(j);
       n->tag = (unsigned char *) strdup(name);
    }
    return n;
@@ -1078,6 +1078,11 @@ j_t j_remove(const j_t j, const char *name)
 j_t j_store_array(const j_t j, const char *name)
 {                               // Store an array at specified name in object
    return j_array(j_make(j, name));
+}
+
+j_t j_store_null(const j_t j, const char *name)
+{                               // Store a null at specified name in an object
+   return j_null(j_make(j, name));
 }
 
 j_t j_store_object(const j_t j, const char *name)
@@ -1145,6 +1150,18 @@ j_t j_store_json(const j_t j, const char *name, j_t * vp)
 }
 
 // Additional functions to combine the above... Returns point for newly added value.
+j_t j_append_null(const j_t j)
+{                               // Append a new null to an array
+   return j_null(j_append(j));
+}
+
+j_t j_extend(const j_t j, int len)
+{
+   while (len > j_len(j))
+      j_append_null(j);
+   return j;
+}
+
 j_t j_append_object(const j_t j)
 {                               // Append a new (empty) object to an array
    return j_object(j_append(j));
