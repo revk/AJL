@@ -641,7 +641,7 @@ static char *j_scan(j_t root, ajl_t p)
    return ret;
 }
 
-char *j_stream_ajl(ajl_t p, j_stream_t * sfunc)
+char *j_stream_ajl(ajl_t p, j_stream_t * sfunc, void *arg)
 {                               // Read streamed objects, call function for each
    char *e = NULL;
    while (!e)
@@ -652,26 +652,26 @@ char *j_stream_ajl(ajl_t p, j_stream_t * sfunc)
       j_t j = j_create();
       e = j_scan(j, p);
       if (!e)
-         e = sfunc(j);
+         e = sfunc(j, arg);
       j_delete(&j);
    }
    ajl_delete(&p);
    return e;
 }
 
-char * __attribute__((warn_unused_result)) j_stream(FILE * f, j_stream_t * sfunc)
+char * __attribute__((warn_unused_result)) j_stream(FILE * f, j_stream_t * sfunc, void *arg)
 {
-   return j_stream_ajl(ajl_read(f), sfunc);
+   return j_stream_ajl(ajl_read(f), sfunc, arg);
 }
 
-char * __attribute__((warn_unused_result)) j_stream_fd(int f, j_stream_t * sfunc)
+char * __attribute__((warn_unused_result)) j_stream_fd(int f, j_stream_t * sfunc, void *arg)
 {
-   return j_stream_ajl(ajl_read_fd(f), sfunc);
+   return j_stream_ajl(ajl_read_fd(f), sfunc, arg);
 }
 
-char * __attribute__((warn_unused_result)) j_stream_func(ajl_func_t func, void *arg, j_stream_t * sfunc)
+char * __attribute__((warn_unused_result)) j_stream_func(ajl_func_t func, void *arg, j_stream_t * sfunc, void *sarg)
 {
-   return j_stream_ajl(ajl_read_func(func, arg), sfunc);
+   return j_stream_ajl(ajl_read_func(func, arg), sfunc, sarg);
 }
 
 // Loading an object. This replaces value at the j_t specified, which is usually a root from j_create()
