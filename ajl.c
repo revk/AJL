@@ -282,7 +282,7 @@ static void j_unlink(const j_t j)
    }
 }
 
-static j_t j_add_chiled(const j_t j)
+static j_t j_add_child(const j_t j)
 {                               // Extend children
    if (!j)
       return NULL;
@@ -420,7 +420,7 @@ static j_t j_findmake(const j_t cj, const char *path, int make)
             return NULL;        // Not found
          if (!n)
          {
-            n = j_add_chiled(j);
+            n = j_add_child(j);
             n->tag = (unsigned char *) strdup((char *) t);
          }
          *e = q;
@@ -571,7 +571,7 @@ static char *j_scan(j_t root, ajl_t p)
       }
       j_t n = root;
       if (j)
-         n = j_add_chiled(j);
+         n = j_add_child(j);
       if (tag)
       {                         // Tag in parent
          freez(n->tag);
@@ -1025,7 +1025,7 @@ j_t j_append(const j_t j)
    if (!j)
       return j;
    j_array(j);
-   return j_add_chiled(j);
+   return j_add_child(j);
 }
 
 static int j_sort_tag(const void *a, const void *b)
@@ -1059,7 +1059,7 @@ j_t j_make(const j_t j, const char *name)
    j_t n = j_findtag(j, (const unsigned char *) name);
    if (!n)
    {
-      n = j_add_chiled(j);
+      n = j_add_child(j);
       n->tag = (unsigned char *) strdup(name);
    }
    return n;
