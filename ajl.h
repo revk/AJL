@@ -102,11 +102,11 @@ extern const char JBASE16[];
 extern const char JBASE32[];
 extern const char JBASE64[];
 char * __attribute__((warn_unused_result)) j_baseN(size_t, const unsigned char *, size_t, char *, const char *, unsigned int);
-#define j_base64(len,buf)     j_base64N(len,buf,((len)+2)/3*4+3,alloca(((len)+2)/3*4+3))
+#define j_base64(len,buf)     j_base64N(len,buf,((len)+5)/6*8+3,alloca(((len)+5)/6*8+3))
 #define j_base64N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE64,6)
 #define j_base32(len,buf)     j_base32N(len,buf,((len)+4)/5*8+3,alloca(((len)+4)/5*8+3))
 #define j_base32N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE32,5)
-#define j_base16(len,buf)     j_base16N(len,buf,(len)*2+3,alloca((len)*2+3))
+#define j_base16(len,buf)     j_base16N(len,buf,((len)+3)/4*8+3,alloca(((len)+3)/4*8+3))
 #define j_base16N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE16,4)
 size_t j_based(const char *src, unsigned char **bufp, const char *alphabet, unsigned int bits);
 #define j_base64d(src,dst) j_based(src,dst,JBASE64,6)
