@@ -489,6 +489,13 @@ ajl_t ajl_read_func(ajl_func_t * func, void *arg)
    return j;
 }
 
+void *ajl_arg(ajl_t p)
+{
+   if (p)
+      return NULL;
+   return p->arg;
+}
+
 ajl_t ajl_read_fd(int f)
 {
    if (f < 0)

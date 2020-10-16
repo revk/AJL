@@ -90,6 +90,7 @@ ajl_t ajl_write_file(const char *filename);
 ajl_t ajl_write_mem(unsigned char **buffer, size_t *len);
 ajl_t ajl_write_fd(int);        // Start read from file
 ajl_t ajl_write_func(ajl_func_t *, void *);     // Read using functions
+void *ajl_arg(ajl_t);           // Return arg for func - use with care and remember i/o is buffered
 void ajl_pretty(const ajl_t);   // Mark for pretty output (i.e. additional whitespace)
 
 const char *ajl_add(const ajl_t, const unsigned char *tag, const unsigned char *value); // Add pre-formatted value (expects quotes, escapes, etc)
