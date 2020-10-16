@@ -117,7 +117,7 @@ void ajl_flush(const ajl_t j)
 
 void ajl_put(const ajl_t j, char c)
 {                               // Write a character
-   if (!j || j->error)
+   if (!j || j->error || j->isread)
       return;
    if (j->bufptr == j->bufmax)
    {
@@ -142,6 +142,8 @@ void ajl_puts(const ajl_t j, const char *s)
 int ajl_peek(const ajl_t j)
 {
    if (!j)
+      return -4;
+   if (!j->isread)
       return -3;
    if (j->error)
       return -2;
@@ -154,7 +156,7 @@ void ajl_next(const ajl_t j)
 {                               // Read next (and possibly copy to o)
    j->peek = 0;
    j->peeked = 0;
-   if (!j || j->error || j->eof)
+   if (!j || j->error || j->eof || !j->isread)
       return;
    // end of buffer?
    if (j->bufptr == j->buflen)
