@@ -64,6 +64,7 @@ char *j_errs(const char *, ...);        // make malloc'd error string
 
 typedef struct j_s *j_t;        // Point in JSON tree, i.e. a value
 typedef struct ajl_s *ajl_t;    // Lower level data read/write handle
+typedef ssize_t ajl_func_t(void *, void *, size_t);     // Read or write functions (like read() or write())
 
 j_t __attribute__((warn_unused_result)) j_create();     // Allocate a new JSON object tree that is empty, ready to be added to or read in to, NULL for error
 void j_delete(j_t *);           // Delete this value (remove from parent object if not root) and all sub objects, NULLs the pointer
@@ -142,6 +143,7 @@ char * __attribute__((warn_unused_result)) j_read_mem(const j_t, const char *buf
 // Returns NULL if all is well, else a malloc'd error string
 char * __attribute__((warn_unused_result)) j_send(const j_t, ajl_t);    // Stream write object
 char * __attribute__((warn_unused_result)) j_write(const j_t, FILE *);
+char * __attribute__((warn_unused_result)) j_write_func(const j_t, ajl_func_t, void *); // Write object using function
 char * __attribute__((warn_unused_result)) j_write_fd(const j_t, int);
 char * __attribute__((warn_unused_result)) j_write_close(const j_t, FILE *);    // Also closes file
 char * __attribute__((warn_unused_result)) j_write_pretty(const j_t, FILE *);   // Write with formatting, making for debug use
