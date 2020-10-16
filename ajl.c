@@ -556,7 +556,7 @@ char *j_recv(j_t root, ajl_t p)
    if (e)
       return strdup(e);
    j_null(root);
-   j_t j=NULL;
+   j_t j = NULL;
    while (1)
    {
       unsigned char *tag = NULL;
@@ -623,7 +623,7 @@ char *j_recv(j_t root, ajl_t p)
       } else if (n == root)
          break;
    }
-   if (!e || !*e)
+   if (!e)
       e = ajl_error(p);
    char *ret = NULL;
    if (e && !*e)
