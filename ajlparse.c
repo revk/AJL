@@ -426,11 +426,24 @@ const char *ajl_error(const ajl_t j)
 };
 
 // Allocate control structure for parsing, from file or from memory
+ajl_t ajl_init(unsigned char isread)
+{
+   ajl_t j = calloc(1, sizeof(*j));
+   if (!j)
+      return j;
+   assert((j->flags = malloc(j->maxlevel = 10)));
+   j->flags[j->level] = 0;
+   j->line = 1;
+   j->posn = 1;
+   j->isread = isread;
+   return j;
+}
+
 ajl_t ajl_text(const char *text)
 {                               // Simple text parse
    if (!text)
       return NULL;
-   ajl_t j = calloc(1, sizeof(*j));
+   ajl_t j = ajl_init(1);
    if (!j)
       return j;
    j->buf = (char *) text;
@@ -469,22 +482,11 @@ const char *ajl_reset(ajl_t j)
    return NULL;
 }
 
-ajl_t ajl_init(unsigned char isread)
-{
-   ajl_t j = calloc(1, sizeof(*j));
-   if (!j)
-      return j;
-   assert((j->flags = malloc(j->maxlevel = 10)));
-   j->flags[j->level] = 0;
-   j->line = 1;
-   j->posn = 1;
-   j->isread = isread;
-   return j;
-}
-
 ajl_t ajl_read_func(ajl_func_t * func, void *arg)
 {                               // Read using functions
    ajl_t j = ajl_init(1);
+   if (!j)
+      return j;
    j->func = func;
    j->arg = arg;
    ajl_next(j);
@@ -524,6 +526,8 @@ ajl_t ajl_read_mem(const char *buffer, ssize_t len)
    if (len < 0)
       len = strlen(buffer);
    ajl_t j = ajl_init(1);
+   if (!j)
+      return j;
    j->buf = (char *) buffer;
    j->buflen = len;
    ajl_next(j);
@@ -672,6 +676,8 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
 ajl_t ajl_write_func(ajl_func_t * func, void *arg)
 {                               // Read using functions
    ajl_t j = ajl_init(0);
+   if (!j)
+      return j;
    j->func = func;
    j->arg = arg;
    return j;
