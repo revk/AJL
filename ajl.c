@@ -548,8 +548,8 @@ int j_isstring(const j_t j)
    return j && j->isstring;
 }
 
-static char *j_scan(j_t root, ajl_t p)
-{                               // Scan parse to end, not error if not EOF, i.e. allow for streamed objects
+char *j_recv(j_t root, ajl_t p)
+{                               // Stream read, empty string on EOF
    const char *e = ajl_reset(p);
    if (e)
       return strdup(e);
@@ -560,6 +560,8 @@ static char *j_scan(j_t root, ajl_t p)
       unsigned char *value = NULL;
       size_t len = 0;
       ajl_type_t t = ajl_parse(p, &tag, &value, &len);  // We expect logical use of tag and value
+      if (t == AJL_EOF)
+         e = "";
       if (t <= AJL_EOF)
          break;
       if (t == AJL_CLOSE)
@@ -618,10 +620,12 @@ static char *j_scan(j_t root, ajl_t p)
       } else if (n == root)
          break;
    }
-   if (!e)
+   if (!e || !*e)
       e = ajl_error(p);
    char *ret = NULL;
-   if (e)
+   if (e && !*e)
+      e = strdup(e);            // EOF
+   else if (e)
    {                            // report where in object tree we got to
       size_t len;
       FILE *f = open_memstream(&ret, &len);
@@ -641,46 +645,13 @@ static char *j_scan(j_t root, ajl_t p)
    return ret;
 }
 
-char *j_stream_ajl(ajl_t p, j_stream_t * sfunc, void *arg)
-{                               // Read streamed objects, call function for each
-   char *e = NULL;
-   while (!e)
-   {
-      ajl_skip_ws(p);
-      if (ajl_peek(p) < 0)
-         break;                 // End of stream
-      j_t j = j_create();
-      e = j_scan(j, p);
-      if (!e)
-         e = sfunc(j, arg);
-      j_delete(&j);
-   }
-   ajl_delete(&p);
-   return e;
-}
-
-char * __attribute__((warn_unused_result)) j_stream(FILE * f, j_stream_t * sfunc, void *arg)
-{
-   return j_stream_ajl(ajl_read(f), sfunc, arg);
-}
-
-char * __attribute__((warn_unused_result)) j_stream_fd(int f, j_stream_t * sfunc, void *arg)
-{
-   return j_stream_ajl(ajl_read_fd(f), sfunc, arg);
-}
-
-char * __attribute__((warn_unused_result)) j_stream_func(ajl_func_t func, void *arg, j_stream_t * sfunc, void *sarg)
-{
-   return j_stream_ajl(ajl_read_func(func, arg), sfunc, sarg);
-}
-
 // Loading an object. This replaces value at the j_t specified, which is usually a root from j_create()
 // Returns NULL if all is well, else a malloc'd error string
 char *j_read_ajl(const j_t root, ajl_t p)
 {                               // Read object from open file
    assert(root);
    j_null(root);
-   char *e = j_scan(root, p);
+   char *e = j_recv(root, p);
    if (!e)
    {
       ajl_skip_ws(p);
@@ -688,6 +659,8 @@ char *j_read_ajl(const j_t root, ajl_t p)
          errx(1, "malloc");
    }
    ajl_delete(&p);
+   if (e && !*e)
+      freez(e);                 // EOF not an error
    return e;
 }
 
@@ -729,7 +702,7 @@ char *j_read_mem(const j_t root, const char *buffer, ssize_t len)
 
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
-static char *j_write_flags(const j_t root, ajl_t p, int pretty)
+static char *j_write_flags(const j_t root, ajl_t p, char pretty, char close)
 {
    assert(root);
    if (pretty)
@@ -770,40 +743,46 @@ static char *j_write_flags(const j_t root, ajl_t p, int pretty)
    char *e = (char *) ajl_error(p);
    if (e)
       e = strdup(e);
-   ajl_delete(&p);
+   if (close)
+      ajl_delete(&p);
    return e;
+}
+
+char *j_send(const j_t root, ajl_t p)
+{
+   return j_write_flags(root, p, 0, 0);
 }
 
 char *j_write_func(const j_t root, ajl_func_t func, void *arg)
 {
-   return j_write_flags(root, ajl_write_func(func, arg), 0);
+   return j_write_flags(root, ajl_write_func(func, arg), 0, 1);
 }
 
 char *j_write(const j_t root, FILE * f)
 {
-   return j_write_flags(root, ajl_write(f), 0);
+   return j_write_flags(root, ajl_write(f), 0, 1);
 }
 
 char *j_write_fd(const j_t root, int f)
 {
-   return j_write_flags(root, ajl_write_fd(f), 0);
+   return j_write_flags(root, ajl_write_fd(f), 0, 1);
 }
 
 char *j_write_close(const j_t root, FILE * f)
 {
-   char *e = j_write_flags(root, ajl_write(f), 0);
+   char *e = j_write_flags(root, ajl_write(f), 0, 1);
    fclose(f);
    return e;
 }
 
 char *j_write_pretty(const j_t root, FILE * f)
 {
-   return j_write_flags(root, ajl_write(f), 1);
+   return j_write_flags(root, ajl_write(f), 1, 1);
 }
 
 char *j_write_pretty_close(const j_t root, FILE * f)
 {
-   char *e = j_write_flags(root, ajl_write(f), 1);
+   char *e = j_write_flags(root, ajl_write(f), 1, 1);
    fclose(f);
    return e;
 }
