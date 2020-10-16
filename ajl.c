@@ -627,7 +627,7 @@ char *j_recv(j_t root, ajl_t p)
       e = ajl_error(p);
    char *ret = NULL;
    if (e && !*e)
-      ret = strdup(e);            // EOF
+      ret = strdup(e);          // EOF
    else if (e)
    {                            // report where in object tree we got to
       size_t len;
@@ -752,7 +752,9 @@ static char *j_write_flags(const j_t root, ajl_t p, char pretty, char close)
 
 char *j_send(const j_t root, ajl_t p)
 {
-   return j_write_flags(root, p, 0, 0);
+   char *er = j_write_flags(root, p, 0, 0);
+   ajl_flush(p);
+   return er;
 }
 
 char *j_write_func(const j_t root, ajl_func_t func, void *arg)
