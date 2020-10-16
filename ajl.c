@@ -752,6 +752,9 @@ static char *j_write_flags(const j_t root, ajl_t p, char pretty, char close)
 
 char *j_send(const j_t root, ajl_t p)
 {
+   const char *e = ajl_reset(p);
+   if (e)
+      return strdup(e);
    char *er = j_write_flags(root, p, 0, 0);
    ajl_flush(p);
    return er;
