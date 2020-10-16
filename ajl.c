@@ -550,10 +550,13 @@ int j_isstring(const j_t j)
 
 char *j_recv(j_t root, ajl_t p)
 {                               // Stream read, empty string on EOF
+   if (!root)
+      return strdup("Missing j_t");
    const char *e = ajl_reset(p);
    if (e)
       return strdup(e);
-   j_t j = NULL;
+   j_null(root);
+   j_t j=NULL;
    while (1)
    {
       unsigned char *tag = NULL;
@@ -650,7 +653,6 @@ char *j_recv(j_t root, ajl_t p)
 char *j_read_ajl(const j_t root, ajl_t p)
 {                               // Read object from open file
    assert(root);
-   j_null(root);
    char *e = j_recv(root, p);
    if (!e)
    {
