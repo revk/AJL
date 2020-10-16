@@ -627,7 +627,7 @@ char *j_recv(j_t root, ajl_t p)
       e = ajl_error(p);
    char *ret = NULL;
    if (e && !*e)
-      e = strdup(e);            // EOF
+      ret = strdup(e);            // EOF
    else if (e)
    {                            // report where in object tree we got to
       size_t len;
