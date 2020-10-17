@@ -191,8 +191,8 @@ j_t j_store_literalf(const j_t, const char *name, const char *fmt, ...);        
 j_t j_store_literal_free(const j_t, const char *name, char *);  // Add a named literal to an object and free the passed string
 #define	j_store_int(j,n,i) j_store_literalf(j,n,"%lld",(long long)(i))
 #define	j_store_boolean(j,n,i) j_store_literalf(j,n,(i)?"true":"false")
-#define	j_store_true(j,n,i) j_store_boolean(j,n,1)
-#define	j_store_false(j,n,i) j_store_boolean(j,n,0)
+#define	j_store_true(j,n) j_store_boolean(j,n,1)
+#define	j_store_false(j,n) j_store_boolean(j,n,0)
 j_t j_store_json(const j_t, const char *name, j_t *);   // Add a complete JSON entry, freeing and nulling second argument, returns first
 j_t j_remove(const j_t, const char *name);      // Removed the named entry from an object
 
