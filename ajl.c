@@ -581,7 +581,8 @@ char *j_recv(j_t root, ajl_t p)
       {                         // Tag in parent
          freez(n->tag);
          n->tag = tag;
-         if (j_findtag(j, tag) != n)
+         j_t was = j_findtag(j, tag);
+         if (was && was != n)
          {
             j = n;
             e = "Duplicate tag";
