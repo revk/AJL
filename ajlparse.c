@@ -591,7 +591,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
          makeerr("Too many closes");
       j->level--;
       if (!j->level)
-      {
+      {                         // White space logically allowed here, and this is end of final brace
          j->peeked = 0;         // Ensure ajl_done is not confused
          j->peek = ' ';         // for purposes of parse, add space here, rather than actually reading next character - allows streaming with no reading one ahead
       }
