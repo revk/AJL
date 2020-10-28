@@ -590,9 +590,11 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
       if (!j->level)
          makeerr("Too many closes");
       j->level--;
-      j->peeked = 0;            // Ensure ajl_done is not confused
-      j->peek = ' ';            // for purposes of parse, add space here, rather than actually reading next character - allows streaming with no reading one ahead
-      // Alternative is reading ahead: ajl_next(j);
+      if (!j->level)
+      {
+         j->peeked = 0;         // Ensure ajl_done is not confused
+         j->peek = ' ';         // for purposes of parse, add space here, rather than actually reading next character - allows streaming with no reading one ahead
+      }
       return AJL_CLOSE;
    }
    skip_comma(j);
