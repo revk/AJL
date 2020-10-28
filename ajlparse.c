@@ -143,6 +143,8 @@ int ajl_peek(const ajl_t j)
 {
    if (!j)
       return -4;
+   if (!j->peeked)
+      ajl_next(j);
    if (!j->isread)
       return -3;
    if (j->error)
@@ -594,7 +596,8 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
       {                         // White space logically allowed here, and this is end of final brace
          j->peeked = 0;         // Ensure ajl_done is not confused
          j->peek = ' ';         // for purposes of parse, add space here, rather than actually reading next character - allows streaming with no reading one ahead
-      }
+      } else
+         ajl_next(j);           // Consume
       return AJL_CLOSE;
    }
    skip_comma(j);

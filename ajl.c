@@ -570,7 +570,7 @@ char *j_recv(j_t root, ajl_t p)
       if (t == AJL_CLOSE)
       {                         // End of object or array
          if (j == root)
-            break;              // End of JSON object
+            break;
          j = j_parent(j);
          continue;
       }
@@ -658,7 +658,7 @@ char *j_read_ajl(const j_t root, ajl_t p)
    if (!e)
    {
       ajl_skip_ws(p);
-      if (ajl_peek(p) >= 0 && asprintf(&e, "Extra data after object at line %d posn %d\n", ajl_line(p), ajl_char(p)) < 0)
+      if (ajl_peek(p) >= 0 && asprintf(&e, "Extra data after object at line %d posn %d [%c]\n", ajl_line(p), ajl_char(p), ajl_peek(p)) < 0)
          errx(1, "malloc");
    }
    ajl_delete(&p);
