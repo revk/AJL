@@ -227,8 +227,10 @@ static inline const char *skip_comma(const ajl_t j)
 const char *ajl_string(const ajl_t j, FILE * o)
 {                               // Process a string (i.e. starting and ending with quotes and using escapes), writing decoded string to file if not zero
    validate(j);
-   if (j->eof || j->peek != '"')
-      return j->error = "Missing quote";
+   if (j->eof)
+      return j->error = "EOF at start of string";
+   if (j->peek != '"')
+      return j->error = "Missing quote at start of string";
    ajl_next(j);
    while (!j->eof && j->peek != '"')
    {
@@ -350,8 +352,10 @@ const char *ajl_string(const ajl_t j, FILE * o)
    }
    if (j->error)
       return j->error;
-   if (j->eof || j->peek != '"')
-      return j->error = "Missing quote";
+   if (j->eof)
+      return j->error = "EOF in string";
+   if (j->peek != '"')
+      return j->error = "Missing end quote";
    ajl_next(j);
    return NULL;
 }
