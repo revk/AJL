@@ -304,7 +304,7 @@ static j_t j_findtag(const j_t j, const unsigned char *tag)
    if (!j || !j->children || j->isarray)
       return NULL;
    for (int q = 0; q < j->len; q++)
-      if (!strcmp((char *) j->child[q]->tag, (char *) tag))
+      if (j->child[q]->tag && !strcmp((char *) j->child[q]->tag, (char *) tag))
          return j->child[q];
    return NULL;
 }
@@ -556,7 +556,7 @@ char *j_recv(j_t root, ajl_t p)
    if (e)
       return strdup(e);
    j_null(root);
-   j_t j = NULL;
+   j_t j = NULL; // Current container, NULL means root is not a container (yet)
    while (1)
    {
       unsigned char *tag = NULL;
@@ -581,9 +581,8 @@ char *j_recv(j_t root, ajl_t p)
       {                         // Tag in parent
          freez(n->tag);
          n->tag = tag;
-         j_t was = j_findtag(j, tag);
-         if (was && was != n)
-         {
+         if (j_findtag(j, tag) != n)
+         {                      // Should always find this tag just added, else duplicate
             j = n;
             e = "Duplicate tag";
             break;
@@ -633,11 +632,18 @@ char *j_recv(j_t root, ajl_t p)
    {                            // report where in object tree we got to
       size_t len;
       FILE *f = open_memstream(&ret, &len);
-      fprintf(f, "Parse fail at line %d posn %d: %s\n", ajl_line(p), ajl_char(p), e);
+      int v = ajl_line(p);
+      fprintf(f, "Parse failed");
+      if (v > 1)
+         fprintf(f, " line %d", v);
+      v = ajl_char(p);
+      if (v)
+         fprintf(f, " posn %d", v);
+      fprintf(f, ": %s, ", e);
       while (j && j != root)
       {
          if (j->tag)
-            fprintf(f, "%s", j->tag);
+            fprintf(f, "\"%s\"", j->tag);
          else
             fprintf(f, "[%d]", j->posn);
          j = j_parent(j);
@@ -657,7 +663,7 @@ char *j_read_ajl(const j_t root, ajl_t p)
    char *e = j_recv(root, p);
    if (!e)
    {
-      ajl_skip_ws(p);
+      ajl_skip_ws(p);           // This will also skip any faked trailing whitespace and check for more actual data or eof
       if (ajl_peek(p) >= 0 && asprintf(&e, "Extra data after object at line %d posn %d [%c]\n", ajl_line(p), ajl_char(p), ajl_peek(p)) < 0)
          errx(1, "malloc");
    }

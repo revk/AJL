@@ -143,8 +143,6 @@ int ajl_peek(const ajl_t j)
 {
    if (!j)
       return -4;
-   if (!j->peeked)
-      ajl_next(j);
    if (!j->isread)
       return -3;
    if (j->error)
@@ -593,17 +591,18 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
          makeerr("Too many closes");
       j->level--;
       if (!j->level)
-      {                         // White space logically allowed here, and this is end of final brace
-         j->peeked = 0;         // Ensure ajl_done is not confused
-         j->peek = ' ';         // for purposes of parse, add space here, rather than actually reading next character - allows streaming with no reading one ahead
+      {                         // Final close - whitespace is valid here so we fake it rather than reading ahead
+         j->peeked = 0;         // Ensure ajl_done is not confused by the fact we have not read ahead
+         j->peek = '\n';        // valid whitespace
       } else
-         ajl_next(j);           // Consume
+         ajl_next(j);           // Otherwise consume closing ]/} as normal
       return AJL_CLOSE;
    }
    skip_comma(j);
    checkeof;
    if (j->flags[j->level] & OBJECT)
    {                            // skip tag
+   if (j->peek != '"')makeerr("Missing tag in object");
       size_t len;
       FILE *o = NULL;
       if (tag)
@@ -667,6 +666,8 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
    while (!j->eof && isalpha(j->peek) && p < l + sizeof(l) - 1)
    {
       *p++ = j->peek;
+      if (strncmp(l, "true", (int) (p - l)) && strncmp(l, "false", (int) (p - l)) && strncmp(l, "null", (int) (p - l)))
+         break;                 // Break early for better error messages
       ajl_copy(j, o);
    }
    *p = 0;
