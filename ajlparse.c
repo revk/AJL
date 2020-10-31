@@ -493,7 +493,7 @@ ajl_t ajl_read_func(ajl_func_t * func, void *arg)
       return j;
    j->func = func;
    j->arg = arg;
-   ajl_next(j);
+   j->peek = ' ';               // Dummy before start
    return j;
 }
 
@@ -602,7 +602,8 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
    checkeof;
    if (j->flags[j->level] & OBJECT)
    {                            // skip tag
-   if (j->peek != '"')makeerr("Missing tag in object");
+      if (j->peek != '"')
+         makeerr("Missing tag in object");
       size_t len;
       FILE *o = NULL;
       if (tag)
