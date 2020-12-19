@@ -290,7 +290,7 @@ const char *ajl_string(const ajl_t j, FILE * o)
             }
             if (o)
             {
-               if (c >= 0x1000)
+               if (c >= 0x10000)
                {
                   fputc(0xF0 + (c >> 18), o);
                   fputc(0x80 + ((c >> 12) & 0x3F), o);
