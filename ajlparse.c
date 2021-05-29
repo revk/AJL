@@ -405,6 +405,8 @@ void ajl_delete(ajl_t * jp)
    if (!jp)
       return;
    ajl_t j = *jp;
+   if (!j)
+      return;
    ajl_end(j);
    if (j->flags)
       free(j->flags);

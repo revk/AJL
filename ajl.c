@@ -556,7 +556,7 @@ char *j_recv(j_t root, ajl_t p)
    if (e)
       return strdup(e);
    j_null(root);
-   j_t j = NULL; // Current container, NULL means root is not a container (yet)
+   j_t j = NULL;                // Current container, NULL means root is not a container (yet)
    while (1)
    {
       unsigned char *tag = NULL;
