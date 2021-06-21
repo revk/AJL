@@ -711,7 +711,7 @@ char *j_read_mem(const j_t root, const char *buffer, ssize_t len)
 
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
-static char *j_write_flags(const j_t root, ajl_t p, char pretty, char close)
+static char *j_write_flags(const j_t root, ajl_t p, char pretty, char aclose)
 {
    assert(root);
    if (pretty)
@@ -752,7 +752,7 @@ static char *j_write_flags(const j_t root, ajl_t p, char pretty, char close)
    char *e = (char *) ajl_error(p);
    if (e)
       e = strdup(e);
-   if (close)
+   if (aclose)
       ajl_delete(&p);
    return e;
 }
@@ -774,12 +774,12 @@ char *j_write_func(const j_t root, ajl_func_t func, void *arg)
 
 char *j_write(const j_t root, FILE * f)
 {
-   return j_write_flags(root, ajl_write(f), 0, 0);
+   return j_write_flags(root, ajl_write(f), 0, 1);
 }
 
 char *j_write_fd(const j_t root, int f)
 {
-   return j_write_flags(root, ajl_write_fd(f), 0, 0);
+   return j_write_flags(root, ajl_write_fd(f), 0, 1);
 }
 
 char *j_write_close(const j_t root, FILE * f)
