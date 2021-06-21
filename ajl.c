@@ -774,12 +774,12 @@ char *j_write_func(const j_t root, ajl_func_t func, void *arg)
 
 char *j_write(const j_t root, FILE * f)
 {
-   return j_write_flags(root, ajl_write(f), 0, 1);
+   return j_write_flags(root, ajl_write(f), 0, 0);
 }
 
 char *j_write_fd(const j_t root, int f)
 {
-   return j_write_flags(root, ajl_write_fd(f), 0, 1);
+   return j_write_flags(root, ajl_write_fd(f), 0, 0);
 }
 
 char *j_write_close(const j_t root, FILE * f)
@@ -791,7 +791,7 @@ char *j_write_close(const j_t root, FILE * f)
 
 char *j_write_pretty(const j_t root, FILE * f)
 {
-   return j_write_flags(root, ajl_write(f), 1, 1);
+   return j_write_flags(root, ajl_write(f), 1, 0);
 }
 
 char *j_write_pretty_close(const j_t root, FILE * f)
@@ -812,7 +812,7 @@ char *j_write_file(const j_t j, const char *filename)
       assert(asprintf(&e, "Failed to open %s (%s)", filename, strerror(errno)) >= 0);
       return e;
    }
-   return j_write(j, f);
+   return j_write_close(j, f);
 }
 
 char *j_write_mem(const j_t j, char **buffer, size_t *len)

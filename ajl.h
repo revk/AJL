@@ -142,13 +142,13 @@ char * __attribute__((warn_unused_result)) j_read_mem(const j_t, const char *buf
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
 char * __attribute__((warn_unused_result)) j_send(const j_t, ajl_t);    // Stream write object
-char * __attribute__((warn_unused_result)) j_write(const j_t, FILE *);
+char * __attribute__((warn_unused_result)) j_write(const j_t, FILE *); // Write to file handle
 char * __attribute__((warn_unused_result)) j_write_func(const j_t, ajl_func_t, void *); // Write object using function
 char * __attribute__((warn_unused_result)) j_write_fd(const j_t, int);
 char * __attribute__((warn_unused_result)) j_write_close(const j_t, FILE *);    // Also closes file
 char * __attribute__((warn_unused_result)) j_write_pretty(const j_t, FILE *);   // Write with formatting, making for debug use
 char * __attribute__((warn_unused_result)) j_write_pretty_close(const j_t, FILE *);     // Write with formatting, making for debug use, closes file
-char * __attribute__((warn_unused_result)) j_write_file(const j_t, const char *filename);
+char * __attribute__((warn_unused_result)) j_write_file(const j_t, const char *filename); // Write to a file
 char * __attribute__((warn_unused_result)) j_write_mem(const j_t, char **buffer, size_t *len);  // Write to specified buffer/length (len can be NULL if not needed)
 
 // These are low level functions, and not typically used on their own, see j_store/j_append later for more useful functions
