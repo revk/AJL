@@ -791,7 +791,7 @@ char *j_write_close(const j_t root, FILE * f)
 
 char *j_write_pretty(const j_t root, FILE * f)
 {
-   return j_write_flags(root, ajl_write(f), 1, 0);
+   return j_write_flags(root, ajl_write(f), 1, 1);
 }
 
 char *j_write_pretty_close(const j_t root, FILE * f)
