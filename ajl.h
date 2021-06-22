@@ -109,7 +109,7 @@ char * __attribute__((warn_unused_result)) j_baseN(size_t, const unsigned char *
 #define j_base32N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE32,5)
 #define j_base16(len,buf)     j_base16N(len,buf,((len)+3)/4*8+3,alloca(((len)+3)/4*8+3))
 #define j_base16N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE16,4)
-size_t j_based(const char *src, unsigned char **bufp, const char *alphabet, unsigned int bits);
+ssize_t j_based(const char *src, unsigned char **bufp, const char *alphabet, unsigned int bits);
 #define j_base64d(src,dst) j_based(src,dst,JBASE64,6)
 #define j_base32d(src,dst) j_based(src,dst,JBASE32,5)
 #define j_base16d(src,dst) j_based(src,dst,JBASE16,4)
