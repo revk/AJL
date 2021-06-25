@@ -707,7 +707,7 @@ ajl_t ajl_write_fd(int f)
 {
    if (f < 0)
       return NULL;
-   return ajl_write_func(ajl_file_write, (void *) (long) f);
+   return ajl_write_func(ajl_fd_write, (void *) (long) f);
 };
 
 ajl_t ajl_write_file(const char *filename)
