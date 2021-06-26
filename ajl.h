@@ -163,8 +163,8 @@ j_t j_literal(const j_t, const char *); // Make this point a literal specified a
 j_t j_literal_free(const j_t, char *);  // Make this point a literal specified as a string which is then freed
 #define	j_int(j,i) j_literalf(j,"%lld",(long long)(i))
 #define	j_boolean(j,i) j_literalf(j,(i)?"true":"false")
-#define	j_true(j,i) j_boolean(j,1)
-#define	j_false(j,i) j_boolean(j,0)
+#define	j_true(j) j_boolean(j,1)
+#define	j_false(j) j_boolean(j,0)
 j_t j_object(const j_t);        // Make this point an object (empty if it was not an object before)
 j_t j_array(const j_t);         // Make this point an array (empty if it was not an array before)
 j_t j_make(const j_t, const char *name);        // Find the named entry in an object, or make a new named entry if not found (null value)
