@@ -1239,11 +1239,11 @@ j_t j_replace(const j_t j, j_t * op)
       j_delete(op);
       return j;
    }
-   j_null(j);
    if (!op || !*op)
-      return j;
+      return j_null(j);
    j_t o = *op;
    j_unlink(o);                 // Unlink from parent
+   j_null(j);                   // Done after unlink as may be replacing with a child
    j->children = o->children;
    j->isarray = o->isarray;
    if (j->children)
