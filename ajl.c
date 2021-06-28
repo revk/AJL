@@ -713,7 +713,8 @@ char *j_read_mem(const j_t root, const char *buffer, ssize_t len)
 // Returns NULL if all is well, else a malloc'd error string
 static char *j_write_flags(const j_t root, ajl_t p, char pretty, char aclose)
 {
-   assert(root);
+   if (!root)
+      return "No JSON";
    if (pretty)
       ajl_pretty(p);
    j_t j = root;
