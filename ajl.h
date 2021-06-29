@@ -105,7 +105,7 @@ time_t __attribute__((warn_unused_result)) j_timez(const char *t, int z);       
 extern const char JBASE16[];
 extern const char JBASE32[];
 extern const char JBASE64[];
-char * __attribute__((warn_unused_result)) j_baseN(size_t, const unsigned char *, size_t, char *, const char *, unsigned int);
+char * j_baseN(size_t, const unsigned char *, size_t, char *, const char *, unsigned int);
 
 #define j_base64(len,buf)     j_base64N(len,buf,((len)+5)/6*8+3,alloca(((len)+5)/6*8+3))	 // Use a or m versions instead to be clear
 #define j_base64a(len,buf)     j_base64N(len,buf,((len)+5)/6*8+3,alloca(((len)+5)/6*8+3))
