@@ -183,28 +183,26 @@ void j_format_datetime(time_t t, char v[26])
    }
 }
 
-ssize_t j_based(const char *src, unsigned char **buf, const char *alphabet, unsigned int bits)
-{                               // Base16/32/64 string to binary
-   if (!buf || !src)
+// Decoding to a location, returns the length, can return length with NULL buffer passed to allow size to be checked
+// If max allows it, a NULL is also added on end as common for strings to be encoded
+ssize_t j_baseNd(unsigned char *dst, size_t max, const char *src, const char *alphabet, unsigned int bits)
+{
+   if (!src)
       return -1;
-   *buf = NULL;
    int b = 0,
        v = 0;
    size_t len = 0;
-   FILE *out = open_memstream((char **) buf, &len);
    while (*src && *src != '=')
    {
       char *q = strchr(alphabet, bits < 6 ? toupper(*src) : *src);
       if (!q)
       {                         // Bad character
-         if (isspace(*src) || *src == '\r' || *src == '\n')
-         {
+         if (isspace(*src))
+         {                      // allow spaces, including tabs, newlines, etc
             src++;
             continue;
          }
-         if (*buf)
-            free(*buf);
-         return -1;
+         return -1;             // Bad character
       }
       v = (v << bits) + (q - alphabet);
       b += bits;
@@ -212,13 +210,17 @@ ssize_t j_based(const char *src, unsigned char **buf, const char *alphabet, unsi
       if (b >= 8)
       {                         // output byte
          b -= 8;
-         fputc(v >> b, out);
+         if (dst && len < max)
+            dst[len] = v >> b;
+         len++;
       }
    }
-   fclose(out);
+   if (dst && len < max)
+      dst[len] = 0;             // Useful extra null if space
    return len;
 }
 
+// Encoding
 char *j_baseN(size_t slen, const unsigned char *src, size_t dmax, char *dst, const char *alphabet, unsigned int bits)
 {                               // base 16/32/64 binary to string
    unsigned int i = 0,

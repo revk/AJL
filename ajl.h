@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <err.h>
+#include <stdlib.h>
 
 // This code is intended to allow loading, saving, and manipulation of JSON objects
 // The key data type, j_t, is a pointer to a control structure and represents a current "point"
@@ -98,21 +99,45 @@ const char * __attribute__((warn_unused_result)) j_get_not_null(const j_t, const
 time_t __attribute__((warn_unused_result)) j_timez(const char *t, int z);       // convert iso time to time_t (z means assume utc is not set)
 #define j_time(t) j_timez(t,0)  // Normal XML time, assumes local if no time zone
 #define j_time_utc(t) j_timez(t,1)      // Expects time to be UTC even with no Z suffix
+
 // Coding conversion
+// Encode to a location, return the location
 extern const char JBASE16[];
 extern const char JBASE32[];
 extern const char JBASE64[];
 char * __attribute__((warn_unused_result)) j_baseN(size_t, const unsigned char *, size_t, char *, const char *, unsigned int);
-#define j_base64(len,buf)     j_base64N(len,buf,((len)+5)/6*8+3,alloca(((len)+5)/6*8+3))
+
+#define j_base64(len,buf)     j_base64N(len,buf,((len)+5)/6*8+3,alloca(((len)+5)/6*8+3))	 // Use a or m versions instead to be clear
+#define j_base64a(len,buf)     j_base64N(len,buf,((len)+5)/6*8+3,alloca(((len)+5)/6*8+3))
+#define j_base64m(len,buf)     j_base64N(len,buf,((len)+5)/6*8+3,malloc(((len)+5)/6*8+3))
 #define j_base64N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE64,6)
-#define j_base32(len,buf)     j_base32N(len,buf,((len)+4)/5*8+3,alloca(((len)+4)/5*8+3))
+#define j_base32(len,buf)     j_base32N(len,buf,((len)+4)/5*8+3,alloca(((len)+4)/5*8+3))	 // Use a or m versions instead to be clear
+#define j_base32a(len,buf)     j_base32N(len,buf,((len)+4)/5*8+3,alloca(((len)+4)/5*8+3))
+#define j_base32m(len,buf)     j_base32N(len,buf,((len)+4)/5*8+3,malloc(((len)+4)/5*8+3))
 #define j_base32N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE32,5)
-#define j_base16(len,buf)     j_base16N(len,buf,((len)+3)/4*8+3,alloca(((len)+3)/4*8+3))
+#define j_base16(len,buf)     j_base16N(len,buf,((len)+3)/4*8+3,alloca(((len)+3)/4*8+3))	 // Use a or m versions instead to be clear
+#define j_base16a(len,buf)     j_base16N(len,buf,((len)+3)/4*8+3,alloca(((len)+3)/4*8+3))
+#define j_base16m(len,buf)     j_base16N(len,buf,((len)+3)/4*8+3,malloc(((len)+3)/4*8+3))
 #define j_base16N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE16,4)
-ssize_t j_based(const char *src, unsigned char **bufp, const char *alphabet, unsigned int bits);
-#define j_base64d(src,dst) j_based(src,dst,JBASE64,6)
-#define j_base32d(src,dst) j_based(src,dst,JBASE32,5)
-#define j_base16d(src,dst) j_based(src,dst,JBASE16,4)
+
+// Decoding to a location, returns the length, can return length with NULL buffer passed to allow size to be checked
+// If max allows it, a NULL is also added on end as common for strings to be encoded
+ssize_t j_baseNd(unsigned char *dst,size_t max,const char *src,const char *alphabet, unsigned int bits);
+
+inline ssize_t j_based(const char *src, unsigned char **bufp, const char *alphabet, unsigned int bits)
+{ // Allocate memory and put in *bufp, adds extra null on end anyway as common for this to be text anyway. -1 for bad
+	*bufp=NULL;
+	ssize_t len=j_baseNd(NULL,0,src,alphabet,bits)+1;
+	if(len<0)return len;
+	return j_baseNd(*bufp=malloc(len),len,src,alphabet,bits);
+}
+#define j_base64d(src,dst) j_based(src,dst,JBASE64,6)	// malloced to *dst
+#define j_base32d(src,dst) j_based(src,dst,JBASE32,5)	// malloced to *dst
+#define j_base16d(src,dst) j_based(src,dst,JBASE16,4)	// malloced to *dst
+#define	j_base64D(dst,max,src)	j_baseNd(dst,max,src,JBASE64,6)	// To memory
+#define	j_base32D(dst,max,src)	j_baseNd(dst,max,src,JBASE32,5)	// To memory
+#define	j_base16D(dst,max,src)	j_baseNd(dst,max,src,JBASE16,4)	// To memory
+
 // The following _ok functions check if syntax is valid. They return a fixed error if not. If end is set, the end pointer is stored, else any extra characters are an error.
 const char * __attribute__((warn_unused_result)) j_string_ok(const char *n, const char **end);  // Checks if a valid JSON number
 const char * __attribute__((warn_unused_result)) j_number_ok(const char *n, const char **end);  // Checks if a valid JSON number
