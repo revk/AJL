@@ -84,6 +84,12 @@ char *j_errs(const char *fmt, ...)
    return err;
 }
 
+void j_err_exit(const char *e, const char *fn, int l)
+{
+   if (e)
+      errx(1, "JSON fail %s line %d: %s", fn, l, e);
+}
+
 time_t j_timez(const char *t, int z)    // convert iso time to time_t
 {                               // Can do HH:MM:SS, or YYYY-MM-DD or YYYY-MM-DD HH:MM:SS, 0 for invalid
    if (!t)

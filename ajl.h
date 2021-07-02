@@ -54,11 +54,7 @@ extern char j_iso8601utc;       // Used to set preferred datetime format (defaul
 // If 0 then datetime is server local date and time separated by a space with no timezone, e.g. 2020-08-13 06:26:20
 // If 1 then datetime is ISO8601 UTC with Z timezone suffix, e.g. 2020-08-13T05:26:20Z
 
-inline void j_err_exit(const char *e, const char *fn, int l)
-{
-   if (e)
-      errx(1, "JSON fail %s line %d: %s", fn, l, e);
-}
+void j_err_exit(const char *e, const char *fn, int l);
 
 #define j_err(e)	j_err_exit(e,__FILE__,__LINE__)
 char *j_errs(const char *, ...);        // make malloc'd error string
@@ -105,38 +101,40 @@ time_t __attribute__((warn_unused_result)) j_timez(const char *t, int z);       
 extern const char JBASE16[];
 extern const char JBASE32[];
 extern const char JBASE64[];
-char * j_baseN(size_t, const unsigned char *, size_t, char *, const char *, unsigned int);
+char *j_baseN(size_t, const unsigned char *, size_t, char *, const char *, unsigned int);
 
-#define j_base64(len,buf)     j_base64N(len,buf,((len)+5)/6*8+3,alloca(((len)+5)/6*8+3))	 // Use a or m versions instead to be clear
+#define j_base64(len,buf)     j_base64N(len,buf,((len)+5)/6*8+3,alloca(((len)+5)/6*8+3))        // Use a or m versions instead to be clear
 #define j_base64a(len,buf)     j_base64N(len,buf,((len)+5)/6*8+3,alloca(((len)+5)/6*8+3))
 #define j_base64m(len,buf)     j_base64N(len,buf,((len)+5)/6*8+3,malloc(((len)+5)/6*8+3))
 #define j_base64N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE64,6)
-#define j_base32(len,buf)     j_base32N(len,buf,((len)+4)/5*8+3,alloca(((len)+4)/5*8+3))	 // Use a or m versions instead to be clear
+#define j_base32(len,buf)     j_base32N(len,buf,((len)+4)/5*8+3,alloca(((len)+4)/5*8+3))        // Use a or m versions instead to be clear
 #define j_base32a(len,buf)     j_base32N(len,buf,((len)+4)/5*8+3,alloca(((len)+4)/5*8+3))
 #define j_base32m(len,buf)     j_base32N(len,buf,((len)+4)/5*8+3,malloc(((len)+4)/5*8+3))
 #define j_base32N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE32,5)
-#define j_base16(len,buf)     j_base16N(len,buf,((len)+3)/4*8+3,alloca(((len)+3)/4*8+3))	 // Use a or m versions instead to be clear
+#define j_base16(len,buf)     j_base16N(len,buf,((len)+3)/4*8+3,alloca(((len)+3)/4*8+3))        // Use a or m versions instead to be clear
 #define j_base16a(len,buf)     j_base16N(len,buf,((len)+3)/4*8+3,alloca(((len)+3)/4*8+3))
 #define j_base16m(len,buf)     j_base16N(len,buf,((len)+3)/4*8+3,malloc(((len)+3)/4*8+3))
 #define j_base16N(slen,src,dlen,dst) j_baseN(slen,src,dlen,dst,JBASE16,4)
 
 // Decoding to a location, returns the length, can return length with NULL buffer passed to allow size to be checked
 // If max allows it, a NULL is also added on end as common for strings to be encoded
-ssize_t j_baseNd(unsigned char *dst,size_t max,const char *src,const char *alphabet, unsigned int bits);
+ssize_t j_baseNd(unsigned char *dst, size_t max, const char *src, const char *alphabet, unsigned int bits);
 
 inline ssize_t j_based(const char *src, unsigned char **bufp, const char *alphabet, unsigned int bits)
-{ // Allocate memory and put in *bufp, adds extra null on end anyway as common for this to be text anyway. -1 for bad
-	*bufp=NULL;
-	ssize_t len=j_baseNd(NULL,0,src,alphabet,bits)+1;
-	if(len<0)return len;
-	return j_baseNd(*bufp=malloc(len),len,src,alphabet,bits);
+{                               // Allocate memory and put in *bufp, adds extra null on end anyway as common for this to be text anyway. -1 for bad
+   *bufp = NULL;
+   ssize_t len = j_baseNd(NULL, 0, src, alphabet, bits) + 1;
+   if (len < 0)
+      return len;
+   return j_baseNd(*bufp = malloc(len), len, src, alphabet, bits);
 }
-#define j_base64d(src,dst) j_based(src,dst,JBASE64,6)	// malloced to *dst
-#define j_base32d(src,dst) j_based(src,dst,JBASE32,5)	// malloced to *dst
-#define j_base16d(src,dst) j_based(src,dst,JBASE16,4)	// malloced to *dst
-#define	j_base64D(dst,max,src)	j_baseNd(dst,max,src,JBASE64,6)	// To memory
-#define	j_base32D(dst,max,src)	j_baseNd(dst,max,src,JBASE32,5)	// To memory
-#define	j_base16D(dst,max,src)	j_baseNd(dst,max,src,JBASE16,4)	// To memory
+
+#define j_base64d(src,dst) j_based(src,dst,JBASE64,6)   // malloced to *dst
+#define j_base32d(src,dst) j_based(src,dst,JBASE32,5)   // malloced to *dst
+#define j_base16d(src,dst) j_based(src,dst,JBASE16,4)   // malloced to *dst
+#define	j_base64D(dst,max,src)	j_baseNd(dst,max,src,JBASE64,6) // To memory
+#define	j_base32D(dst,max,src)	j_baseNd(dst,max,src,JBASE32,5) // To memory
+#define	j_base16D(dst,max,src)	j_baseNd(dst,max,src,JBASE16,4) // To memory
 
 // The following _ok functions check if syntax is valid. They return a fixed error if not. If end is set, the end pointer is stored, else any extra characters are an error.
 const char * __attribute__((warn_unused_result)) j_string_ok(const char *n, const char **end);  // Checks if a valid JSON number
@@ -167,13 +165,13 @@ char * __attribute__((warn_unused_result)) j_read_mem(const j_t, const char *buf
 // Output an object - note this allows output of a raw value, e.g. string or number, if point specified is not an object itself
 // Returns NULL if all is well, else a malloc'd error string
 char * __attribute__((warn_unused_result)) j_send(const j_t, ajl_t);    // Stream write object
-char * __attribute__((warn_unused_result)) j_write(const j_t, FILE *); // Write to file handle
+char * __attribute__((warn_unused_result)) j_write(const j_t, FILE *);  // Write to file handle
 char * __attribute__((warn_unused_result)) j_write_func(const j_t, ajl_func_t, void *); // Write object using function
 char * __attribute__((warn_unused_result)) j_write_fd(const j_t, int);
 char * __attribute__((warn_unused_result)) j_write_close(const j_t, FILE *);    // Also closes file
 char * __attribute__((warn_unused_result)) j_write_pretty(const j_t, FILE *);   // Write with formatting, making for debug use
 char * __attribute__((warn_unused_result)) j_write_pretty_close(const j_t, FILE *);     // Write with formatting, making for debug use, closes file
-char * __attribute__((warn_unused_result)) j_write_file(const j_t, const char *filename); // Write to a file
+char * __attribute__((warn_unused_result)) j_write_file(const j_t, const char *filename);       // Write to a file
 char * __attribute__((warn_unused_result)) j_write_mem(const j_t, char **buffer, size_t *len);  // Write to specified buffer/length (len can be NULL if not needed)
 
 // These are low level functions, and not typically used on their own, see j_store/j_append later for more useful functions
