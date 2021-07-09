@@ -1056,6 +1056,8 @@ void j_sort(const j_t j)
 
 j_t j_make(const j_t j, const char *name)
 {
+   if (!j)
+      return NULL;
    if (!name)
       return j_append(j);
    j_t n = j_findtag(j, (const unsigned char *) name);
