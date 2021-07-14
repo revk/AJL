@@ -837,6 +837,19 @@ char *j_write_mem(const j_t j, char **buffer, size_t *len)
    return err;
 }
 
+char *j_write_str(const j_t j)
+{
+   char *buffer;
+   size_t len;
+   char *e = j_write_mem(j, &buffer, &len);
+   if (e)
+   {
+      free(e);
+      return NULL;
+   }
+   return buffer;
+}
+
 // Changing an object/value
 j_t j_null(const j_t j)
 {                               // Null this point - used a lot internally to clear a point before setting to correct type
