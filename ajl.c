@@ -226,6 +226,15 @@ ssize_t j_baseNd(unsigned char *dst, size_t max, const char *src, const char *al
    return len;
 }
 
+ssize_t j_based(const char *src, unsigned char **bufp, const char *alphabet, unsigned int bits)
+{                               // Allocate memory and put in *bufp, adds extra null on end anyway as common for this to be text anyway. -1 for bad
+   *bufp = NULL;
+   ssize_t len = j_baseNd(NULL, 0, src, alphabet, bits) + 1;
+   if (len < 0)
+      return len;
+   return j_baseNd(*bufp = malloc(len), len, src, alphabet, bits);
+}
+
 // Encoding
 char *j_baseN(size_t slen, const unsigned char *src, size_t dmax, char *dst, const char *alphabet, unsigned int bits)
 {                               // base 16/32/64 binary to string

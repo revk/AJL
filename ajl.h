@@ -120,14 +120,8 @@ char *j_baseN(size_t, const unsigned char *, size_t, char *, const char *, unsig
 // If max allows it, a NULL is also added on end as common for strings to be encoded
 ssize_t j_baseNd(unsigned char *dst, size_t max, const char *src, const char *alphabet, unsigned int bits);
 
-inline ssize_t j_based(const char *src, unsigned char **bufp, const char *alphabet, unsigned int bits)
-{                               // Allocate memory and put in *bufp, adds extra null on end anyway as common for this to be text anyway. -1 for bad
-   *bufp = NULL;
-   ssize_t len = j_baseNd(NULL, 0, src, alphabet, bits) + 1;
-   if (len < 0)
-      return len;
-   return j_baseNd(*bufp = malloc(len), len, src, alphabet, bits);
-}
+// Allocate memory and put in *bufp, adds extra null on end anyway as common for this to be text anyway. -1 for bad
+ssize_t j_based(const char *src, unsigned char **bufp, const char *alphabet, unsigned int bits);
 
 #define j_base64d(src,dst) j_based(src,dst,JBASE64,6)   // malloced to *dst
 #define j_base32d(src,dst) j_based(src,dst,JBASE32,5)   // malloced to *dst
