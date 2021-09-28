@@ -1637,7 +1637,10 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
       char *s = strchr(fullurl, '?');
       if (s)
          *s = 0;                // Sanitisee
-      err = j_errs("Failed (%s) return code %d", fullurl, code ? : result);
+      if (result)
+         err = j_errs("Failed (%s) curl result %d: %s", fullurl, result, curl_easy_strerror(result));
+      else
+         err = j_errs("Failed (%s) http return code %d", fullurl, code);
    }
    freez(fullurl);
    if (!err && reply && replylen && rx)
