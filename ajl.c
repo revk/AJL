@@ -1640,7 +1640,7 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
       if (result)
          err = j_errs("Failed (%s) curl result %d: %s", fullurl, result, curl_easy_strerror(result));
       else
-         err = j_errs("Failed (%s) http return code %d", fullurl, code);
+         err = j_errs("Failed (%s) http return code %d (%d bytes)", fullurl, code, (int) replylen);
    }
    freez(fullurl);
    if (!result && reply && replylen && rx)
