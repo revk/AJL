@@ -1643,7 +1643,7 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
          err = j_errs("Failed (%s) http return code %d", fullurl, code);
    }
    freez(fullurl);
-   if (!err && reply && replylen && rx)
+   if (reply && replylen && rx)
    {
       char *e = j_read_mem(rx, reply, replylen);
       if (e)
@@ -1652,8 +1652,12 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
          if (curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &ct))
             ct = NULL;
          if (ct && !strcasecmp(ct, "application/json"))
-            err = e;
-         else
+         {
+            if (err)
+               err = j_errs("%s: %s", err, e);
+            else
+               err = j_errs("Failed to parse JSON: %s", e);
+         } else
          {
             free(e);
             j_stringn(rx, reply, replylen);     // Return as a JSON string
