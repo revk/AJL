@@ -1643,7 +1643,7 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
          err = j_errs("Failed (%s) http return code %d", fullurl, code);
    }
    freez(fullurl);
-   if (reply && replylen && rx)
+   if (!result && reply && replylen && rx)
    {
       char *e = j_read_mem(rx, reply, replylen);
       if (e)
