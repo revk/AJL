@@ -24,7 +24,7 @@
 #include "ajlparse.h"
 #include <stdarg.h>
 #include <unistd.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
 #undef NDEBUG                   // Uses side effects in asset
