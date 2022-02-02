@@ -41,6 +41,10 @@
 #include <curl/curl.h>
 #endif
 
+#ifndef	strdupa
+#define strdupa(x) strcpy(alloca(strlen(x)+1),x)
+#endif
+
 // This is a point in the JSON object
 // A key feature is that the content of a point in a JSON object can be replaced in situ if needed.
 // This means a root j_t passed to a function can be input and output JSON object if needed, replacing in-situ at the pointer (see j_replace)
