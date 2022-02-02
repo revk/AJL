@@ -1449,7 +1449,7 @@ void j_log(int debug, const char *who, const char *what, j_t a, j_t b)
    struct timezone tz;
    gettimeofday(&tv, &tz);
    p += strftime(path, sizeof(path) - 1, "/var/log/json/%Y/%m/%d/%H%M%S", gmtime(&tv.tv_sec));
-   p += snprintf(p, path + sizeof(path) - p, "%06lu-%s-%s", tv.tv_usec, norm(strdupa(who ? : "-")), norm(strdupa(what ? : "-")));
+   p += snprintf(p, path + sizeof(path) - p, "%06u-%s-%s", (unsigned int) tv.tv_usec, norm(strdupa(who ? : "-")), norm(strdupa(what ? : "-")));
    for (char *q = path + 13; q; q = strchr(q + 1, '/'))
    {
       *q = 0;
