@@ -414,7 +414,7 @@ void ajl_delete(ajl_t * jp)
       free(j->buf);             // Was malloc'd
    free(j);
    *jp = NULL;
-};
+}
 
 const char *ajl_end(const ajl_t j)
 {                               // Close control structure
@@ -423,13 +423,13 @@ const char *ajl_end(const ajl_t j)
       ajl_put(j, '\n');
    ajl_flush(j);
    return NULL;
-};
+}
 
 const char *ajl_error(const ajl_t j)
 {                               // Return if error set in JSON object, or NULL if not error
    validate(j);
    return NULL;
-};
+}
 
 // Allocate control structure for parsing, from file or from memory
 ajl_t ajl_init(unsigned char isread)
@@ -518,12 +518,12 @@ ajl_t ajl_read(FILE * f)
    if (!f)
       return NULL;
    return ajl_read_func(ajl_file_read, f);
-};
+}
 
 ajl_t ajl_read_file(const char *filename)
 {
    return ajl_read(fopen(filename, "r"));
-};
+}
 
 ajl_t ajl_read_mem(const char *buffer, ssize_t len)
 {
@@ -538,21 +538,21 @@ ajl_t ajl_read_mem(const char *buffer, ssize_t len)
    j->buflen = len;
    ajl_next(j);
    return j;
-};
+}
 
 int ajl_line(const ajl_t j)
 {                               // Return current line number in source
    if (!j)
       return -1;
    return j->line;
-};
+}
 
 int ajl_char(const ajl_t j)
 {                               // Return current character position in source
    if (!j)
       return -1;
    return j->posn;
-};
+}
 
 int ajl_level(const ajl_t j)
 {                               // return current level of nesting
@@ -681,7 +681,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
       return AJL_NULL;
    makeerr("Unexpected token");
    return AJL_ERROR;
-};
+   }
 
 // Generate
 // Allocate control structure for generating, to file or to memory
@@ -701,24 +701,24 @@ ajl_t ajl_write(FILE * f)
    if (!f)
       return NULL;
    return ajl_write_func(ajl_file_write, f);
-};
+}
 
 ajl_t ajl_write_fd(int f)
 {
    if (f < 0)
       return NULL;
    return ajl_write_func(ajl_fd_write, (void *) (long) f);
-};
+}
 
 ajl_t ajl_write_file(const char *filename)
 {
    return ajl_write(fopen(filename, "w"));
-};
+}
 
 ajl_t ajl_write_mem(unsigned char **buffer, size_t *len)
 {
    return ajl_write(open_memstream((char **) buffer, len));
-};
+}
 
 void ajl_pretty(const ajl_t j)
 {
@@ -841,7 +841,7 @@ const char *ajl_add(const ajl_t j, const unsigned char *tag, const unsigned char
    while (*value)
       ajl_put(j, *value++);
    return j->error;
-};
+}
 
 const char *ajl_add_string(const ajl_t j, const unsigned char *tag, const unsigned char *value)
 {                               // Add UTF-8 String, escaped for JSON
@@ -852,7 +852,7 @@ const char *ajl_add_string(const ajl_t j, const unsigned char *tag, const unsign
    else
       ajl_write_string(j, value, strlen((char *) value));
    return j->error;
-};
+}
 
 const char *ajl_add_literal(const ajl_t j, const unsigned char *tag, const unsigned char *value)
 {
@@ -871,7 +871,7 @@ const char *ajl_add_stringn(const ajl_t j, const unsigned char *tag, const unsig
    else
       ajl_write_string(j, value, len);
    return j->error;
-};
+}
 
 const char *ajl_add_binary(const ajl_t j, const unsigned char *tag, const unsigned char *value, size_t len)
 {                               // Add binary data as string, escaped for JSON
@@ -879,7 +879,7 @@ const char *ajl_add_binary(const ajl_t j, const unsigned char *tag, const unsign
    add_tag(j, tag);
    add_binary(j, value, len);
    return j->error;
-};
+}
 
 const char *ajl_add_number(const ajl_t j, const unsigned char *tag, const char *fmt, ...)
 {                               // Add number (formattted)
@@ -902,7 +902,7 @@ const char *ajl_add_boolean(const ajl_t j, const unsigned char *tag, unsigned ch
    add_tag(j, tag);
    ajl_puts(j, value ? "true" : "false");
    return j->error;
-};
+}
 
 const char *ajl_add_null(const ajl_t j, const unsigned char *tag)
 {
@@ -910,7 +910,7 @@ const char *ajl_add_null(const ajl_t j, const unsigned char *tag)
    add_tag(j, tag);
    ajl_puts(j, "null");
    return j->error;
-};
+}
 
 const char *ajl_add_object(const ajl_t j, const unsigned char *tag)
 {                               // Start an object
@@ -922,7 +922,7 @@ const char *ajl_add_object(const ajl_t j, const unsigned char *tag)
    j->level++;
    j->flags[j->level] = OBJECT;
    return j->error;
-};
+}
 
 const char *ajl_add_array(const ajl_t j, const unsigned char *tag)
 {                               // Start an array
@@ -934,7 +934,7 @@ const char *ajl_add_array(const ajl_t j, const unsigned char *tag)
    j->level++;
    j->flags[j->level] = 0;
    return j->error;
-};
+}
 
 const char *ajl_add_close(const ajl_t j)
 {                               // close current array or object
@@ -945,4 +945,4 @@ const char *ajl_add_close(const ajl_t j)
    j_indent(j);
    ajl_put(j, (j->flags[j->level + 1] & OBJECT) ? '}' : ']');
    return j->error;
-};
+}
