@@ -53,10 +53,11 @@ struct ajl_s {
 #define	COMMA	1               // flags
 #define OBJECT	2
 
+// Note that / is technically an optional escape, but because of danger of use of </script> it is always escaped here
 #define escapes \
 	esc ('"', '"') \
         esc ('\\', '\\') \
-        esco ('/', '/') \
+        esc ('/', '/') \
 	esc ('b', '\b') \
 	esc ('f', '\f') \
 	esc ('n', '\n') \
@@ -310,9 +311,7 @@ const char *ajl_string(const ajl_t j, FILE * o)
             }
          }
 #define esc(a,b) else if(j->peek==a){ajl_next(j);if(o)fputc(b,o);}
-#define	esco(a,b) esc(a,b)      // optional
          escapes
-#undef esco
 #undef esc
              else
             return j->error = "Bad escape";
@@ -737,9 +736,7 @@ void ajl_fwrite_string(FILE * o, const unsigned char *value, size_t len)
    {
       unsigned char c = *value++;
 #define esc(a,b) if(c==b){fputc('\\',o);fputc(a,o);} else
-#define	esco(a,b)               // optional
       escapes
-#undef esco
 #undef esc
           if (c < ' ')
          fprintf(o, "\\u00%02X", c);
@@ -761,9 +758,7 @@ void ajl_write_string(ajl_t j, const unsigned char *value, size_t len)
    {
       unsigned char c = *value++;
 #define esc(a,b) if(c==b){ajl_put(j,'\\');ajl_put(j,a);} else
-#define	esco(a,b)               // optional
       escapes
-#undef esco
 #undef esc
           if (c < ' ')
       {
@@ -788,9 +783,7 @@ static void add_binary(const ajl_t j, const unsigned char *value, size_t len)
    {
       unsigned char c = *value++;
 #define esc(a,b) if(c==b){ajl_put(j,'\\');ajl_put(j,a);} else
-#define	esco(a,b)               // optional
       escapes
-#undef esco
 #undef esc
           if (c < ' ' || c >= 0x80)
       {
