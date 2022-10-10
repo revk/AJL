@@ -1222,11 +1222,12 @@ j_t j_append_stringn(const j_t j, const char *val, int len)
 
 j_t j_append_stringf(const j_t j, const char *fmt, ...)
 {                               // Append a new (formatted) string to an array
+   j_t r = j_append(j);
    va_list ap;
    va_start(ap, fmt);
-   j_vstringf(j_append(j), fmt, ap, 1);
+   j_vstringf(r, fmt, ap, 1);
    va_end(ap);
-   return j;
+   return r;
 }
 
 j_t j_append_datetime(const j_t j, time_t t)
@@ -1236,11 +1237,12 @@ j_t j_append_datetime(const j_t j, time_t t)
 
 j_t j_append_literalf(const j_t j, const char *fmt, ...)
 {                               // Append a formatted literal (usually a number) to an array
+   j_t r = j_append(j);
    va_list ap;
    va_start(ap, fmt);
-   j_vstringf(j_append(j), fmt, ap, 0);
+   j_vstringf(r, fmt, ap, 0);
    va_end(ap);
-   return j;
+   return r;
 }
 
 j_t j_append_literal(const j_t j, const char *val)
