@@ -1571,42 +1571,57 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
       freez(fullurl);
       return j_errs("Attempt to POST with no JSON to send (%s)", url);
    }
-   if (tx)
-      switch (type)
+   switch (type)
+   {
+   case 0:                     // GET using formdata
       {
-      case 0:                  // GET using formdata
+         curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+         if (!tx)
+            break;
+         char *formdata = j_formdata(tx);
+         if (!formdata)
+            err = j_errs("Failed to make formdata");
+         else
          {
-            curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
-            char *formdata = j_formdata(tx);
-            if (!formdata)
-               err = j_errs("Failed to make formdata");
-            else
-            {
-               char *u = fullurl;
-               if (asprintf(&fullurl, "%s?%s", u, formdata) < 0)
-                  errx(1, "malloc");
-               free(u);
-               freez(formdata);
-            }
+            char *u = fullurl;
+            if (asprintf(&fullurl, "%s?%s", u, formdata) < 0)
+               errx(1, "malloc");
+            free(u);
+            freez(formdata);
          }
-         break;
-      case 1:                  // POST using formdata
-         {
-            curl_easy_setopt(curl, CURLOPT_POST, 1L);
-            data = j_formdata(tx);
-            if (!data)
-               err = j_errs("Failed to make formdata");
-         }
-         break;
-      case 2:                  // POST JSON
-         {
-            curl_easy_setopt(curl, CURLOPT_POST, 1L);
-            headers = curl_slist_append(headers, "Content-Type: application/json");     // posting JSON
-            size_t l;
-            err = j_write_mem(tx, &data, &l);
-         }
-         break;
       }
+      break;
+   case 1:                     // POST using formdata
+      {
+         curl_easy_setopt(curl, CURLOPT_POST, 1L);
+         if (!tx)
+            break;
+         data = j_formdata(tx);
+         if (!data)
+            err = j_errs("Failed to make formdata");
+      }
+      break;
+   case 2:                     // POST JSON
+      {
+         curl_easy_setopt(curl, CURLOPT_POST, 1L);
+         if (!tx)
+            break;
+         headers = curl_slist_append(headers, "Content-Type: application/json");        // posting JSON
+         size_t l;
+         err = j_write_mem(tx, &data, &l);
+      }
+      break;
+   case 3:                     // PUT JSON
+      {
+         curl_easy_setopt(curl, CURLOPT_PUT, 1L);
+         if (!tx)
+            break;
+         headers = curl_slist_append(headers, "Content-Type: application/json");        // posting JSON
+         size_t l;
+         err = j_write_mem(tx, &data, &l);
+      }
+      break;
+   }
    if (!err && data)
    {
       curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
