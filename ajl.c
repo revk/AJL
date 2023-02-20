@@ -1566,10 +1566,10 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
    struct curl_slist *headers = NULL;
    char *data = NULL;
    char *err = NULL;
-   if (type && !tx)
+   if (type && type != 4 && !tx)
    {
       freez(fullurl);
-      return j_errs("Attempt to POST with no JSON to send (%s)", url);
+      return j_errs("No JSON to send (%s)", url);
    }
    curl_easy_setopt(curl, CURLOPT_HTTPGET, 0L);
    curl_easy_setopt(curl, CURLOPT_PUT, 0L);
