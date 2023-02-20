@@ -1623,12 +1623,15 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
       break;
    case 4:                     // DELETE JSON
       {
-	 curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
          if (!tx)
             break;
          headers = curl_slist_append(headers, "Content-Type: application/json");        // posting JSON
-         size_t l;
-         err = j_write_mem(tx, &data, &l);
+         if (tx)
+         {
+            size_t l;
+            err = j_write_mem(tx, &data, &l);
+         }
       }
       break;
    }
