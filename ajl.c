@@ -1619,10 +1619,19 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
          curl_easy_setopt(curl, CURLOPT_PUT, 1L);
          if (!tx)
             break;
-         data = j_formdata(tx);
-         if (!data)
+#if 1
+         char *formdata = j_formdata(tx);
+         if (!formdata)
             err = j_errs("Failed to make formdata");
-#if 0
+         else
+         {
+            char *u = fullurl;
+            if (asprintf(&fullurl, "%s?%s", u, formdata) < 0)
+               errx(1, "malloc");
+            free(u);
+            freez(formdata);
+         }
+#else
          headers = curl_slist_append(headers, "Content-Type: application/json");        // posting JSON
          size_t l;
          err = j_write_mem(tx, &data, &l);
