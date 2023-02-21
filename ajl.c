@@ -1616,7 +1616,8 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
       break;
    case 3:                     // PUT JSON
       {
-         curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+         //curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
          if (!tx)
             break;
          headers = curl_slist_append(headers, "Content-Type: application/json");        // posting JSON
