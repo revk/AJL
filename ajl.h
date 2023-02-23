@@ -69,6 +69,7 @@ void j_free(j_t);               // Same as j_delete but where you don't care abo
 
 void j_log(int debug, const char *who, const char *what, j_t a, j_t b); // Generate log files
 char __attribute__((warn_unused_result)) * j_formdata(j_t);     // Generate percent encoded name=value sequence from JSON object
+char __attribute__((warn_unused_result)) * j_multipart(j_t,size_t*);     // Generate multipart formdata coded
 
 // Moving around the tree, these return the j_t of the new point (or NULL if does not exist)
 j_t __attribute__((warn_unused_result)) j_root(const j_t);      // Return root point
@@ -144,7 +145,7 @@ int __attribute__((warn_unused_result)) j_isnull(const j_t);    // True if is nu
 int __attribute__((warn_unused_result)) j_isbool(const j_t);    // True if is a Boolean literal
 int __attribute__((warn_unused_result)) j_istrue(const j_t);    // True if is true literal
 int __attribute__((warn_unused_result)) j_isnumber(const j_t);  // True if is a number
-int __attribute__((warn_unused_result)) j_isliteral(const j_t); // True if is a literl
+int __attribute__((warn_unused_result)) j_isliteral(const j_t); // True if is a literal
 int __attribute__((warn_unused_result)) j_isstring(const j_t);  // True if is a string (i.e. quoted, note "123" is a string, 123 is a number)
 
 // Loading an object. This replaces value at the j_t specified, which is usually a root from j_create()

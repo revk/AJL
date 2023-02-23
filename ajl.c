@@ -1483,6 +1483,85 @@ void j_log(int debug, const char *who, const char *what, j_t a, j_t b)
    }
 }
 
+#define	FORMDIV "CUT-HERE-AJL-LIBRARY-POST-CUT-HERE"
+char *j_multipart(j_t j, size_t *lenp)
+{
+   if (!j)
+      return NULL;
+   size_t len;
+   char *data;
+   FILE *f = open_memstream(&data, &len);
+   void quote(const char *v) {
+      fputc('"', f);
+      while (*v)
+      {
+         if (isalnum(*v))
+            fputc(*v, f);
+         else
+            fprintf(f, "%%%02X", *v);
+         v++;
+      }
+      fputc('"', f);
+   }
+   void add(const char *name, j_t j) {
+      fprintf(f, "--" FORMDIV "\r\n");
+      fprintf(f, "Content-Disposition: form-data");
+      if (name)
+      {
+         fprintf(f, "; name=");
+         quote(name);
+      }
+      if (j_isstring(j) || j_isliteral(j))
+         fprintf(f, "\r\n\r\n%s", j_val(j));
+      else if (j_isobject(j))
+      {
+         j_t v = j_find(j, "filename") ? : j_find(j, "file");
+         if (j_isstring(v))
+         {
+            fprintf(f, "; %s=", j_name(v));
+            quote(j_val(v));
+         }
+         fprintf(f, "\r\n");
+         v = j_find(j, "type");
+         if (j_isstring(v))
+            fprintf(f, "Content-Type: %s\r\n", j_val(v));
+         fprintf(f, "\r\n");
+         v = j_find(j, "value");
+         if (j_isstring(v) || j_isliteral(v))
+            fprintf(f, "%s", j_val(v));
+         else if (v)
+            j_err(j_write(v, f));
+         else if ((v = j_find(j, "file")) && j_isstring(v))
+         {
+            FILE *i = fopen(j_val(v), "r");
+            if (i)
+            {
+               char buf[10240];
+               size_t l;
+               while ((l = fread(buf, 1, sizeof(buf), i)) > 0)
+                  fwrite(buf, l, 1, f);
+               fclose(i);
+            }
+         }
+      } else
+         fprintf(f, "\r\n\r\n");        // No clue
+      fprintf(f, "\r\n");
+   }
+   if (j_isobject(j))
+      for (j_t a = j_first(j); a; a = j_next(a))
+         add(j_name(a), a);
+   else if (j_isarray(j))
+      for (j_t a = j_first(j); a; a = j_next(a))
+         add(NULL, a);
+   else if (!j_isnull(j))
+      add(NULL, j);
+   fprintf(f, "--" FORMDIV "--\r\n");
+   fclose(f);
+   if (lenp)
+      *lenp = len;
+   return data;
+}
+
 char *j_formdata(j_t j)
 {
    if (!j)
@@ -1565,6 +1644,7 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
    va_end(ap);
    struct curl_slist *headers = NULL;
    char *data = NULL;
+   size_t datalen = 0;
    char *err = NULL;
    if (type && type != 4 && !tx)
    {
@@ -1576,7 +1656,7 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
    curl_easy_setopt(curl, CURLOPT_UPLOAD, 0L);
    switch (type)
    {
-   case 0:                     // GET using formdata
+   case J_CURL_GET:            // GET using URL coded
       {
          curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
          if (!tx)
@@ -1594,7 +1674,7 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
          }
       }
       break;
-   case 1:                     // POST using formdata
+   case J_CURL_POST:           // POST using URL coded
       {
          curl_easy_setopt(curl, CURLOPT_POST, 1L);
          if (!tx)
@@ -1602,47 +1682,55 @@ char *j_curl(int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const c
          data = j_formdata(tx);
          if (!data)
             err = j_errs("Failed to make formdata");
+         else
+            datalen = strlen(data);
       }
       break;
-   case 2:                     // POST JSON
+   case J_CURL_FORM:           // POST using multipart/form-data
+      {
+         headers = curl_slist_append(headers, "Content-Type: multipart/form-data; boundary=" FORMDIV);
+         curl_easy_setopt(curl, CURLOPT_POST, 1L);
+         if (!tx)
+            break;
+         data = j_multipart(tx, &datalen);
+         if (!data)
+            err = j_errs("Failed to make formdata");
+      }
+      break;
+   case J_CURL_SEND:           // POST JSON
       {
          curl_easy_setopt(curl, CURLOPT_POST, 1L);
          if (!tx)
             break;
          headers = curl_slist_append(headers, "Content-Type: application/json");        // posting JSON
-         size_t l;
-         err = j_write_mem(tx, &data, &l);
+         err = j_write_mem(tx, &data, &datalen);
       }
       break;
-   case 3:                     // PUT JSON
+   case J_CURL_PUT:            // PUT JSON
       {
          //curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
          curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
          if (!tx)
             break;
          headers = curl_slist_append(headers, "Content-Type: application/json");        // posting JSON
-         size_t l;
-         err = j_write_mem(tx, &data, &l);
+         err = j_write_mem(tx, &data, &datalen);
       }
       break;
-   case 4:                     // DELETE JSON
+   case J_CURL_DELETE:         // DELETE JSON
       {
          curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
          if (!tx)
             break;
          headers = curl_slist_append(headers, "Content-Type: application/json");        // posting JSON
          if (tx)
-         {
-            size_t l;
-            err = j_write_mem(tx, &data, &l);
-         }
+            err = j_write_mem(tx, &data, &datalen);
       }
       break;
    }
-   if (!err && data)
+   if (!err && data && datalen)
    {
       curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long) strlen(data));
+      curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long) datalen);
    }
    if (!err && bearer)
    {                            // Bearer auth (a common auth for JSON)
@@ -1719,14 +1807,20 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
    const char *doget = NULL;
    const char *dopost = NULL;
    const char *dosend = NULL;
+   const char *doform = NULL;
+   const char *doput = NULL;
+   const char *dodelete = NULL;
    const char *test = NULL;
    {                            // POPT
       poptContext optCon;       // context for parsing command-line options
       const struct poptOption optionsTable[] = {
          { "pretty", 'p', POPT_ARG_NONE, &pretty, 0, "Output pretty", NULL },
          { "formdata", 'f', POPT_ARG_NONE, &formdata, 0, "Output as formdata", NULL },
-         { "get", 'G', POPT_ARG_STRING, &doget, 0, "Curl GET formdata", "URL" },
-         { "post", 'P', POPT_ARG_STRING, &dopost, 0, "Curl POST formdata", "URL" },
+         { "get", 'G', POPT_ARG_STRING, &doget, 0, "Curl GET URL", "URL" },
+         { "post", 'P', POPT_ARG_STRING, &dopost, 0, "Curl POST URL", "URL" },
+         { "form", 'P', POPT_ARG_STRING, &doform, 0, "Curl POST formdata", "URL" },
+         { "put", 'P', POPT_ARG_STRING, &doput, 0, "Curl PUT JSON", "URL" },
+         { "delete", 'P', POPT_ARG_STRING, &dodelete, 0, "Curl DELETE", "URL" },
          { "send", 'S', POPT_ARG_STRING, &dosend, 0, "Curl POST JSON", "URL" },
          { "test", 'T', POPT_ARG_STRING, &test, 0, "Run test on OK functions", "string" },
          { "debug", 'v', POPT_ARG_NONE, &debug, 0, "Debug", NULL },
@@ -1749,10 +1843,18 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
             e = j_read(j, stdin);
          if (e)
             fprintf(stderr, "%s: %s\n", fn, e);
-         if (dopost)
+         if (doget || dopost)
          {
             char *f = j_formdata(j);
-            printf("Formdata:\n%s\n", f);
+            printf("Coded:\n%s\n", f);
+            free(f);
+         }
+         if (doform)
+         {
+            size_t l;
+            char *f = j_multipart(j, &l);
+            printf("Coded:\n");
+            fwrite(f, 1, l, stdout);
             free(f);
          }
          if (doget)
@@ -1761,10 +1863,16 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
             j_curl_post(curl, j, j, NULL, "%s", dopost);
          else if (dosend)
             j_curl_send(curl, j, j, NULL, "%s", dosend);
+         else if (doform)
+            j_curl_form(curl, j, j, NULL, "%s", doform);
+         else if (doput)
+            j_curl_put(curl, j, j, NULL, "%s", doput);
+         else if (dodelete)
+            j_curl_delete(curl, j, j, NULL, "%s", dodelete);
          if (formdata)
          {
             char *f = j_formdata(j);
-            printf("Formdata:\n%s\n", f);
+            printf("Reply:\n%s\n", f);
             free(f);
          } else if (pretty)
             j_err(j_write_pretty(j, stdout));
