@@ -1518,7 +1518,7 @@ char *j_multipart(j_t j, size_t *lenp)
          j_t v = j_find(j, "filename") ? : j_find(j, "file");
          if (j_isstring(v))
          {
-            fprintf(f, "; %s=", j_name(v));
+            fprintf(f, "; filename=");
             quote(j_val(v));
          }
          fprintf(f, "\r\n");
