@@ -680,7 +680,7 @@ ajl_type_t ajl_parse(const ajl_t j, unsigned char **tag, unsigned char **value, 
       return AJL_NULL;
    makeerr("Unexpected token");
    return AJL_ERROR;
-   }
+}
 
 // Generate
 // Allocate control structure for generating, to file or to memory

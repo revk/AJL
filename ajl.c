@@ -1749,6 +1749,12 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
             e = j_read(j, stdin);
          if (e)
             fprintf(stderr, "%s: %s\n", fn, e);
+         if (dopost)
+         {
+            char *f = j_formdata(j);
+            printf("Formdata:\n%s\n", f);
+            free(f);
+         }
          if (doget)
             j_curl_get(curl, j, j, NULL, "%s", doget);
          else if (dopost)
@@ -1758,7 +1764,7 @@ int main(int __attribute__((unused)) argc, const char __attribute__((unused)) * 
          if (formdata)
          {
             char *f = j_formdata(j);
-            printf("%s\n", f);
+            printf("Formdata:\n%s\n", f);
             free(f);
          } else if (pretty)
             j_err(j_write_pretty(j, stdout));
