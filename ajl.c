@@ -1774,7 +1774,7 @@ j_curl (int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const char *
    curl_easy_setopt (curl, CURLOPT_HTTPGET, 0L);
    curl_easy_setopt (curl, CURLOPT_POST, 0L);
    curl_easy_setopt (curl, CURLOPT_UPLOAD, 0L);
-   switch (type)
+   switch (type & 255)
    {
    case J_CURL_GET:            // GET using URL coded
       {
@@ -1855,8 +1855,16 @@ j_curl (int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const char *
    if (!err && bearer)
    {                            // Bearer auth (a common auth for JSON)
       char *sa = NULL;
-      if (asprintf (&sa, "Authorization: Bearer %s", bearer) < 0)
-         errx (1, "malloc at line %d", __LINE__);
+      if (type & J_CURL_BASIC)
+      {
+         if (asprintf (&sa, "Authorization: Basic %s", j_base64a (strlen (bearer), (unsigned char *)bearer)) < 0)
+            errx (1, "malloc at line %d", __LINE__);
+
+      } else
+      {
+         if (asprintf (&sa, "Authorization: Bearer %s", bearer) < 0)
+            errx (1, "malloc at line %d", __LINE__);
+      }
       headers = curl_slist_append (headers, sa);
       freez (sa);
    }
