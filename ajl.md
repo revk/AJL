@@ -12,6 +12,10 @@ Note this also defines an `extern char j_iso8601utc`. If this is set non zero th
 
 The key data type used for all AJL operations is `j_t`. This is itself a pointer type, and memory is allocated for the data as needed. You need to ensure the usage of the type is freed.
 
+The actual type can reference the whole JSON object, the tree, which is what you need to ensure is freed. But it can also be used to reference any *node* in the tree, and allow walking the tree and creating and changing the tree.
+
+As such you should keep a root node variable from the `j_create()` and ensure you free (`j_delete()`) that when finished.
+
 ## Creating / deleting
 
 You can create a new JSON object, type `j_t` using `j_create()`. This allocates an empty JSON object which can be used in various functions. In the event of an error a NULL is returned. AJL functions cope with NULL passed without crashing.
