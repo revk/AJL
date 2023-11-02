@@ -10,3 +10,5 @@ The parsing and generation are designed around managing JSON at a lexical level 
 The object management library allows a whole JSON file to be loaded and then processed in memory. You can also create a new object in memory. In either case you can walk around the object, find tagged entries by name or path. Add or remove or change entries by name or path. And, of course, write out the object. This is intended for code that needs to work on an whole JSON object, either processing or generating or editing. It treats most data values as a simple string with the functions to make and parse numbers and Boolean as well.
 
 There is also a function for output of a JSON object in an XML format if needed.
+
+[Manual](ajl.md)
