@@ -1610,7 +1610,7 @@ j_multipart (j_t j, size_t *lenp)
       fputc ('"', f);
       while (*v)
       {
-         if (isalnum (*v))
+         if (isalnum (*v) || strchr (".-/", *v))
             fputc (*v, f);
          else
             fprintf (f, "%%%02X", *v);
@@ -1817,6 +1817,14 @@ j_curl (int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const char *
             err = j_errs ("Failed to make formdata");
       }
       break;
+   case J_CURL_SENDRAW:        // POST assuming preset headers
+      {
+         curl_easy_setopt (curl, CURLOPT_POST, 1L);
+         if (!tx)
+            break;
+         err = j_write_mem (tx, &data, &datalen);
+      }
+      break;
    case J_CURL_SEND:           // POST JSON
       {
          curl_easy_setopt (curl, CURLOPT_POST, 1L);
@@ -1857,7 +1865,7 @@ j_curl (int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const char *
       char *sa = NULL;
       if (type & J_CURL_BASIC)
       {
-         if (asprintf (&sa, "Authorization: Basic %s", j_base64a (strlen (bearer), (unsigned char *)bearer)) < 0)
+         if (asprintf (&sa, "Authorization: Basic %s", j_base64a (strlen (bearer), (unsigned char *) bearer)) < 0)
             errx (1, "malloc at line %d", __LINE__);
 
       } else
