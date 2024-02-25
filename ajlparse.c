@@ -58,7 +58,6 @@ struct ajl_s
 #define escapes \
 	esc ('"', '"') \
         esc ('\\', '\\') \
-        esc ('/', '/') \
 	esc ('b', '\b') \
 	esc ('f', '\f') \
 	esc ('n', '\n') \
@@ -326,7 +325,8 @@ ajl_string (const ajl_t j, FILE * o)
             }
          }
 #define esc(a,b) else if(j->peek==a){ajl_next(j);if(o)fputc(b,o);}
-         escapes
+         escapes                //
+            esc ('/', '/')
 #undef esc
             else
             return j->error = "Bad escape";
@@ -773,16 +773,22 @@ ajl_fwrite_string (FILE * o, const unsigned char *value, size_t len)
       return;
    }
    fputc ('"', o);
+   unsigned char last = 0;
    while (len--)
    {
       unsigned char c = *value++;
 #define esc(a,b) if(c==b){fputc('\\',o);fputc(a,o);} else
       escapes
 #undef esc
-         if (c < ' ')
+         if (c == '/' && last == '<')
+      {
+         fputc ('\\', o);
+         fputc (c, o);
+      } else if (c < ' ')
          fprintf (o, "\\u00%02X", c);
       else
          fputc (c, o);
+      last = c;
    }
    fputc ('"', o);
 }
@@ -796,19 +802,25 @@ ajl_write_string (ajl_t j, const unsigned char *value, size_t len)
       return;
    }
    ajl_put (j, '"');
+   unsigned char last = 0;
    while (len--)
    {
       unsigned char c = *value++;
 #define esc(a,b) if(c==b){ajl_put(j,'\\');ajl_put(j,a);} else
       escapes
 #undef esc
-         if (c < ' ')
+         if (c == '/' && last == '<')
+      {
+         ajl_put (j, '\\');
+         ajl_put (j, c);
+      } else if (c < ' ')
       {
          ajl_puts (j, "\\u00");
          ajl_put (j, "0123456789ABCDEF"[c >> 4]);
          ajl_put (j, "0123456789ABCDEF"[c & 15]);
       } else
          ajl_put (j, c);
+      last = c;
    }
    ajl_put (j, '"');
 }
@@ -822,19 +834,25 @@ add_binary (const ajl_t j, const unsigned char *value, size_t len)
       return;
    }
    ajl_put (j, '"');
+   unsigned char last = 0;
    while (len--)
    {
       unsigned char c = *value++;
 #define esc(a,b) if(c==b){ajl_put(j,'\\');ajl_put(j,a);} else
       escapes
 #undef esc
-         if (c < ' ' || c >= 0x80)
+         if (c == '/' && last == '<')
+      {
+         ajl_put (j, '\\');
+         ajl_put (j, c);
+      } else if (c < ' ' || c >= 0x80)
       {
          ajl_puts (j, "\\u00");
          ajl_put (j, "0123456789ABCDEF"[c >> 4]);
          ajl_put (j, "0123456789ABCDEF"[c & 15]);
       } else
          ajl_put (j, c);
+      last = c;
    }
    ajl_put (j, '"');
 }
