@@ -264,7 +264,7 @@ j_cgi_opts (jcgi_t o)
                   return e;
                continue;
             }
-            if (!o.nojson && !strcasecmp (ct, "application/json"))
+            if (!o.nojson && !strncasecmp (ct, "application/json", 16))
             {                   // JSON
                er = j_read_mem (o.formdata, data, len);
                free (data);
