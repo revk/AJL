@@ -1766,11 +1766,6 @@ j_curl (int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const char *
    char *data = NULL;
    size_t datalen = 0;
    char *err = NULL;
-   if (type && type != 4 && !tx)
-   {
-      freez (fullurl);
-      return j_errs ("No JSON to send (%s)", url);
-   }
    curl_easy_setopt (curl, CURLOPT_HTTPGET, 0L);
    curl_easy_setopt (curl, CURLOPT_POST, 0L);
    curl_easy_setopt (curl, CURLOPT_UPLOAD, 0L);
