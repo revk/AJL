@@ -204,6 +204,12 @@ j_cgi_opts (jcgi_t o)
             }
          }
       }
+      if (o.header)
+      {
+         char *ct = getenv ("CONTENT_TYPE");
+         if (ct)
+            j_store_string (o.header, "Content-Type", ct);
+      }
 
       if (o.info)
          j_sort (o.info);
