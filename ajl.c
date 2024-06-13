@@ -913,9 +913,29 @@ j_write_str (const j_t j)
 {
    char *buffer;
    size_t len;
-   char *e = j_write_mem (j, &buffer, &len);
+   FILE *f = open_memstream (&buffer, &len);
+   char *e = j_write (j, f);
+   fclose (f);
    if (e)
    {
+      free (buffer);
+      free (e);
+      return NULL;
+   }
+   return buffer;
+}
+
+char *
+j_write_pretty_str (const j_t j)
+{
+   char *buffer;
+   size_t len;
+   FILE *f = open_memstream (&buffer, &len);
+   char *e = j_write_pretty (j, f);
+   fclose (f);
+   if (e)
+   {
+      free (buffer);
       free (e);
       return NULL;
    }
