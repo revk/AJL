@@ -51,7 +51,7 @@
 struct j_s
 {                               // JSON point strucccture
    j_t parent;                  // Parent (NULL if root)
-   unsigned char *tag;          // Always malloced, present when this is a child of an object and so tagged
+   unsigned char *tag;          // Always malloced, present when this is a child of an object and so tagged (named)
    union
    {                            // Based on children flag
       j_t *child;               // Array of (len) child pointer entries
@@ -63,6 +63,7 @@ struct j_s
    unsigned char isarray:1;     // This is an array rather than an object (children is set)
    unsigned char isstring:1;    // This is a string rather than a literal (children is NULL)
    unsigned char malloc:1;      // val is malloc'd
+   unsigned char tagged:1;      // Tagged (just a flag on a node)
 };
 
 static unsigned char valnull[] = "null";
@@ -1764,6 +1765,26 @@ j_formdata (j_t j)
       addv (j);
    fclose (f);
    return data;
+}
+
+void
+j_tag (j_t j)
+{
+   if (j)
+      j->tagged = 1;
+}
+
+void
+j_untag (j_t j)
+{
+   if (j)
+      j->tagged = 0;
+}
+
+int
+j_tagged (j_t j)
+{
+   return j->tagged;
 }
 
 #ifdef	JCURL

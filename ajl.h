@@ -190,6 +190,11 @@ j_t j_array(const j_t);         // Make this point an array (empty if it was not
 j_t j_make(const j_t, const char *name);        // Find the named entry in an object, or make a new named entry if not found (null value)
 j_t j_append(const j_t);        // Append a new point to an array (initially a null)
 
+// Tagging (Mark a node)
+void j_tag(j_t);	// Tag a node
+void j_untag(j_t);	// Untag a node
+int j_tagged(j_t);	// is not tagged
+
 // Sort
 typedef int j_sort_func(const void *a, const void *b);  // Allow sorting
 void j_sort(const j_t);         // Apply a recursive sort so all objects have fields in alphabetic order.
