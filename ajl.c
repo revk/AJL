@@ -703,6 +703,7 @@ j_recv (j_t root, ajl_t p)
       if (v)
          fprintf (f, " posn %d", v);
       fprintf (f, ": %s, ", e);
+#if 0
       char *location = NULL;
       while (j && j != root)
       {
@@ -734,8 +735,9 @@ j_recv (j_t root, ajl_t p)
          }
          j = p;
       }
-      fprintf (f, "%s", location);
+      if(location)fprintf (f, "%s", location);
       free (location);
+#endif
       fclose (f);
    }
    return ret;
