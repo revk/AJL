@@ -703,16 +703,39 @@ j_recv (j_t root, ajl_t p)
       if (v)
          fprintf (f, " posn %d", v);
       fprintf (f, ": %s, ", e);
+      char *location = NULL;
       while (j && j != root)
       {
+         j_t p = j_parent (j);
+         if (p == root)
+            p = NULL;
+         char *next = NULL;
          if (j->tag)
-            fprintf (f, "\"%s\"", j->tag);
-         else
-            fprintf (f, "[%d]", j->posn);
-         j = j_parent (j);
-         if (j != root)
-            fprintf (f, " in ");
+         {
+            if (!location)
+               next = strdup ((char*)j->tag);
+            else if (*location == '[')
+               asprintf (&next, "%s%s", j->tag, location);
+            else
+               asprintf (&next, "%s.%s", j->tag, location);
+         } else if (p)
+         {
+            if (!location)
+               asprintf (&next, "[%d]", j->posn);
+            else if (*location == '[')
+               asprintf (&next, "[%d]%s", j->posn, location);
+            else
+               asprintf (&next, "[%d].%s", j->posn, location);
+         }
+         if (next)
+         {
+            free (location);
+            location = next;
+         }
+         j = p;
       }
+      fprintf (f, "%s", location);
+      free (location);
       fclose (f);
    }
    return ret;
