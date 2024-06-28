@@ -1834,6 +1834,8 @@ j_curl (int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const char *
    curl_easy_setopt (curl, CURLOPT_HTTPGET, 0L);
    curl_easy_setopt (curl, CURLOPT_POST, 0L);
    curl_easy_setopt (curl, CURLOPT_UPLOAD, 0L);
+   if (curlv)
+      headers = curl_slist_append (headers, "Connection: keep-alive");
    switch (type & 255)
    {
    case J_CURL_GET:            // GET using URL coded
