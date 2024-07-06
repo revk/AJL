@@ -42,6 +42,7 @@ enum
 };
 // Or these with type
 #define	J_CURL_BASIC	256	// bearer is actually basic auth instead
+#define	J_CURL_APIKEY	512	// bearer is actually APIKey instead
 
 char *j_curl(int type, CURL * crl, j_t tx, j_t rx, const char *bearer, const char *url, ...);
 #define	j_curl_get(curl,tx,rx,bearer,...) j_curl(J_CURL_GET,curl,tx,rx,bearer,__VA_ARGS__)       // GET, formdata
