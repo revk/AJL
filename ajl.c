@@ -809,7 +809,7 @@ static char *
 j_write_flags (const j_t root, ajl_t p, char pretty, char aclose)
 {
    if (!root)
-      return "No JSON";
+      return strdup ("No JSON");
    if (pretty)
       ajl_pretty (p);
    j_t j = root;
