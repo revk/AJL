@@ -262,7 +262,7 @@ j_cgi_opts (jcgi_t o)
          do
          {
             char *er = NULL;
-            if (!strcasecmp (ct, "application/x-www-form-urlencoded"))
+            if (!strncasecmp (ct, "application/x-www-form-urlencoded", 33))
             {                   // Simple URL encoding
                char *e = j_parse_formdata (o.formdata, data);
                free (data);
