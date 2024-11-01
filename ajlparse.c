@@ -493,8 +493,7 @@ ajl_done (ajl_t * jp)
       if (j->peeked)
          e--;
    }
-   free (j);
-   *jp = NULL;
+   ajl_delete (jp);
    return e;
 }
 
