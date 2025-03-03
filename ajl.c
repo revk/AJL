@@ -1925,15 +1925,18 @@ j_curl (int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const char *
    if (!err && bearer)
    {                            // Bearer auth (a common auth for JSON)
       char *sa = NULL;
-      if (type & J_CURL_APIKEY)
+      if (type & J_CURL_AUTH_APIKEY)
       {
          if (asprintf (&sa, "apikey: %s", bearer) < 0)
             errx (1, "malloc at line %d", __LINE__);
-      } else if (type & J_CURL_BASIC)
+      } else if (type & J_CURL_AUTH_BEARER_BASIC)
       {
          if (asprintf (&sa, "Authorization: Basic %s", j_base64a (strlen (bearer), (unsigned char *) bearer)) < 0)
             errx (1, "malloc at line %d", __LINE__);
-
+      } else if (type & J_CURL_AUTH_BEARER_APIKEY)
+      {
+         if (asprintf (&sa, "Authorization: ApiKey %s", j_base64a (strlen (bearer), (unsigned char *) bearer)) < 0)
+            errx (1, "malloc at line %d", __LINE__);
       } else
       {
          if (asprintf (&sa, "Authorization: Bearer %s", bearer) < 0)
