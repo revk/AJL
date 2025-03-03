@@ -45,6 +45,10 @@ enum
 #define	J_CURL_AUTH_BEARER_APIKEY	512	// authorisation is actually ApiKey not Bearer
 #define	J_CURL_AUTH_APIKEY		1024	// bearer is apikey 
 
+// Older names
+#define	J_CURL_BASIC			256
+#define	J_CURL_APIKEY			1024
+
 char *j_curl(int type, CURL * crl, j_t tx, j_t rx, const char *bearer, const char *url, ...);
 #define	j_curl_get(curl,tx,rx,bearer,...) j_curl(J_CURL_GET,curl,tx,rx,bearer,__VA_ARGS__)       // GET, formdata
 #define	j_curl_post(curl,tx,rx,bearer,...) j_curl(J_CURL_POST,curl,tx,rx,bearer,__VA_ARGS__)      // POST, formdata
