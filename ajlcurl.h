@@ -50,8 +50,8 @@ enum
 #define	J_CURL_APIKEY			1024
 
 char *j_curl(int type, CURL * crl, j_t tx, j_t rx, const char *bearer, const char *url, ...);
-#define	j_curl_get(curl,tx,rx,bearer,...) j_curl(J_CURL_GET,curl,tx,rx,bearer,__VA_ARGS__)       // GET, formdata
-#define	j_curl_post(curl,tx,rx,bearer,...) j_curl(J_CURL_POST,curl,tx,rx,bearer,__VA_ARGS__)      // POST, formdata
+#define	j_curl_get(curl,tx,rx,bearer,...) j_curl(J_CURL_GET,curl,tx,rx,bearer,__VA_ARGS__)       // GET, urlcoded
+#define	j_curl_post(curl,tx,rx,bearer,...) j_curl(J_CURL_POST,curl,tx,rx,bearer,__VA_ARGS__)      // POST, urlcoded
 #define	j_curl_send(curl,tx,rx,bearer,...) j_curl(J_CURL_SEND,curl,tx,rx,bearer,__VA_ARGS__)      // POST, json
 #define	j_curl_sendraw(curl,tx,rx,bearer,...) j_curl(J_CURL_SENDRAW,curl,tx,rx,bearer,__VA_ARGS__)      // POST, json
 #define	j_curl_put(curl,tx,rx,bearer,...) j_curl(J_CURL_PUT,curl,tx,rx,bearer,__VA_ARGS__)      // PUT, json
