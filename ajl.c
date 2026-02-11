@@ -1916,6 +1916,16 @@ j_curl (int type, CURL * curlv, j_t tx, j_t rx, const char *bearer, const char *
             err = j_write_mem (tx, &data, &datalen);
       }
       break;
+   case J_CURL_PATCH:         // PATCH JSON
+      {
+         curl_easy_setopt (curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+         if (!tx)
+            break;
+         headers = curl_slist_append (headers, "Content-Type: application/json");       // posting JSON
+         if (tx)
+            err = j_write_mem (tx, &data, &datalen);
+      }
+      break;
    }
    if (!err && data && datalen)
    {
@@ -2016,6 +2026,7 @@ main (int __attribute__((unused)) argc, const char __attribute__((unused)) * arg
    const char *doform = NULL;
    const char *doput = NULL;
    const char *dodelete = NULL;
+   const char *dopatch = NULL;
    const char *test = NULL;
    poptContext optCon;          // context for parsing command-line options
    {                            // POPT
@@ -2027,6 +2038,7 @@ main (int __attribute__((unused)) argc, const char __attribute__((unused)) * arg
          {"form", 'P', POPT_ARG_STRING, &doform, 0, "Curl POST formdata", "URL"},
          {"put", 'P', POPT_ARG_STRING, &doput, 0, "Curl PUT JSON", "URL"},
          {"delete", 'P', POPT_ARG_STRING, &dodelete, 0, "Curl DELETE", "URL"},
+         {"patch", 'P', POPT_ARG_STRING, &dopatch, 0, "Curl PATCH", "URL"},
          {"send", 'S', POPT_ARG_STRING, &dosend, 0, "Curl POST JSON", "URL"},
          {"test", 'T', POPT_ARG_STRING, &test, 0, "Run test on OK functions", "string"},
          {"debug", 'v', POPT_ARG_NONE, &debug, 0, "Debug", NULL},
@@ -2076,6 +2088,8 @@ main (int __attribute__((unused)) argc, const char __attribute__((unused)) * arg
             j_curl_put (curl, j, j, NULL, "%s", doput);
          else if (dodelete)
             j_curl_delete (curl, j, j, NULL, "%s", dodelete);
+         else if (dopatch)
+            j_curl_patch (curl, j, j, NULL, "%s", dopatch);
          if (formdata)
          {
             char *f = j_formdata (j);
